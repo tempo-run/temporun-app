@@ -19,8 +19,8 @@ const C = {
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 function Ic({ n, z=20, c="currentColor", st={} }) {
   const paths = {
-    home:     <><path d="M12 2L3 9v13h5v-7h4v7h5V9z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={c} fillOpacity="0.18"/><path d="M9 22v-7h6v7" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></>,
-    run:      <><circle cx="15" cy="3.5" r="1.8" stroke={c} strokeWidth="1.5"/><path d="M15 5.3L13 9l-4 1.5M13 9l1 3.5-2.5 4M9 10.5l-2 5M14 12.5l3.5 4.5" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></>,
+    home:     <><path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3V10.5z" stroke={c} strokeWidth="1.7" strokeLinejoin="round" fill="none"/></>,
+    run:      <><circle cx="14.5" cy="3" r="1.7" fill={c}/><path d="M13 5.5c1 .5 2.5.5 3.5 0M14 7l-1.5 4 3 1.5M12.5 11L10 16M14.5 11l1 2.5 3 2M10 16l-2 3M15.5 13.5L17 17" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></>,
     explore:  <><path d="M2 19l7-12 4 7 3-4 6 9H2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></>,
     studio:   <><rect x="3" y="3" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/></>,
     science:  <><path d="M8 4C8 4 16 7 16 12C16 17 8 20 8 20M16 4C16 4 8 7 8 12C8 17 16 20 16 20" stroke={c} strokeWidth="1.6" strokeLinecap="round"/><path d="M8.5 8.5h7M8.5 15.5h7" stroke={c} strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/></>,
@@ -1076,13 +1076,13 @@ function LoginScreen({ onLogin }) {
   // Tela principal
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center"}}>
-      <div style={{marginTop:20,marginBottom:28,display:"flex",flexDirection:"column",alignItems:"center",width:"100%",gap:0}}>
-        <img src={logoImg} alt="TempoRun" style={{width:200,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 30px "+C.violet+"55)",marginBottom:0}}/>
-        <h1 style={{margin:"4px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:30,fontWeight:800,letterSpacing:1,fontStyle:"italic",lineHeight:1}}>
+      <div style={{marginTop:16,marginBottom:24,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
+        <img src={logoImg} alt="TempoRun" style={{width:170,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 28px "+C.violet+"66) drop-shadow(0 0 60px "+C.cyan+"33)",marginBottom:10}}/>
+        <h1 style={{margin:"0 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:28,fontWeight:800,letterSpacing:2,fontStyle:"italic",lineHeight:1,textTransform:"uppercase"}}>
           <span style={{color:C.tp}}>TEMPO </span>
-          <span style={{background:"linear-gradient(135deg,"+C.violetL+","+C.cyanB+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>RUN</span>
+          <span style={{background:"linear-gradient(90deg,"+C.violetL+","+C.cyanB+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>RUN</span>
         </h1>
-        <p style={{color:C.tm,fontSize:14,margin:"10px 0 0",fontWeight:400}}>Conecte-se para continuar</p>
+        <p style={{color:C.ts,fontSize:13,margin:"9px 0 0",fontWeight:400,letterSpacing:0.3}}>Conecte-se para continuar</p>
       </div>
       <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
         <button onClick={()=>{setMode("otp_email");setErro("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
