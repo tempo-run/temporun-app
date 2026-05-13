@@ -1095,6 +1095,10 @@ function LoginScreen({ onLogin }) {
           <svg width="22" height="22" viewBox="0 0 24 24" style={{flexShrink:0}}><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com Google</span>
         </button>
+        <button onClick={()=>sb.signInStrava()} style={{background:"transparent",border:"1px solid "+C.strava+"66",borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={C.strava} style={{flexShrink:0}}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com Strava</span>
+        </button>
       </div>
       <p style={{color:C.tm,fontSize:12,margin:0,textAlign:"center",lineHeight:1.6,maxWidth:300}}>
         Ao continuar, você concorda com nossos<br/>
@@ -1170,13 +1174,10 @@ export default function TempoRunApp() {
   // Strava — auto-conecta se login foi via Strava
   const [stravaConnected, setStravaConnected] = useState(false);
   const [stravaRuns, setStravaRuns] = useState([]);
-  const [stravaCardDismissed, setStravaCardDismissed] = useState(()=>{
-    try { return localStorage.getItem("strava_card_dismissed")==="1"; } catch{ return false; }
-  });
   useEffect(()=>{
     if(session?.provider==="strava" && session?.strava_token) {
       setStravaConnected(true);
-      setStravaRuns(STRAVA_MOCK);
+      setStravaRuns(STRAVA_MOCK); // substitui por fetch real quando integrar API
     }
   },[session]);
 
@@ -1551,27 +1552,17 @@ export default function TempoRunApp() {
             {[
               {id:"config", nome:"Configurações", desc:"Notificações, unidades, tema",  icon:"settings", cor:C.cyanB},
               {id:"dados",  nome:"Dados pessoais",desc:"Nome, idade, peso, FC máxima", icon:"profile",  cor:C.violetL},
-              {id:"strava", nome:stravaConnected?"Strava conectado":"Conectar Strava", desc:stravaConnected?"Treinos sincronizando automaticamente":"Importe seus treinos do Strava", icon:"run", cor:C.strava},
               {id:"logout", nome:"Logout",         desc:"Sair da conta",                icon:"back",     cor:C.coral},
             ].map(opt=>(
-              <button key={opt.id} onClick={()=>{
-                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();setSession(null);setShowPerfil(false);setTab("home");}
-                if(opt.id==="strava"&&!stravaConnected){setShowPerfil(false);sb.signInStrava();}
-                if(opt.id==="strava"&&stravaConnected){setStravaConnected(false);setStravaRuns([]);}
-              }} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
+              <button key={opt.id} onClick={()=>{if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();setSession(null);setShowPerfil(false);setTab("home");}}} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
                 <div style={{width:32,height:32,borderRadius:9,background:opt.cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+opt.cor+"33"}}>
-                  {opt.id==="strava"
-                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill={opt.cor}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-                    : <Ic n={opt.icon} z={16} c={opt.cor}/>}
+                  <Ic n={opt.icon} z={16} c={opt.cor}/>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{opt.nome}</p>
                   <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>{opt.desc}</p>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                  {opt.id==="strava"&&stravaConnected&&<div style={{width:7,height:7,borderRadius:"50%",background:C.green,boxShadow:"0 0 6px "+C.green}}/>}
-                  <Ic n="back" z={13} c={opt.cor} st={{transform:"rotate(180deg)"}}/>
-                </div>
+                <Ic n="back" z={13} c={opt.cor} st={{transform:"rotate(180deg)",flexShrink:0}}/>
               </button>
             ))}
           </div>
@@ -1579,26 +1570,6 @@ export default function TempoRunApp() {
 
         {!showPerfil&&!showSaber&&(
           <div>
-            {/* Card Strava — aparece uma vez, some ao conectar ou fechar */}
-            {!stravaConnected && !stravaCardDismissed && (
-              <div style={{background:"linear-gradient(135deg,#1a0800,#200e00)",border:"1px solid "+C.strava+"55",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative"}}>
-                <button onClick={()=>{setStravaCardDismissed(true);try{localStorage.setItem("strava_card_dismissed","1");}catch{}}} style={{position:"absolute",top:10,right:10,background:"none",border:"none",color:C.td,fontSize:16,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                  <div style={{width:34,height:34,borderRadius:10,background:C.strava+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+C.strava+"44"}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill={C.strava}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-                  </div>
-                  <div style={{flex:1}}>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Conecte seu Strava</p>
-                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>Importe seus treinos automaticamente</p>
-                  </div>
-                </div>
-                <button onClick={()=>sb.signInStrava()} style={{width:"100%",background:C.strava,color:"#fff",border:"none",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-                  Conectar com Strava
-                </button>
-              </div>
-            )}
-
             <div style={{background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"33",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative",overflow:"hidden"}}>
               <p style={{color:C.violetB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 5px",opacity:0.8}}>motivação do dia</p>
               <p style={{color:C.tp,fontSize:14,fontWeight:600,margin:0,lineHeight:1.55,fontStyle:"italic"}}>"{frases[fraseIdx]}"</p>
