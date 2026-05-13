@@ -891,7 +891,7 @@ const sb = {
     });
   },
 
-  // Envia OTP de 7 dígitos para o email
+  // Envia OTP de 6 dígitos para o email
   async sendOTP(email) {
     const r = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
       method:"POST", headers:this._headers,
@@ -940,10 +940,10 @@ const sb = {
 function LoginScreen({ onLogin }) {
   const [mode, setMode]       = useState("main"); // main | otp_email | otp_code
   const [email, setEmail]     = useState("");
-  const [otp, setOtp]         = useState(["","","","","","",""]);
+  const [otp, setOtp]         = useState(["","","","","",""]);
   const [erro, setErro]       = useState("");
   const [loading, setLoading] = useState(false);
-  const otpRefs               = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
+  const otpRefs               = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
 
   useEffect(()=>{
     const session = sb.parseHashSession();
@@ -985,7 +985,7 @@ function LoginScreen({ onLogin }) {
       onLogin({ access_token:data.access_token, email:data.user?.email||email });
     } else {
       setErro("Código inválido ou expirado.");
-      setOtp(["","","","","","",""]);
+      setOtp(["","","","","",""]);
       setTimeout(()=>otpRefs[0].current?.focus(), 100);
     }
   }
@@ -993,7 +993,7 @@ function LoginScreen({ onLogin }) {
   function handleOtpChange(val, idx) {
     if(!/^\d*$/.test(val)) return;
     const next=[...otp]; next[idx]=val.slice(-1); setOtp(next);
-    if(val && idx<6) otpRefs[idx+1].current?.focus();
+    if(val && idx<5) otpRefs[idx+1].current?.focus();
     if(next.every(d=>d)) setTimeout(()=>verifyCode(next.join("")), 100);
   }
 
@@ -1012,7 +1012,7 @@ function LoginScreen({ onLogin }) {
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="#fff" strokeWidth="2"/><path d="M3 7l9 7 9-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <h2 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:"0 0 6px",fontWeight:800}}>Entrar com e-mail</h2>
-        <p style={{color:C.tm,fontSize:13,margin:0}}>Enviaremos um código de 7 dígitos</p>
+        <p style={{color:C.tm,fontSize:13,margin:0}}>Enviaremos um código de 6 dígitos</p>
       </div>
       <form onSubmit={handleSendOTP} style={{display:"flex",flexDirection:"column",gap:12}}>
         <div>
@@ -1024,14 +1024,14 @@ function LoginScreen({ onLogin }) {
           {loading?"Enviando...":"Enviar código"}
         </button>
       </form>
-      <p style={{color:C.td,fontSize:11,margin:"16px 0 0",textAlign:"center",lineHeight:1.6}}>Sem senha — só o código de 7 dígitos que enviaremos.</p>
+      <p style={{color:C.td,fontSize:11,margin:"16px 0 0",textAlign:"center",lineHeight:1.6}}>Sem senha — só o código de 6 dígitos que enviaremos.</p>
     </div>
   );
 
   // Tela: digitar código OTP
   if(mode==="otp_code") return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px"}}>
-      <button onClick={()=>{setMode("otp_email");setErro("");setOtp(["","","","","","",""]);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,alignSelf:"flex-start",marginBottom:28}}>
+      <button onClick={()=>{setMode("otp_email");setErro("");setOtp(["","","","","",""]);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,alignSelf:"flex-start",marginBottom:28}}>
         <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
       </button>
       <div style={{textAlign:"center",marginBottom:28}}>
@@ -1043,12 +1043,12 @@ function LoginScreen({ onLogin }) {
         <p style={{color:C.cyanB,fontSize:14,fontWeight:700,margin:0}}>{email}</p>
       </div>
 
-      <div style={{display:"flex",gap:7,justifyContent:"center",marginBottom:20}}>
+      <div style={{display:"flex",gap:9,justifyContent:"center",marginBottom:20}}>
         {otp.map((d,i)=>(
           <input key={i} ref={otpRefs[i]} type="text" inputMode="numeric" maxLength={1} value={d}
             onChange={e=>handleOtpChange(e.target.value,i)}
             onKeyDown={e=>handleOtpKey(e,i)}
-            style={{width:38,height:52,borderRadius:12,background:C.s2,border:"2px solid "+(d?C.cyanB:erro?C.coral:C.border),textAlign:"center",color:C.tp,fontSize:22,fontWeight:800,fontFamily:"monospace",outline:"none",transition:"border 0.15s",caretColor:"transparent"}}
+            style={{width:44,height:56,borderRadius:12,background:C.s2,border:"2px solid "+(d?C.cyanB:erro?C.coral:C.border),textAlign:"center",color:C.tp,fontSize:24,fontWeight:800,fontFamily:"monospace",outline:"none",transition:"border 0.15s",caretColor:"transparent"}}
           />
         ))}
       </div>
@@ -1059,7 +1059,7 @@ function LoginScreen({ onLogin }) {
       <button onClick={()=>verifyCode(otp.join(""))} disabled={loading||otp.some(d=>!d)} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"14px 0",fontWeight:800,fontSize:15,cursor:(loading||otp.some(d=>!d))?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44",opacity:(loading||otp.some(d=>!d))?0.55:1}}>
         Confirmar
       </button>
-      <button onClick={()=>{setOtp(["","","","","","",""]);setErro("");handleSendOTP({preventDefault:()=>{}});}} disabled={loading} style={{background:"none",border:"none",color:C.tm,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:"14px 0",textAlign:"center"}}>
+      <button onClick={()=>{setOtp(["","","","","",""]);setErro("");handleSendOTP({preventDefault:()=>{}});}} disabled={loading} style={{background:"none",border:"none",color:C.tm,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:"14px 0",textAlign:"center"}}>
         Não recebi — reenviar código
       </button>
       <p style={{color:C.td,fontSize:11,textAlign:"center",lineHeight:1.6,margin:0}}>O código expira em 10 minutos.</p>
