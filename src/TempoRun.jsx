@@ -3,6 +3,8 @@ import runnerStride from './assets/runner_stride.png';
 import runnerLanding from './assets/runner_landing.png';
 import runnerOverstride from './assets/runner_overstride.png';
 import logoImg from './assets/logo.png';
+import perfilImg from './assets/perfil.png';
+import inicioTreino from './assets/inicio_treino.png';
 import { useState, useEffect, useRef, useMemo } from "react";
 
 // ─── PALETTE ──────────────────────────────────────────────────────────────────
@@ -1527,7 +1529,7 @@ export default function TempoRunApp() {
           <p style={{color:C.violetB,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 14px",fontFamily:"monospace"}}>👤 Perfil</p>
           <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:18}}>
             <div style={{width:72,height:72,borderRadius:36,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"2px solid "+C.violet+"66",overflow:"hidden"}}>
-              {dadosForm.foto ? <img src={dadosForm.foto} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <span style={{fontSize:32}}>🦊</span>}
+              {dadosForm.foto ? <img src={dadosForm.foto} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <img src={perfilImg} alt="" style={{width:"100%",height:"100%",objectFit:"contain"}}/>}
             </div>
             <div style={{flex:1}}>
               <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:"0 0 8px"}}>Foto de perfil</p>
@@ -1713,7 +1715,7 @@ export default function TempoRunApp() {
               <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Saber</span>
             </button>
             <button onClick={()=>{setShowPerfil(!showPerfil);setShowSaber(false);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px"}}>
-              <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,border:"2px solid "+(showPerfil?C.cyanB+"88":"transparent"),boxShadow:showPerfil?"0 0 14px "+C.violet+"66":"none"}}>🦊</div>
+              <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":"transparent"),boxShadow:showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:"contain"}}/></div>
               <span style={{color:showPerfil?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Perfil</span>
             </button>
           </div>
@@ -2870,7 +2872,7 @@ export default function TempoRunApp() {
                   <p style={{color:"#ffffff99",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:0}}>TempoRun · {lastRun.data}</p>
                   <p style={{color:"#fff",fontWeight:800,fontSize:18,margin:"4px 0 0",fontFamily:"'Space Grotesk',sans-serif"}}>Michel Costa</p>
                 </div>
-                <div style={{width:36,height:36,borderRadius:11,background:"#ffffff22",display:"flex",alignItems:"center",justifyContent:"center"}}>🦊</div>
+                <div style={{width:36,height:36,borderRadius:11,background:"#ffffff22",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}><img src={perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:"contain"}}/></div>
               </div>
               <div style={{textAlign:"center",marginBottom:14}}>
                 <p style={{color:"#ffffffaa",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 4px"}}>Distância</p>
@@ -3010,7 +3012,7 @@ export default function TempoRunApp() {
           })}
           <button disabled={!loggedIn} onClick={()=>{if(loggedIn){setTab("treino");setSubScreen(null);}}} style={{background:"none",border:"none",cursor:loggedIn?"pointer":"default",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"0 10px",opacity:loggedIn?1:0.85}}>
             <div style={{width:52,height:52,borderRadius:16,background:loggedIn&&tab==="treino"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"linear-gradient(135deg,"+C.s2+","+C.s3+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:loggedIn&&tab==="treino"?"0 4px 22px "+C.violet+"55":"none",border:"1px solid "+(loggedIn&&tab==="treino"?C.violet+"66":C.border),marginTop:-20}}>
-              <Ic n="run" z={26} c={loggedIn&&tab==="treino"?"#fff":C.ts}/>
+              <img src={inicioTreino} alt="treino" style={{width:26,height:26,objectFit:"contain",filter:loggedIn&&tab==="treino"?"brightness(0) invert(1)":"brightness(0) saturate(100%) invert(35%) sepia(10%) hue-rotate(200deg)"}}/>
             </div>
             <span style={{fontSize:8.5,fontWeight:700,color:loggedIn&&tab==="treino"?C.tp:C.tg,letterSpacing:0.2,fontFamily:"monospace",textTransform:"uppercase",marginTop:2}}>Treino</span>
           </button>
