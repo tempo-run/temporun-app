@@ -1095,10 +1095,6 @@ function LoginScreen({ onLogin }) {
           <svg width="22" height="22" viewBox="0 0 24 24" style={{flexShrink:0}}><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com Google</span>
         </button>
-        <button onClick={()=>sb.signInStrava()} style={{background:"transparent",border:"1px solid "+C.strava+"66",borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill={C.strava} style={{flexShrink:0}}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-          <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com Strava</span>
-        </button>
       </div>
       <p style={{color:C.tm,fontSize:12,margin:0,textAlign:"center",lineHeight:1.6,maxWidth:300}}>
         Ao continuar, você concorda com nossos<br/>
@@ -1174,10 +1170,13 @@ export default function TempoRunApp() {
   // Strava — auto-conecta se login foi via Strava
   const [stravaConnected, setStravaConnected] = useState(false);
   const [stravaRuns, setStravaRuns] = useState([]);
+  const [stravaCardDismissed, setStravaCardDismissed] = useState(()=>{
+    try { return localStorage.getItem("strava_card_dismissed")==="1"; } catch{ return false; }
+  });
   useEffect(()=>{
     if(session?.provider==="strava" && session?.strava_token) {
       setStravaConnected(true);
-      setStravaRuns(STRAVA_MOCK); // substitui por fetch real quando integrar API
+      setStravaRuns(STRAVA_MOCK);
     }
   },[session]);
 
@@ -1204,6 +1203,15 @@ export default function TempoRunApp() {
 
   const [showPerfil, setShowPerfil] = useState(false);
   const [showSaber, setShowSaber]   = useState(false);
+  const [showDadosModal, setShowDadosModal]   = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [dadosForm, setDadosForm] = useState({nome:"", foto:null, dataNasc:"", sexo:"", pais:"Brasil", cidade:"", altura:"", peso:"", tenis:[], relogios:[], fones:[]});
+  const [configForm, setConfigForm] = useState({lembreteTreino:true, rpNotif:true, tema:"dark", vozGenero:"masculina", vozEstilo:"motivacional", mapaOffline:false, mostrarAltimetria:true, rotasSeguras:false, autoPause:true, vibracaoSplit:true, alertasHidratacao:false, cadenciaAlvo:"180", idioma:"pt-BR", assinaturaPro:false, backupSync:true});
+  const [equipDropdown, setEquipDropdown] = useState(null);
+  const [equipInput, setEquipInput] = useState("");
+  const PAISES = ["Brasil","Irlanda","Alemanha","Angola","Argentina","Austrália","Bélgica","Bolívia","Cabo Verde","Canadá","Chile","China","Colômbia","Coreia do Sul","Dinamarca","Emirados Árabes","Equador","Espanha","Estados Unidos","França","Grécia","Guatemala","Holanda","Hungria","Índia","Itália","Japão","México","Moçambique","Noruega","Nova Zelândia","Paraguai","Peru","Polônia","Portugal","Reino Unido","Rússia","Suécia","Suíça","Turquia","Ucrânia","Uruguai","Venezuela"];
+  const CIDADES = {"Brasil":["São Paulo","Rio de Janeiro","Brasília","Salvador","Fortaleza","Belo Horizonte","Manaus","Curitiba","Recife","Porto Alegre","Belém","Goiânia","Florianópolis","São Luís","Maceió","Natal","Teresina","Campo Grande","João Pessoa","Aracaju"],"Irlanda":["Dublin","Cork","Limerick","Galway","Waterford","Drogheda","Dundalk","Swords","Bray","Navan"],"Portugal":["Lisboa","Porto","Braga","Coimbra","Aveiro","Faro","Setúbal","Viseu","Évora","Funchal"],"Estados Unidos":["New York","Los Angeles","Chicago","Houston","Phoenix","Philadelphia","San Antonio","San Diego","Dallas","San Francisco","Boston","Miami","Seattle","Denver","Atlanta"],"Reino Unido":["Londres","Manchester","Birmingham","Leeds","Glasgow","Liverpool","Bristol","Edinburgh","Sheffield","Cardiff"],"Alemanha":["Berlim","Munique","Hamburgo","Frankfurt","Colônia","Stuttgart","Düsseldorf","Leipzig","Dortmund","Essen"],"França":["Paris","Lyon","Marselha","Toulouse","Nice","Bordeaux","Lille","Nantes","Strasbourg","Montpellier"],"Espanha":["Madrid","Barcelona","Valencia","Sevilha","Zaragoza","Málaga","Murcia","Palma","Las Palmas","Bilbao"],"Itália":["Roma","Milão","Nápoles","Turim","Palermo","Gênova","Bologna","Florença","Bari","Veneza"],"Argentina":["Buenos Aires","Córdoba","Rosário","Mendoza","La Plata","Tucumán","Mar del Plata","Salta","Santa Fé","San Juan"]};
+  const EQUIPAMENTOS = {tenis:["Nike Vaporfly 3","Nike Alphafly 3","Nike Pegasus 41","Adidas Adizero Adios Pro 3","Adidas Ultraboost 23","ASICS Metaspeed Sky+","ASICS Gel-Kayano 31","ASICS Gel-Nimbus 26","Brooks Ghost 16","Brooks Hyperion Max","Saucony Endorphin Pro 3","Saucony Kinvara 14","Hoka Rocket X 2","Hoka Clifton 9","New Balance FuelCell SC Elite v3","New Balance Fresh Foam 1080","On Cloudboom Echo 3","Mizuno Wave Rider 27","Outro"],relogios:["Garmin Forerunner 965","Garmin Forerunner 265","Garmin Fenix 7","Garmin Epix Pro","Apple Watch Ultra 2","Apple Watch Series 9","Polar Vantage V3","Polar Pacer Pro","Suunto Race","Suunto 9 Peak Pro","Coros Pace 3","Coros Apex 2 Pro","Coros Vertix 2S","Wahoo Elemnt Rival","Outro"],fones:["AirPods Pro 2","AirPods 3","Sony WF-1000XM5","Bose QuietComfort Earbuds II","Jabra Elite 8 Active","Shokz OpenRun Pro 2","Shokz OpenSwim","Beats Fit Pro","Samsung Galaxy Buds 2 Pro","Anker Soundcore Sport X10","Outro"]};
   const [saberTab, setSaberTab]   = useState("explorar");
   const [saberMsgs, setSaberMsgs] = useState([]);
   const [saberIn, setSaberIn]     = useState("");
@@ -1460,6 +1468,229 @@ export default function TempoRunApp() {
     return <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:16,padding:14,marginBottom:12,border:"1px solid "+C.border,...extra}}>{children}</div>;
   }
 
+
+  // ── DADOS PESSOAIS MODAL ──────────────────────────────────────────────────────
+  function renderDadosModal() {
+    const inp = (label,key,type="text",placeholder="",extra={}) => (
+      <div style={{marginBottom:13}}>
+        <label style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",display:"block",marginBottom:5,fontFamily:"monospace"}}>{label}</label>
+        <input type={type} value={dadosForm[key]||""} placeholder={placeholder}
+          onChange={e=>setDadosForm(p=>({...p,[key]:e.target.value}))}
+          style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"11px 12px",color:C.tp,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...extra}}/>
+      </div>
+    );
+    const sel = (label,key,opts) => (
+      <div style={{marginBottom:13}}>
+        <label style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",display:"block",marginBottom:5,fontFamily:"monospace"}}>{label}</label>
+        <select value={dadosForm[key]||""} onChange={e=>{const upd={[key]:e.target.value};if(key==="pais")upd.cidade="";setDadosForm(p=>({...p,...upd}));}}
+          style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"11px 12px",color:dadosForm[key]?C.tp:C.tm,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235567a0' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center"}}>
+          <option value="" disabled>{label === "Sexo" ? "Selecione..." : "Selecione..."}</option>
+          {opts.map(o=><option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+    );
+    const equipTag = (tipo) => {
+      const lista = dadosForm[tipo]||[];
+      const label = tipo==="tenis"?"Tênis":tipo==="relogios"?"Relógios":"Fones";
+      return (
+        <div style={{marginBottom:13}}>
+          <label style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",display:"block",marginBottom:5,fontFamily:"monospace"}}>{label}</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6}}>
+            {lista.map((item,i)=>(
+              <div key={i} style={{background:C.violet+"33",border:"1px solid "+C.violet+"66",borderRadius:20,padding:"4px 10px",display:"flex",alignItems:"center",gap:6}}>
+                <span style={{color:C.violetB,fontSize:12,fontWeight:600}}>{item}</span>
+                <button onClick={()=>setDadosForm(p=>({...p,[tipo]:p[tipo].filter((_,j)=>j!==i)}))} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:0,fontSize:14,lineHeight:1}}>×</button>
+              </div>
+            ))}
+          </div>
+          <div style={{position:"relative"}}>
+            <select value="" onChange={e=>{if(e.target.value&&!lista.includes(e.target.value))setDadosForm(p=>({...p,[tipo]:[...p[tipo],e.target.value]}));}}
+              style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"10px 12px",color:C.tm,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box",appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235567a0' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center"}}>
+              <option value="">+ Adicionar {label.toLowerCase()}...</option>
+              {EQUIPAMENTOS[tipo].filter(o=>!lista.includes(o)).map(o=><option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        </div>
+      );
+    };
+    const cidades = CIDADES[dadosForm.pais] || [];
+    return (
+      <div style={{position:"fixed",inset:0,background:C.bg,zIndex:200,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto"}}>
+        <div style={{background:C.s1,borderBottom:"1px solid "+C.border,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+          <button onClick={()=>setShowDadosModal(false)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
+          </button>
+          <div style={{flex:1}}>
+            <p style={{color:C.tp,fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Dados Pessoais</p>
+          </div>
+          <button onClick={()=>{try{localStorage.setItem("tr_dados",JSON.stringify(dadosForm));}catch{}setShowDadosModal(false);}} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",border:"none",borderRadius:9,padding:"7px 14px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>Salvar</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"18px 16px 32px"}}>
+          <p style={{color:C.violetB,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 14px",fontFamily:"monospace"}}>👤 Perfil</p>
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:18}}>
+            <div style={{width:72,height:72,borderRadius:36,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"2px solid "+C.violet+"66",overflow:"hidden"}}>
+              {dadosForm.foto ? <img src={dadosForm.foto} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <span style={{fontSize:32}}>🦊</span>}
+            </div>
+            <div style={{flex:1}}>
+              <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:"0 0 8px"}}>Foto de perfil</p>
+              <label style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"7px 13px",cursor:"pointer",color:C.ts,fontSize:12,fontWeight:600,display:"inline-flex",alignItems:"center",gap:6}}>
+                <Ic n="photo" z={13} c={C.ts}/>Alterar foto
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>setDadosForm(p=>({...p,foto:ev.target.result}));r.readAsDataURL(f);}}}/>
+              </label>
+            </div>
+          </div>
+          {inp("Nome do corredor","nome","text","Ex: Michel Oliveira")}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div>{inp("Data de nascimento","dataNasc","date")}</div>
+            <div>{sel("Sexo","sexo",["Masculino","Feminino","Outro","Prefiro não dizer"])}</div>
+          </div>
+          {sel("País","pais",PAISES)}
+          {sel("Cidade","cidade", cidades.length ? cidades : ["(selecione um país primeiro)"])}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div>{inp("Altura (cm)","altura","number","Ex: 175")}</div>
+            <div>{inp("Peso (kg)","peso","number","Ex: 68")}</div>
+          </div>
+          <div style={{height:1,background:C.border,margin:"6px 0 18px"}}/>
+          <p style={{color:C.cyanB,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 14px",fontFamily:"monospace"}}>🎽 Equipamentos</p>
+          {equipTag("tenis")}
+          {equipTag("relogios")}
+          {equipTag("fones")}
+        </div>
+      </div>
+    );
+  }
+
+  // ── CONFIGURAÇÕES MODAL ───────────────────────────────────────────────────────
+  function renderConfigModal() {
+    const tog = (key,label,desc) => (
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid "+C.bsub}}>
+        <div style={{flex:1,paddingRight:12}}>
+          <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:0}}>{label}</p>
+          {desc&&<p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>{desc}</p>}
+        </div>
+        <button onClick={()=>setConfigForm(p=>({...p,[key]:!p[key]}))}
+          style={{width:44,height:26,borderRadius:13,background:configForm[key]?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s3,border:"1px solid "+(configForm[key]?C.violet:C.border),cursor:"pointer",position:"relative",transition:"all 0.2s",flexShrink:0}}>
+          <div style={{width:20,height:20,borderRadius:10,background:"#fff",position:"absolute",top:2,left:configForm[key]?22:2,transition:"left 0.2s",boxShadow:"0 1px 4px #0006"}}/>
+        </button>
+      </div>
+    );
+    const radio = (key,opts) => (
+      <div style={{display:"flex",gap:6,marginTop:8,marginBottom:4}}>
+        {opts.map(o=>(
+          <button key={o.v} onClick={()=>setConfigForm(p=>({...p,[key]:o.v}))}
+            style={{flex:1,background:configForm[key]===o.v?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":C.s3,border:"1px solid "+(configForm[key]===o.v?C.violet:C.border),borderRadius:9,padding:"8px 4px",cursor:"pointer",color:configForm[key]===o.v?C.tp:C.tm,fontSize:12,fontWeight:configForm[key]===o.v?700:500,fontFamily:"inherit"}}>
+            {o.l}
+          </button>
+        ))}
+      </div>
+    );
+    const section = (icon,label,color,children) => (
+      <div style={{marginBottom:18}}>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
+          <div style={{width:26,height:26,borderRadius:8,background:color+"22",display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid "+color+"33"}}><Ic n={icon} z={13} c={color}/></div>
+          <p style={{color:color,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:0,fontFamily:"monospace"}}>{label}</p>
+        </div>
+        <div style={{background:C.s1,borderRadius:13,border:"1px solid "+C.border,padding:"0 14px"}}>
+          {children}
+        </div>
+      </div>
+    );
+    const inpCfg = (key,label,desc,type="text",placeholder="") => (
+      <div style={{padding:"11px 0",borderBottom:"1px solid "+C.bsub}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+          <div style={{flex:1}}>
+            <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:0}}>{label}</p>
+            {desc&&<p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>{desc}</p>}
+          </div>
+          <input type={type} value={configForm[key]||""} onChange={e=>setConfigForm(p=>({...p,[key]:e.target.value}))} placeholder={placeholder}
+            style={{width:70,background:C.s2,border:"1px solid "+C.border,borderRadius:8,padding:"6px 8px",color:C.tp,fontSize:13,outline:"none",fontFamily:"monospace",textAlign:"center"}}/>
+        </div>
+      </div>
+    );
+    const selCfg = (key,label,desc,opts) => (
+      <div style={{padding:"11px 0",borderBottom:"1px solid "+C.bsub}}>
+        <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:"0 0 4px"}}>{label}</p>
+        {desc&&<p style={{color:C.tm,fontSize:11,margin:"0 0 7px"}}>{desc}</p>}
+        <select value={configForm[key]||""} onChange={e=>setConfigForm(p=>({...p,[key]:e.target.value}))}
+          style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"9px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235567a0' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center"}}>
+          {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+        </select>
+      </div>
+    );
+    return (
+      <div style={{position:"fixed",inset:0,background:C.bg,zIndex:200,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto"}}>
+        <div style={{background:C.s1,borderBottom:"1px solid "+C.border,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+          <button onClick={()=>setShowConfigModal(false)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
+          </button>
+          <div style={{flex:1}}>
+            <p style={{color:C.tp,fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Configurações</p>
+          </div>
+          <button onClick={()=>{try{localStorage.setItem("tr_config",JSON.stringify(configForm));}catch{}setShowConfigModal(false);}} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",border:"none",borderRadius:9,padding:"7px 14px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>Salvar</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"18px 16px 40px"}}>
+
+          {section("streak","Notificações",C.amber,<>
+            {tog("lembreteTreino","Lembrete de treino","Aviso diário no horário do treino")}
+            {tog("rpNotif","Notificações de RP","Alerta quando bater um recorde pessoal")}
+          </>)}
+
+          {section("settings","Tema",C.cyanB,<>
+            <div style={{padding:"11px 0"}}>
+              <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:"0 0 2px"}}>Aparência</p>
+              <p style={{color:C.tm,fontSize:11,margin:"0 0 4px"}}>Escolha o tema do aplicativo</p>
+              {radio("tema",[{v:"dark",l:"🌙 Dark"},{v:"light",l:"☀️ Light"},{v:"auto",l:"⚙️ Auto"}])}
+            </div>
+          </>)}
+
+          {section("ai","Voz do Coach IA",C.violetL,<>
+            <div style={{padding:"11px 0",borderBottom:"1px solid "+C.bsub}}>
+              <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:"0 0 2px"}}>Gênero da voz</p>
+              {radio("vozGenero",[{v:"masculina",l:"Masculina"},{v:"feminina",l:"Feminina"}])}
+            </div>
+            <div style={{padding:"11px 0"}}>
+              <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:"0 0 2px"}}>Estilo</p>
+              {radio("vozEstilo",[{v:"motivacional",l:"🔥 Motivacional"},{v:"tecnica",l:"📊 Técnica"}])}
+            </div>
+          </>)}
+
+          {section("map","Mapas",C.cyan,<>
+            {tog("mapaOffline","Download offline","Salvar mapas para uso sem internet")}
+            {tog("mostrarAltimetria","Mostrar altimetria automática","Exibir gráfico de elevação nas corridas")}
+            {tog("rotasSeguras","Rotas seguras","Preferir rotas com menos tráfego")}
+          </>)}
+
+          {section("run","Corrida",C.green,<>
+            {tog("autoPause","Auto pause","Pausar automaticamente ao parar")}
+            {tog("vibracaoSplit","Vibração por split","Vibrar ao completar cada km")}
+            {tog("alertasHidratacao","Alertas de hidratação/gel","Lembrete de hidratação durante o treino")}
+            {inpCfg("cadenciaAlvo","Cadência alvo","Passos por minuto (spm)","number","180")}
+          </>)}
+
+          {section("settings","Conta",C.ts,<>
+            {selCfg("idioma","Idioma","Idioma do aplicativo",[{v:"pt-BR",l:"🇧🇷 Português (Brasil)"},{v:"en",l:"🇬🇧 English"},{v:"es",l:"🇪🇸 Español"},{v:"fr",l:"🇫🇷 Français"},{v:"de",l:"🇩🇪 Deutsch"}])}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid "+C.bsub}}>
+              <div>
+                <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:0}}>Assinatura Pro</p>
+                <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>Treinos avançados, análise ilimitada</p>
+              </div>
+              <div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:20,padding:"4px 12px"}}>
+                <span style={{color:"#fff",fontSize:11,fontWeight:700}}>PRO</span>
+              </div>
+            </div>
+            {tog("backupSync","Backup / Sync","Sincronizar dados na nuvem automaticamente")}
+            <div style={{padding:"11px 0"}}>
+              <button style={{width:"100%",background:"#ef444411",border:"1px solid #ef444433",borderRadius:10,padding:"11px 0",cursor:"pointer",color:"#ef4444",fontWeight:700,fontSize:13,fontFamily:"inherit"}}>
+                🗑 Excluir conta
+              </button>
+            </div>
+          </>)}
+
+        </div>
+      </div>
+    );
+  }
+
   // ── HOME ─────────────────────────────────────────────────────────────────────
   function renderHome() {
     return (
@@ -1550,19 +1781,31 @@ export default function TempoRunApp() {
         {showPerfil&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:18,padding:14,marginBottom:14,border:"1px solid "+C.violet+"44",animation:"fadeIn 0.2s ease",display:"flex",flexDirection:"column",gap:6}}>
             {[
-              {id:"config", nome:"Configurações", desc:"Notificações, unidades, tema",  icon:"settings", cor:C.cyanB},
-              {id:"dados",  nome:"Dados pessoais",desc:"Nome, idade, peso, FC máxima", icon:"profile",  cor:C.violetL},
+              {id:"config", nome:"Configurações", desc:"Notificações, tema, corrida, conta",  icon:"settings", cor:C.cyanB},
+              {id:"dados",  nome:"Dados pessoais",desc:"Perfil, equipamentos, cidade", icon:"profile",  cor:C.violetL},
+              {id:"strava", nome:stravaConnected?"Strava conectado":"Conectar Strava", desc:stravaConnected?"Treinos sincronizando automaticamente":"Importe seus treinos do Strava", icon:"run", cor:C.strava},
               {id:"logout", nome:"Logout",         desc:"Sair da conta",                icon:"back",     cor:C.coral},
             ].map(opt=>(
-              <button key={opt.id} onClick={()=>{if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();setSession(null);setShowPerfil(false);setTab("home");}}} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
+              <button key={opt.id} onClick={()=>{
+                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();setSession(null);setShowPerfil(false);setTab("home");}
+                if(opt.id==="strava"&&!stravaConnected){setShowPerfil(false);sb.signInStrava();}
+                if(opt.id==="strava"&&stravaConnected){setStravaConnected(false);setStravaRuns([]);}
+                if(opt.id==="dados"){setShowPerfil(false);setShowDadosModal(true);}
+                if(opt.id==="config"){setShowPerfil(false);setShowConfigModal(true);}
+              }} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
                 <div style={{width:32,height:32,borderRadius:9,background:opt.cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+opt.cor+"33"}}>
-                  <Ic n={opt.icon} z={16} c={opt.cor}/>
+                  {opt.id==="strava"
+                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill={opt.cor}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                    : <Ic n={opt.icon} z={16} c={opt.cor}/>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{opt.nome}</p>
                   <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>{opt.desc}</p>
                 </div>
-                <Ic n="back" z={13} c={opt.cor} st={{transform:"rotate(180deg)",flexShrink:0}}/>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                  {opt.id==="strava"&&stravaConnected&&<div style={{width:7,height:7,borderRadius:"50%",background:C.green,boxShadow:"0 0 6px "+C.green}}/>}
+                  <Ic n="back" z={13} c={opt.cor} st={{transform:"rotate(180deg)"}}/>
+                </div>
               </button>
             ))}
           </div>
@@ -1570,6 +1813,26 @@ export default function TempoRunApp() {
 
         {!showPerfil&&!showSaber&&(
           <div>
+            {/* Card Strava — aparece uma vez, some ao conectar ou fechar */}
+            {!stravaConnected && !stravaCardDismissed && (
+              <div style={{background:"linear-gradient(135deg,#1a0800,#200e00)",border:"1px solid "+C.strava+"55",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative"}}>
+                <button onClick={()=>{setStravaCardDismissed(true);try{localStorage.setItem("strava_card_dismissed","1");}catch{}}} style={{position:"absolute",top:10,right:10,background:"none",border:"none",color:C.td,fontSize:16,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <div style={{width:34,height:34,borderRadius:10,background:C.strava+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+C.strava+"44"}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill={C.strava}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                  </div>
+                  <div style={{flex:1}}>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Conecte seu Strava</p>
+                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>Importe seus treinos automaticamente</p>
+                  </div>
+                </div>
+                <button onClick={()=>sb.signInStrava()} style={{width:"100%",background:C.strava,color:"#fff",border:"none",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                  Conectar com Strava
+                </button>
+              </div>
+            )}
+
             <div style={{background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"33",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative",overflow:"hidden"}}>
               <p style={{color:C.violetB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 5px",opacity:0.8}}>motivação do dia</p>
               <p style={{color:C.tp,fontSize:14,fontWeight:600,margin:0,lineHeight:1.55,fontStyle:"italic"}}>"{frases[fraseIdx]}"</p>
@@ -2725,6 +2988,8 @@ export default function TempoRunApp() {
           ) : (
             <>
               {!loggedIn && <LoginScreen onLogin={s=>{ saveSession(s); setSession(s); }} tab={tab} setTab={setTab}/>}
+              {loggedIn && showDadosModal && renderDadosModal()}
+              {loggedIn && showConfigModal && renderConfigModal()}
               {loggedIn && tab==="home"     && renderHome()}
               {loggedIn && tab==="explorar" && renderExplorar()}
               {loggedIn && tab==="treino"   && renderTreino()}
