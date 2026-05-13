@@ -808,6 +808,12 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 
+// Strava OAuth
+const STRAVA_CLIENT_ID     = "244639";
+const STRAVA_CLIENT_SECRET = "a81632ae1af89b86ca1d95643669a653423f030a";
+const STRAVA_REDIRECT_URI  = "https://app.temporun.run/strava-callback";
+const STRAVA_SCOPES        = "read,activity:read_all,profile:read_all";
+
 // Cliente Supabase mínimo (sem SDK, usa fetch direto para não precisar de npm)
 const sb = {
   _url: SUPABASE_URL,
@@ -835,11 +841,72 @@ const sb = {
     window.location.href = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
   },
 
+  signInStrava() {
+    const state = Math.random().toString(36).substring(2);
+    sessionStorage.setItem("strava_oauth_state", state);
+    const url = `https://www.strava.com/oauth/authorize`
+      + `?client_id=${STRAVA_CLIENT_ID}`
+      + `&redirect_uri=${encodeURIComponent(STRAVA_REDIRECT_URI)}`
+      + `&response_type=code`
+      + `&approval_prompt=auto`
+      + `&scope=${STRAVA_SCOPES}`
+      + `&state=${state}`;
+    window.location.href = url;
+  },
+
+  // Troca code Strava por token (chamado quando volta do OAuth Strava)
+  async exchangeStravaCode(code) {
+    const r = await fetch("https://www.strava.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id:     STRAVA_CLIENT_ID,
+        client_secret: STRAVA_CLIENT_SECRET,
+        code,
+        grant_type:    "authorization_code",
+      }),
+    });
+    return r.json();
+  },
+
+  // Detecta se voltou do callback Strava (?code=...&scope=...)
+  parseStravaCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code  = params.get("code");
+    const scope = params.get("scope");
+    const state = params.get("state");
+    const saved = sessionStorage.getItem("strava_oauth_state");
+    if(code && state && state === saved) {
+      window.history.replaceState(null, "", window.location.pathname);
+      sessionStorage.removeItem("strava_oauth_state");
+      return { code, scope };
+    }
+    return null;
+  },
+
   async signOut(token) {
     await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
       method:"POST",
       headers: { ...this._headers, "Authorization": `Bearer ${token}` }
     });
+  },
+
+  // Envia OTP de 6 dígitos para o email
+  async sendOTP(email) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
+      method:"POST", headers:this._headers,
+      body: JSON.stringify({ email, create_user: true })
+    });
+    return r.json();
+  },
+
+  // Verifica o OTP digitado pelo usuário
+  async verifyOTP(email, token) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+      method:"POST", headers:this._headers,
+      body: JSON.stringify({ email, token, type: "email" })
+    });
+    return r.json();
   },
 
   // Verifica se voltou de OAuth (hash com access_token ou query params)
@@ -871,101 +938,142 @@ const sb = {
 
 // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [mode, setMode] = useState("main"); // main | email | signup
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [erro, setErro]   = useState("");
+  const [mode, setMode]       = useState("main"); // main | otp_email | otp_code
+  const [email, setEmail]     = useState("");
+  const [otp, setOtp]         = useState(["","","","","",""]);
+  const [erro, setErro]       = useState("");
   const [loading, setLoading] = useState(false);
+  const otpRefs               = [useRef(null),useRef(null),useRef(null),useRef(null),useRef(null),useRef(null)];
 
-  // Verificar se voltou de OAuth Google ao montar
   useEffect(()=>{
-    // Estratégia 1: hash/query direto
     const session = sb.parseHashSession();
     if(session) { onLogin(session); return; }
-
-    // Estratégia 2: Supabase às vezes retorna code no query param — troca pelo token
+    const strava = sb.parseStravaCallback();
+    if(strava) {
+      setLoading(true);
+      sb.exchangeStravaCode(strava.code).then(data=>{
+        if(data.access_token) {
+          onLogin({ access_token:data.access_token, email:data.athlete?.email||`strava_${data.athlete?.id}@temporun.run`, strava_token:data.access_token, strava_refresh:data.refresh_token, strava_athlete:data.athlete, provider:"strava" });
+        } else { setErro("Erro ao conectar com Strava."); setLoading(false); }
+      });
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     if(code) {
-      // Limpa URL e faz exchange do code por token
       window.history.replaceState(null,"",window.location.pathname);
-      fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
-        method:"POST",
-        headers:{"apikey":SUPABASE_ANON,"Content-Type":"application/json"},
-        body:JSON.stringify({auth_code:code})
-      }).then(r=>r.json()).then(data=>{
-        if(data.access_token) onLogin({access_token:data.access_token, email:data.user?.email||""});
-      });
+      fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=pkce`,{method:"POST",headers:{"apikey":SUPABASE_ANON,"Content-Type":"application/json"},body:JSON.stringify({auth_code:code})}).then(r=>r.json()).then(data=>{ if(data.access_token) onLogin({access_token:data.access_token,email:data.user?.email||""}); });
     }
   },[]);
 
-  async function handleEmail(e) {
-    e.preventDefault();
-    if(!email || !senha) return setErro("Preencha e-mail e senha.");
+  async function handleSendOTP(e) {
+    if(e?.preventDefault) e.preventDefault();
+    if(!email||!/\S+@\S+\.\S+/.test(email)) return setErro("Digite um e-mail válido.");
     setLoading(true); setErro("");
-    const data = await sb.signInEmail(email, senha);
+    const data = await sb.sendOTP(email);
+    setLoading(false);
+    if(data.error) { setErro(data.msg||data.error_description||"Erro ao enviar código."); return; }
+    setMode("otp_code");
+    setTimeout(()=>otpRefs[0].current?.focus(), 200);
+  }
+
+  async function verifyCode(code) {
+    setLoading(true); setErro("");
+    const data = await sb.verifyOTP(email, code);
     setLoading(false);
     if(data.access_token) {
-      onLogin({ access_token: data.access_token, email: data.user?.email });
+      onLogin({ access_token:data.access_token, email:data.user?.email||email });
     } else {
-      setErro(data.error_description || data.msg || "E-mail ou senha incorretos.");
+      setErro("Código inválido ou expirado.");
+      setOtp(["","","","","",""]);
+      setTimeout(()=>otpRefs[0].current?.focus(), 100);
     }
   }
 
-  async function handleSignup(e) {
-    e.preventDefault();
-    if(!email || !senha) return setErro("Preencha e-mail e senha.");
-    if(senha.length < 6) return setErro("Senha deve ter ao menos 6 caracteres.");
-    setLoading(true); setErro("");
-    const data = await sb.signUpEmail(email, senha);
-    setLoading(false);
-    if(data.id || data.access_token) {
-      setErro(""); setMode("email");
-      setErro("Conta criada! Confirme seu e-mail e faça login.");
-    } else {
-      setErro(data.error_description || data.msg || "Erro ao criar conta.");
-    }
+  function handleOtpChange(val, idx) {
+    if(!/^\d*$/.test(val)) return;
+    const next=[...otp]; next[idx]=val.slice(-1); setOtp(next);
+    if(val && idx<5) otpRefs[idx+1].current?.focus();
+    if(next.every(d=>d)) setTimeout(()=>verifyCode(next.join("")), 100);
   }
 
-  // Tela de e-mail/senha
-  if(mode === "email" || mode === "signup") {
-    const isSignup = mode === "signup";
-    return (
-      <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px"}}>
-        <button onClick={()=>{setMode("main");setErro("");}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,alignSelf:"flex-start",marginBottom:24}}>
-          <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
-        </button>
-        <div style={{textAlign:"center",marginBottom:28}}>
-          <img src={logoImg} alt="TempoRun" style={{width:160,height:"auto",objectFit:"contain",marginBottom:12}}/>
-          <h2 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:0}}>{isSignup?"Criar conta":"Entrar com e-mail"}</h2>
+  function handleOtpKey(e, idx) {
+    if(e.key==="Backspace"&&!otp[idx]&&idx>0) otpRefs[idx-1].current?.focus();
+  }
+
+  // Tela: digitar email
+  if(mode==="otp_email") return (
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px"}}>
+      <button onClick={()=>{setMode("main");setErro("");}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,alignSelf:"flex-start",marginBottom:28}}>
+        <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
+      </button>
+      <div style={{textAlign:"center",marginBottom:28}}>
+        <div style={{width:56,height:56,borderRadius:18,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",boxShadow:"0 6px 20px "+C.violet+"44"}}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="#fff" strokeWidth="2"/><path d="M3 7l9 7 9-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <form onSubmit={isSignup?handleSignup:handleEmail} style={{display:"flex",flexDirection:"column",gap:11}}>
-          <div>
-            <label style={{color:C.ts,fontSize:11,fontWeight:600,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.5,display:"block",marginBottom:5}}>E-mail</label>
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com" style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"12px 14px",color:C.tp,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
-          </div>
-          <div>
-            <label style={{color:C.ts,fontSize:11,fontWeight:600,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.5,display:"block",marginBottom:5}}>Senha</label>
-            <input type="password" value={senha} onChange={e=>setSenha(e.target.value)} placeholder={isSignup?"Mínimo 6 caracteres":"••••••••"} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"12px 14px",color:C.tp,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
-          </div>
-          {erro&&<div style={{background:erro.includes("criada")?"#041a0e":C.coral+"18",border:"1px solid "+(erro.includes("criada")?C.green:C.coral)+"44",borderRadius:9,padding:"9px 12px"}}>
-            <p style={{color:erro.includes("criada")?C.green:C.coral,fontSize:12,margin:0,lineHeight:1.5}}>{erro}</p>
-          </div>}
-          <button type="submit" disabled={loading} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"13px 0",fontWeight:800,fontSize:14,cursor:loading?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3,boxShadow:"0 4px 20px "+C.violet+"44",marginTop:4,opacity:loading?0.7:1}}>
-            {loading?"Aguarde...":(isSignup?"Criar conta":"Entrar")}
-          </button>
-        </form>
-        <p style={{color:C.tm,fontSize:12,margin:"18px 0 0",textAlign:"center"}}>
-          {isSignup?"Já tem conta? ":"Não tem conta? "}
-          <button onClick={()=>{setMode(isSignup?"email":"signup");setErro("");}} style={{background:"none",border:"none",color:C.cyanB,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>
-            {isSignup?"Fazer login":"Criar conta"}
-          </button>
-        </p>
+        <h2 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:"0 0 6px",fontWeight:800}}>Entrar com e-mail</h2>
+        <p style={{color:C.tm,fontSize:13,margin:0}}>Enviaremos um código de 6 dígitos</p>
       </div>
-    );
-  }
+      <form onSubmit={handleSendOTP} style={{display:"flex",flexDirection:"column",gap:12}}>
+        <div>
+          <label style={{color:C.ts,fontSize:11,fontWeight:600,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.5,display:"block",marginBottom:6}}>Seu e-mail</label>
+          <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErro("");}} placeholder="seu@email.com" autoFocus style={{width:"100%",background:C.s2,border:"1px solid "+(erro?C.coral:C.border),borderRadius:12,padding:"14px",color:C.tp,fontSize:15,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+        </div>
+        {erro&&<p style={{color:C.coral,fontSize:12,margin:0}}>{erro}</p>}
+        <button type="submit" disabled={loading} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"14px 0",fontWeight:800,fontSize:15,cursor:loading?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44",opacity:loading?0.7:1,marginTop:4}}>
+          {loading?"Enviando...":"Enviar código"}
+        </button>
+      </form>
+      <p style={{color:C.td,fontSize:11,margin:"16px 0 0",textAlign:"center",lineHeight:1.6}}>Sem senha — só o código de 6 dígitos que enviaremos.</p>
+    </div>
+  );
 
-  // Tela principal de login
+  // Tela: digitar código OTP
+  if(mode==="otp_code") return (
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px"}}>
+      <button onClick={()=>{setMode("otp_email");setErro("");setOtp(["","","","","",""]);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:6,alignSelf:"flex-start",marginBottom:28}}>
+        <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
+      </button>
+      <div style={{textAlign:"center",marginBottom:28}}>
+        <div style={{width:56,height:56,borderRadius:18,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",boxShadow:"0 6px 20px "+C.violet+"44"}}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="#fff" strokeWidth="2"/><circle cx="12" cy="12" r="3" fill="#fff"/></svg>
+        </div>
+        <h2 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:"0 0 6px",fontWeight:800}}>Verifique seu e-mail</h2>
+        <p style={{color:C.tm,fontSize:13,margin:"0 0 4px"}}>Código enviado para</p>
+        <p style={{color:C.cyanB,fontSize:14,fontWeight:700,margin:0}}>{email}</p>
+      </div>
+
+      <div style={{display:"flex",gap:9,justifyContent:"center",marginBottom:20}}>
+        {otp.map((d,i)=>(
+          <input key={i} ref={otpRefs[i]} type="text" inputMode="numeric" maxLength={1} value={d}
+            onChange={e=>handleOtpChange(e.target.value,i)}
+            onKeyDown={e=>handleOtpKey(e,i)}
+            style={{width:44,height:56,borderRadius:12,background:C.s2,border:"2px solid "+(d?C.cyanB:erro?C.coral:C.border),textAlign:"center",color:C.tp,fontSize:24,fontWeight:800,fontFamily:"monospace",outline:"none",transition:"border 0.15s",caretColor:"transparent"}}
+          />
+        ))}
+      </div>
+
+      {loading&&<div style={{textAlign:"center",marginBottom:12}}><p style={{color:C.ts,fontSize:13}}>Verificando...</p></div>}
+      {erro&&<p style={{color:C.coral,fontSize:12,margin:"0 0 12px",textAlign:"center"}}>{erro}</p>}
+
+      <button onClick={()=>verifyCode(otp.join(""))} disabled={loading||otp.some(d=>!d)} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"14px 0",fontWeight:800,fontSize:15,cursor:(loading||otp.some(d=>!d))?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44",opacity:(loading||otp.some(d=>!d))?0.55:1}}>
+        Confirmar
+      </button>
+      <button onClick={()=>{setOtp(["","","","","",""]);setErro("");handleSendOTP({preventDefault:()=>{}});}} disabled={loading} style={{background:"none",border:"none",color:C.tm,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:"14px 0",textAlign:"center"}}>
+        Não recebi — reenviar código
+      </button>
+      <p style={{color:C.td,fontSize:11,textAlign:"center",lineHeight:1.6,margin:0}}>O código expira em 10 minutos.</p>
+    </div>
+  );
+
+  if(loading) return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100%",gap:14}}>
+      <div style={{width:44,height:44,borderRadius:"50%",border:"3px solid "+C.border,borderTopColor:C.cyanB,animation:"spin 0.8s linear infinite"}}/>
+      <p style={{color:C.ts,fontSize:13}}>Conectando...</p>
+    </div>
+  );
+
+  // Tela principal
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center"}}>
       <div style={{marginTop:30,marginBottom:18,display:"flex",justifyContent:"center",width:"100%"}}>
@@ -978,34 +1086,20 @@ function LoginScreen({ onLogin }) {
         </h1>
         <p style={{color:C.tm,fontSize:14,margin:"7px 0 0",fontWeight:400}}>Conecte-se para continuar</p>
       </div>
-
-      <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:18}}>
-        {/* E-mail */}
-        <button onClick={()=>setMode("email")} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>
-            <rect x="3" y="5" width="18" height="14" rx="2" stroke={C.violetL} strokeWidth="1.8"/>
-            <path d="M3 7l9 7 9-7" stroke={C.violetL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+      <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
+        <button onClick={()=>{setMode("otp_email");setErro("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><rect x="3" y="5" width="18" height="14" rx="2" stroke={C.violetL} strokeWidth="1.8"/><path d="M3 7l9 7 9-7" stroke={C.violetL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
           <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com e-mail</span>
         </button>
-
-        {/* Google */}
         <button onClick={()=>sb.signInGoogle()} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" style={{flexShrink:0}}>
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" style={{flexShrink:0}}><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com Google</span>
         </button>
+        <button onClick={()=>sb.signInStrava()} style={{background:"transparent",border:"1px solid "+C.strava+"66",borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={C.strava} style={{flexShrink:0}}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com Strava</span>
+        </button>
       </div>
-
-
-      <p style={{color:C.tm,fontSize:13,margin:"0 0 18px",textAlign:"center"}}>
-        Ainda não tem uma conta?{" "}
-        <button onClick={()=>setMode("signup")} style={{background:"none",border:"none",color:C.cyanB,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",padding:0}}>Criar conta</button>
-      </p>
       <p style={{color:C.tm,fontSize:12,margin:0,textAlign:"center",lineHeight:1.6,maxWidth:300}}>
         Ao continuar, você concorda com nossos<br/>
         <span style={{color:C.violetL,fontWeight:700}}>Termos de Uso</span>
@@ -1033,9 +1127,15 @@ export default function TempoRunApp() {
   const [chartSlice, setChartSlice] = useState("1m");
   const [fraseIdx] = useState(()=>Math.floor(Math.random()*frases.length));
 
-  // Strava
+  // Strava — auto-conecta se login foi via Strava
   const [stravaConnected, setStravaConnected] = useState(false);
   const [stravaRuns, setStravaRuns] = useState([]);
+  useEffect(()=>{
+    if(session?.provider==="strava" && session?.strava_token) {
+      setStravaConnected(true);
+      setStravaRuns(STRAVA_MOCK); // substitui por fetch real quando integrar API
+    }
+  },[session]);
 
   // Garmin
   const [garminConnected, setGarminConnected] = useState(false);
@@ -1330,7 +1430,7 @@ export default function TempoRunApp() {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,paddingBottom:12}}>
           <div style={{textAlign:"left"}}>
             <p style={{color:C.tm,fontSize:13,margin:0}}>Bom dia 🌤</p>
-            <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>Michel 👋</h1>
+            <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{session?.strava_athlete?.firstname || session?.email?.split("@")[0] || "Michel"} 👋</h1>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
