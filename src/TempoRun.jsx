@@ -1077,50 +1077,8 @@ function LoginScreen({ onLogin }) {
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center"}}>
       <div style={{marginTop:16,marginBottom:24,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
-        {/* Logo SVG inline — corredor no R + TEMPO RUN */}
-        <svg width="220" height="160" viewBox="0 0 220 160" fill="none" xmlns="http://www.w3.org/2000/svg" style={{filter:"drop-shadow(0 0 28px #7c3aed88) drop-shadow(0 0 50px #06b6d433)"}}>
-          <defs>
-            <linearGradient id="lgR" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#c084fc"/>
-              <stop offset="100%" stopColor="#22d3ee"/>
-            </linearGradient>
-            <linearGradient id="lgRun" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#a855f7"/>
-              <stop offset="100%" stopColor="#22d3ee"/>
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          {/* Speed lines left */}
-          <line x1="28" y1="52" x2="60" y2="52" stroke="#a855f7" strokeWidth="3" strokeLinecap="round" opacity="0.85"/>
-          <line x1="34" y1="62" x2="62" y2="62" stroke="#7c3aed" strokeWidth="2.5" strokeLinecap="round" opacity="0.65"/>
-          <line x1="40" y1="72" x2="63" y2="72" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
-          <line x1="46" y1="80" x2="64" y2="80" stroke="#06b6d4" strokeWidth="1.5" strokeLinecap="round" opacity="0.35"/>
-          {/* Letter R — bold, italic-like */}
-          <path d="M68 30 L68 110 L82 110 L82 78 L105 110 L122 110 L96 76 C108 73 116 64 116 52 C116 38 106 30 90 30 Z M82 42 L88 42 C96 42 102 46 102 54 C102 62 96 66 88 66 L82 66 Z" fill="url(#lgR)" filter="url(#glow)"/>
-          {/* Runner silhouette on top of R */}
-          <g transform="translate(78, 28)" opacity="0.92">
-            {/* head */}
-            <circle cx="32" cy="8" r="5.5" fill="#1a1040"/>
-            {/* torso */}
-            <path d="M32 13 L28 28" stroke="#1a1040" strokeWidth="5" strokeLinecap="round"/>
-            {/* arm back */}
-            <path d="M30 17 L20 24" stroke="#1a1040" strokeWidth="4" strokeLinecap="round"/>
-            {/* arm front */}
-            <path d="M30 17 L38 12" stroke="#1a1040" strokeWidth="4" strokeLinecap="round"/>
-            {/* leg back */}
-            <path d="M28 28 L18 36 L14 46" stroke="#1a1040" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
-            {/* leg front */}
-            <path d="M28 28 L34 38 L42 34" stroke="#1a1040" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </g>
-          {/* TEMPO text */}
-          <text x="110" y="134" fontFamily="'Space Grotesk', Arial, sans-serif" fontWeight="800" fontSize="22" fontStyle="italic" fill="#f0f4ff" letterSpacing="3" textAnchor="middle">TEMPO</text>
-          {/* RUN text with gradient */}
-          <text x="172" y="134" fontFamily="'Space Grotesk', Arial, sans-serif" fontWeight="800" fontSize="22" fontStyle="italic" fill="url(#lgRun)" letterSpacing="3" textAnchor="middle">RUN</text>
-        </svg>
-        <p style={{color:C.ts,fontSize:13,margin:"-8px 0 0",fontWeight:400,letterSpacing:0.3}}>Conecte-se para continuar</p>
+        <img src={logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 30px #7c3aed88) drop-shadow(0 0 60px #22d3ee33)",marginBottom:8}}/>
+        <p style={{color:C.ts,fontSize:13,margin:"0",fontWeight:400,letterSpacing:0.3}}>Conecte-se para continuar</p>
       </div>
       <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
         <button onClick={()=>{setMode("otp_email");setErro("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
