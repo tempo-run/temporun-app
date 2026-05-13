@@ -3,6 +3,7 @@ import runnerStride from './assets/runner_stride.png';
 import runnerLanding from './assets/runner_landing.png';
 import runnerOverstride from './assets/runner_overstride.png';
 import logoImg from './assets/logo.png';
+import tempoRunLogo from './assets/tempo_run_logo.png';
 import perfilImg from './assets/perfil.png';
 import inicioTreino from './assets/inicio_treino.png';
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -2836,6 +2837,227 @@ export default function TempoRunApp() {
   }
 
 
+
+  // ── CARD CAROUSEL ────────────────────────────────────────────────────────────
+  function CardCarousel({ run, C, fmtT }) {
+    const [cardIndex, setCardIndex] = useState(0);
+    const canvasRef1 = useRef(null); // small map for card 1
+    const canvasRef2 = useRef(null); // full map for card 2
+    const TOTAL = 3;
+
+    const dist  = run ? run.distancia_km.toFixed(1) : "10.4";
+    const pace  = run?.pace_medio  || "5:30";
+    const dur   = run ? fmtT(run.duracao_seg) : "54:00";
+    const bpm   = run?.bpm_medio   ? run.bpm_medio + "" : "158";
+    const dplus = run?.dplus       ? run.dplus + "m"    : "128m";
+    const data  = run?.data        || "Hoje";
+
+    const NEON = { route:"#a855f7", glow:"#7c3aed", bg:"#1a1a2edd", street:"#16213e", pin:"#c084fc", dot:"#22d3ee" };
+
+    function drawMap(canvas, small=false) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // bg
+      ctx.fillStyle = NEON.bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // city grid
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = NEON.street;
+      ctx.lineWidth = 0.8;
+      for (let y = 15; y < H; y += 18 + Math.sin(y)*5) {
+        ctx.beginPath(); ctx.moveTo(0, y);
+        for (let x=0; x<=W; x+=8) ctx.lineTo(x, y + Math.sin(x*0.05+y*0.02)*1.5);
+        ctx.stroke();
+      }
+      for (let x = 15; x < W; x += 22 + Math.cos(x)*4) {
+        ctx.beginPath(); ctx.moveTo(x, 0);
+        for (let y=0; y<=H; y+=8) ctx.lineTo(x + Math.sin(y*0.05+x*0.02)*1.2, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // route pts
+      let pts = [];
+      if (run?.polyline && run.polyline.length > 2) {
+        const lats=run.polyline.map(p=>p[0]), lngs=run.polyline.map(p=>p[1]);
+        const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+        const minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+        const pad = small ? 14 : 24;
+        pts = run.polyline.map(p=>({
+          x: pad+((p[1]-minLng)/(maxLng-minLng||1))*(W-pad*2),
+          y: H-pad-((p[0]-minLat)/(maxLat-minLat||1))*(H-pad*2),
+        }));
+      } else {
+        const seed = run ? run.distancia_km : 10;
+        let x=W*0.2, y=H*0.55; pts=[{x,y}];
+        for(let i=0;i<22;i++){
+          x+=(Math.sin(i*1.3+seed)*18)+7; y+=(Math.cos(i*0.9+seed)*12);
+          x=Math.max(18,Math.min(W-18,x)); y=Math.max(18,Math.min(H-18,y));
+          pts.push({x,y});
+        }
+      }
+      if (pts.length < 2) return;
+
+      // glow
+      ctx.shadowColor=NEON.glow; ctx.shadowBlur=small?10:18;
+      ctx.strokeStyle=NEON.glow+"55"; ctx.lineWidth=small?4:7;
+      ctx.lineJoin="round"; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+      pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+
+      // main line
+      ctx.shadowBlur=small?5:8; ctx.shadowColor=NEON.route;
+      ctx.strokeStyle=NEON.route; ctx.lineWidth=small?1.8:2.5;
+      ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+      pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+      ctx.shadowBlur=0;
+
+      if (!small) {
+        // km dots + labels
+        const tot=pts.length;
+        [1,2,3].forEach(i=>{
+          const p=pts[Math.min(i*Math.floor(tot/4),tot-1)];
+          const lbl=run?((run.distancia_km/4)*i).toFixed(1)+"km":(i*2.5)+"km";
+          ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2);
+          ctx.fillStyle="#0d0f2e"; ctx.fill();
+          ctx.strokeStyle=NEON.dot; ctx.lineWidth=1.8; ctx.stroke();
+          const tw=ctx.measureText(lbl).width+12;
+          const bx=Math.min(p.x-tw/2,W-tw-4), by=p.y-22;
+          ctx.fillStyle="#0d0f2ecc"; ctx.strokeStyle=NEON.dot+"77"; ctx.lineWidth=0.8;
+          ctx.beginPath(); ctx.roundRect(bx,by,tw,15,4); ctx.fill(); ctx.stroke();
+          ctx.fillStyle=NEON.dot; ctx.font="bold 8px monospace"; ctx.textAlign="center";
+          ctx.fillText(lbl,p.x,by+10);
+        });
+      }
+
+      // start dot
+      const s=pts[0];
+      ctx.shadowColor=NEON.pin; ctx.shadowBlur=10;
+      ctx.fillStyle=NEON.pin; ctx.beginPath(); ctx.arc(s.x,s.y,small?4:6,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0; ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(s.x,s.y,small?1.5:2.2,0,Math.PI*2); ctx.fill();
+
+      // end pin
+      const e=pts[pts.length-1];
+      ctx.shadowColor=NEON.dot; ctx.shadowBlur=10;
+      ctx.fillStyle=NEON.dot;
+      ctx.beginPath(); ctx.arc(e.x,e.y-2,small?4:6,0,Math.PI*2); ctx.fill();
+      if(!small){ctx.beginPath();ctx.moveTo(e.x-3,e.y+3);ctx.lineTo(e.x,e.y+9);ctx.lineTo(e.x+3,e.y+3);ctx.fill();}
+      ctx.shadowBlur=0; ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(e.x,e.y-2,small?1.5:2,0,Math.PI*2); ctx.fill();
+    }
+
+    useEffect(()=>{ drawMap(canvasRef1.current, true);  }, [run, cardIndex]);
+    useEffect(()=>{ drawMap(canvasRef2.current, false); }, [run, cardIndex]);
+
+    function handleSave() {
+      const canvases = [canvasRef1.current, canvasRef2.current];
+      const c = canvases[cardIndex === 1 ? 1 : cardIndex === 0 ? 0 : null];
+      // for card 3 no canvas — just share data
+      const target = cardIndex === 1 ? canvasRef2.current : cardIndex === 0 ? canvasRef1.current : null;
+      if (target) {
+        const link = document.createElement("a");
+        link.download = `temporun_card${cardIndex+1}.png`;
+        link.href = target.toDataURL("image/png");
+        link.click();
+      }
+    }
+
+    const statRow = (label, value, large=false) => (
+      <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{color:"#8b9ec7",fontSize:11,fontWeight:700,fontFamily:"monospace",letterSpacing:0.8,textTransform:"uppercase"}}>{label}</span>
+        <span style={{color:"#f0f4ff",fontSize:large?22:15,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:large?-0.5:0}}>{value}</span>
+      </div>
+    );
+
+    const cardBg = "linear-gradient(160deg,#0c0830,#0a1430)";
+    const cardBorder = "1px solid #a855f744";
+    const cardShadow = "0 8px 32px rgba(0,0,0,0.6)";
+
+    // ── CARD 1: logo + stats + small map ──
+    const Card1 = (
+      <div style={{background:cardBg,borderRadius:17,overflow:"hidden",border:cardBorder,boxShadow:cardShadow}}>
+        <div style={{padding:"16px 16px 0"}}>
+          <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 14px"}}/>
+          <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 6px",textAlign:"center"}}>{data}</p>
+          {statRow("Distância", dist+" km", true)}
+          {statRow("Pace", pace+"/km")}
+          {statRow("Tempo", dur)}
+          {statRow("BPM médio", bpm)}
+          {statRow("Elevação", dplus)}
+        </div>
+        <canvas ref={canvasRef1} width={356} height={130} style={{width:"100%",display:"block",marginTop:14}}/>
+        <div style={{padding:"10px 16px",textAlign:"center"}}>
+          <img src={tempoRunLogo} alt="" style={{width:60,height:"auto",objectFit:"contain",opacity:0.35}}/>
+        </div>
+      </div>
+    );
+
+    // ── CARD 2: full neon map + logo corner ──
+    const Card2 = (
+      <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative"}}>
+        <canvas ref={canvasRef2} width={356} height={360} style={{width:"100%",display:"block"}}/>
+        <div style={{position:"absolute",top:12,left:12}}>
+          <img src={tempoRunLogo} alt="TempoRun" style={{width:64,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
+        </div>
+      </div>
+    );
+
+    // ── CARD 3: logo + stats text only ──
+    const Card3 = (
+      <div style={{background:cardBg,borderRadius:17,padding:"20px 20px 24px",border:cardBorder,boxShadow:cardShadow}}>
+        <img src={tempoRunLogo} alt="TempoRun" style={{width:72,height:"auto",objectFit:"contain",display:"block",marginBottom:20}}/>
+        <p style={{color:"#ffffff44",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",margin:"0 0 18px"}}>{data}</p>
+        <div style={{display:"flex",flexDirection:"column",gap:0}}>
+          {statRow("Distância", dist+" km", true)}
+          {statRow("Pace médio", pace+"/km")}
+          {statRow("Tempo total", dur)}
+        </div>
+      </div>
+    );
+
+    const CARDS = [Card1, Card2, Card3];
+    const LABELS = ["Card 1 de 3","Card 2 de 3","Card 3 de 3"];
+
+    return (
+      <div>
+        {/* card + arrows */}
+        <div style={{position:"relative",marginBottom:14}}>
+          {CARDS[cardIndex]}
+          {/* left arrow */}
+          <button onClick={()=>setCardIndex(i=>(i-1+TOTAL)%TOTAL)}
+            style={{position:"absolute",top:"50%",left:-14,transform:"translateY(-50%)",width:32,height:32,borderRadius:16,background:C.s2,border:"1px solid "+C.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 12px #00000066"}}>
+            <Ic n="back" z={15} c={C.ts}/>
+          </button>
+          {/* right arrow */}
+          <button onClick={()=>setCardIndex(i=>(i+1)%TOTAL)}
+            style={{position:"absolute",top:"50%",right:-14,transform:"translateY(-50%)",width:32,height:32,borderRadius:16,background:C.s2,border:"1px solid "+C.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 12px #00000066"}}>
+            <Ic n="back" z={15} c={C.ts} st={{transform:"rotate(180deg)"}}/>
+          </button>
+        </div>
+
+        {/* dots indicator */}
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:16}}>
+          {Array.from({length:TOTAL}).map((_,i)=>(
+            <div key={i} onClick={()=>setCardIndex(i)} style={{width:i===cardIndex?20:6,height:6,borderRadius:3,background:i===cardIndex?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border,cursor:"pointer",transition:"width 0.2s"}}/>
+          ))}
+        </div>
+
+        {/* actions */}
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={handleSave} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+            <Ic n="save" z={15} c="#fff"/>Salvar PNG
+          </button>
+          <button style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 13px",cursor:"pointer",display:"flex",alignItems:"center"}}>
+            <Ic n="share" z={15} c={C.cyanB}/>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── MAPA ARTE ────────────────────────────────────────────────────────────────
   function MapaArte({ corrida, allRuns, C, fmtT }) {
     const canvasRef = useRef(null);
@@ -3121,7 +3343,7 @@ export default function TempoRunApp() {
           <p style={{color:C.tm,fontSize:12,margin:0}}>Crie cards e gere conteúdo</p>
         </div>
         <div style={{display:"flex",background:C.s2,borderRadius:11,padding:4,marginBottom:14,gap:3}}>
-          {[{id:"card",l:"Card"},{id:"mapa",l:"Mapa"},{id:"rps",l:"RPs"},{id:"efeitos",l:"Efeitos"}].map(t=>(
+          {[{id:"card",l:"Card"},{id:"rps",l:"RPs"},{id:"efeitos",l:"Efeitos"}].map(t=>(
             <button key={t.id} onClick={()=>setStudioTab(t.id)} style={{flex:1,background:studioTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:studioTab===t.id?C.tp:C.tm,border:studioTab===t.id?"1px solid "+C.violet+"44":"1px solid transparent",borderRadius:8,padding:"8px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
               {t.l}
             </button>
@@ -3129,53 +3351,7 @@ export default function TempoRunApp() {
         </div>
 
         {studioTab==="card"&&(
-          <div>
-            <div style={{background:CARD_STYLES[cardIdx].bg,borderRadius:17,padding:18,marginBottom:14,border:"1px solid "+accent+"55",boxShadow:"0 8px 30px rgba(0,0,0,.4)",position:"relative",overflow:"hidden"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                <div>
-                  <p style={{color:"#ffffff99",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:0}}>TempoRun · {lastRun.data}</p>
-                  <p style={{color:"#fff",fontWeight:800,fontSize:18,margin:"4px 0 0",fontFamily:"'Space Grotesk',sans-serif"}}>Michel Costa</p>
-                </div>
-                <div style={{width:36,height:36,borderRadius:11,background:"#ffffff22",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}><img src={perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:"contain"}}/></div>
-              </div>
-              <div style={{textAlign:"center",marginBottom:14}}>
-                <p style={{color:"#ffffffaa",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 4px"}}>Distância</p>
-                <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:52,fontWeight:800,margin:0,letterSpacing:-2,lineHeight:1}}>{lastRun.distancia_km}<span style={{fontSize:24,opacity:0.7}}> km</span></p>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                {[{l:"Tempo",v:fmtT(lastRun.duracao_seg)},{l:"Pace",v:lastRun.pace_medio},{l:"D+",v:(lastRun.dplus||0)+"m"}].map((s,i)=>(
-                  <div key={i} style={{background:"#ffffff15",borderRadius:9,padding:"7px 8px",textAlign:"center"}}>
-                    <p style={{color:"#ffffff77",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",margin:"0 0 3px"}}>{s.l}</p>
-                    <p style={{color:"#fff",fontWeight:800,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{s.v}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <SL><Ic n="star" z={13} c={C.ts}/>Estilo</SL>
-            <div style={{display:"flex",gap:7,marginBottom:13}}>
-              {CARD_STYLES.map((s,i)=>(
-                <button key={i} onClick={()=>setCardIdx(i)} style={{flex:1,background:s.bg,border:cardIdx===i?"2px solid "+accent:"1px solid "+C.border,borderRadius:11,padding:"14px 0",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{s.name}</button>
-              ))}
-            </div>
-            <SL><Ic n="star" z={13} c={C.ts}/>Cor de destaque</SL>
-            <div style={{display:"flex",gap:7,marginBottom:13}}>
-              {Object.entries(COLOR_PALETTE).map(([k,v])=>(
-                <button key={k} onClick={()=>setCardColor(k)} style={{flex:1,background:cardColor===k?v.accent+"33":C.s2,color:cardColor===k?v.accent:C.tm,border:"1px solid "+(cardColor===k?v.accent+"55":C.border),borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                  <div style={{width:10,height:10,borderRadius:"50%",background:v.accent}}/>{v.label}
-                </button>
-              ))}
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <button style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Ic n="share" z={15} c="#fff"/>Compartilhar</button>
-              <button style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 13px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center"}}><Ic n="save" z={15} c={C.cyanB}/></button>
-            </div>
-          </div>
-        )}
-
-
-        {studioTab==="mapa"&&(
-          <MapaArte corrida={corridas[0]||null} allRuns={allRuns} C={C} fmtT={fmtT}/>
+          <CardCarousel run={lastRun} C={C} fmtT={fmtT}/>
         )}
 
         {studioTab==="rps"&&(
