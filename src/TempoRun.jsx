@@ -2953,32 +2953,106 @@ export default function TempoRunApp() {
     useEffect(()=>{ drawMap(canvasRef2.current, false); }, [run, cardIndex]);
 
     const cardRef = useRef(null);
+    const exportCanvasRef = useRef(null);
 
     function handleSave() {
-      const el = cardRef.current;
-      if (!el) return;
-      import("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js").then(()=>{
-        window.html2canvas(el, {
-          backgroundColor: null,
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-        }).then(canvas => {
-          const link = document.createElement("a");
-          link.download = `temporun_card${cardIndex+1}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
+      const W = 356, SCALE = 3;
+      const cw = W * SCALE;
+
+      // Measure card height from DOM
+      const cardEl = cardRef.current;
+      const cardH = cardEl ? cardEl.offsetHeight : 500;
+      const ch = cardH * SCALE;
+
+      const off = document.createElement("canvas");
+      off.width = cw; off.height = ch;
+      const ctx = off.getContext("2d");
+      ctx.scale(SCALE, SCALE);
+
+      // Draw card background
+      const bg0 = "linear-gradient(160deg,#0c0830,#0a1430)";
+      if (cardIndex === 1) {
+        ctx.fillStyle = "#1a1a2e";
+      } else {
+        // gradient bg
+        const grd = ctx.createLinearGradient(0,0,W*0.7,cardH);
+        grd.addColorStop(0,"#0c0830"); grd.addColorStop(1,"#0a1430");
+        ctx.fillStyle = grd;
+      }
+      ctx.beginPath();
+      ctx.roundRect(0,0,W,cardH,17);
+      ctx.fill();
+
+      // Draw the map canvas if present
+      const mapCanvas = cardIndex === 0 ? canvasRef1.current : cardIndex === 1 ? canvasRef2.current : null;
+
+      if (cardIndex === 0) {
+        // CARD 1: centered text stats then map at bottom
+        const logoEl = cardEl?.querySelector("img");
+        let y = 16;
+        // logo placeholder glow
+        ctx.fillStyle="#a855f722";
+        ctx.beginPath(); ctx.roundRect(W/2-45, y, 90, 32, 6); ctx.fill();
+        ctx.fillStyle="#a855f7"; ctx.font="bold 10px monospace"; ctx.textAlign="center";
+        ctx.fillText("TEMPORUN", W/2, y+21);
+        y += 48;
+        // date
+        ctx.fillStyle="#ffffff55"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
+        ctx.fillText((run?.data||"Hoje").toUpperCase(), W/2, y); y+=18;
+        // dist
+        ctx.fillStyle="#ffffff18";
+        ctx.fillRect(0, y, W, 1); y+=12;
+        ctx.fillStyle="#f0f4ff"; ctx.font="bold 40px 'Space Grotesk',sans-serif"; ctx.textAlign="center";
+        ctx.fillText(dist+" km", W/2, y+36); y+=56;
+        ctx.fillStyle="#ffffff18"; ctx.fillRect(0, y, W, 1); y+=12;
+        ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
+        ctx.fillText(pace+" /km", W/2, y+26); y+=46;
+        ctx.fillStyle="#ffffff18"; ctx.fillRect(0, y, W, 1); y+=12;
+        ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
+        ctx.fillText(dur, W/2, y+26); y+=46;
+        // map
+        if (mapCanvas) { ctx.drawImage(mapCanvas, 0, y, W, 130); y+=130; }
+        // bottom logo watermark
+        ctx.fillStyle="#a855f722";
+        ctx.beginPath(); ctx.roundRect(W/2-30,y+8,60,18,4); ctx.fill();
+        ctx.fillStyle="#a855f766"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
+        ctx.fillText("TEMPORUN", W/2, y+20);
+
+      } else if (cardIndex === 1) {
+        // CARD 2: full map + logo centered top overlay
+        if (mapCanvas) { ctx.drawImage(mapCanvas, 0, 0, W, cardH); }
+        // centered logo overlay
+        ctx.fillStyle="#000000aa";
+        ctx.beginPath(); ctx.roundRect(W/2-50,10,100,28,6); ctx.fill();
+        ctx.fillStyle="#c084fc"; ctx.font="bold 11px monospace"; ctx.textAlign="center";
+        ctx.fillText("TEMPORUN", W/2, 28);
+
+      } else {
+        // CARD 3: centered logo + horizontal stats
+        let y = 24;
+        ctx.fillStyle="#a855f722";
+        ctx.beginPath(); ctx.roundRect(W/2-45,y,90,30,6); ctx.fill();
+        ctx.fillStyle="#a855f7"; ctx.font="bold 10px monospace"; ctx.textAlign="center";
+        ctx.fillText("TEMPORUN", W/2, y+20); y+=54;
+        ctx.fillStyle="#ffffff44"; ctx.font="bold 8px monospace";
+        ctx.fillText((run?.data||"Hoje").toUpperCase(), W/2, y); y+=28;
+        // 3 columns
+        const cols = [{v:dist,u:"km",bc:"#a855f744"},{v:pace,u:"/km",bc:"#7c3aed44"},{v:dur,u:"tempo",bc:"#22d3ee44"}];
+        const cw3 = (W-40)/3;
+        cols.forEach((col,i)=>{
+          const cx = 20 + i*(cw3+6);
+          ctx.fillStyle=col.bc; ctx.fillRect(cx,y,cw3,1.5);
+          ctx.fillStyle="#f0f4ff"; ctx.font="bold 28px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
+          ctx.fillText(col.v, cx, y+36);
+          ctx.fillStyle="#ffffff55"; ctx.font="bold 8px monospace";
+          ctx.fillText(col.u.toUpperCase(), cx, y+52);
         });
-      }).catch(()=>{
-        // fallback: for map cards export canvas directly
-        const target = cardIndex === 1 ? canvasRef2.current : canvasRef1.current;
-        if (target) {
-          const link = document.createElement("a");
-          link.download = `temporun_card${cardIndex+1}.png`;
-          link.href = target.toDataURL("image/png");
-          link.click();
-        }
-      });
+      }
+
+      const link = document.createElement("a");
+      link.download = `temporun_card${cardIndex+1}.png`;
+      link.href = off.toDataURL("image/png");
+      link.click();
     }
 
     const statRow = (label, value, large=false) => (
