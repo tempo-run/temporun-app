@@ -2952,17 +2952,33 @@ export default function TempoRunApp() {
     useEffect(()=>{ drawMap(canvasRef1.current, true);  }, [run, cardIndex]);
     useEffect(()=>{ drawMap(canvasRef2.current, false); }, [run, cardIndex]);
 
+    const cardRef = useRef(null);
+
     function handleSave() {
-      const canvases = [canvasRef1.current, canvasRef2.current];
-      const c = canvases[cardIndex === 1 ? 1 : cardIndex === 0 ? 0 : null];
-      // for card 3 no canvas — just share data
-      const target = cardIndex === 1 ? canvasRef2.current : cardIndex === 0 ? canvasRef1.current : null;
-      if (target) {
-        const link = document.createElement("a");
-        link.download = `temporun_card${cardIndex+1}.png`;
-        link.href = target.toDataURL("image/png");
-        link.click();
-      }
+      const el = cardRef.current;
+      if (!el) return;
+      import("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js").then(()=>{
+        window.html2canvas(el, {
+          backgroundColor: null,
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+        }).then(canvas => {
+          const link = document.createElement("a");
+          link.download = `temporun_card${cardIndex+1}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        });
+      }).catch(()=>{
+        // fallback: for map cards export canvas directly
+        const target = cardIndex === 1 ? canvasRef2.current : canvasRef1.current;
+        if (target) {
+          const link = document.createElement("a");
+          link.download = `temporun_card${cardIndex+1}.png`;
+          link.href = target.toDataURL("image/png");
+          link.click();
+        }
+      });
     }
 
     const statRow = (label, value, large=false) => (
@@ -2979,9 +2995,9 @@ export default function TempoRunApp() {
     // ── CARD 1: logo + stats + small map ──
     const Card1 = (
       <div style={{background:cardBg,borderRadius:17,overflow:"hidden",border:cardBorder,boxShadow:cardShadow}}>
-        <div style={{padding:"16px 16px 0"}}>
+        <div style={{padding:"16px 16px 0",textAlign:"center"}}>
           <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 14px"}}/>
-          <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 6px",textAlign:"center"}}>{data}</p>
+          <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 6px"}}>{data}</p>
           <div style={{borderBottom:"1px solid #ffffff18",padding:"12px 0"}}>
             <p style={{color:"#f0f4ff",fontSize:44,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}<span style={{fontSize:20,opacity:0.6,fontWeight:600}}> km</span></p>
           </div>
@@ -2999,22 +3015,22 @@ export default function TempoRunApp() {
       </div>
     );
 
-    // ── CARD 2: full neon map + logo corner ──
+    // ── CARD 2: full neon map + logo centered top ──
     const Card2 = (
       <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative"}}>
         <canvas ref={canvasRef2} width={356} height={468} style={{width:"100%",display:"block"}}/>
-        <div style={{position:"absolute",top:12,left:12}}>
+        <div style={{position:"absolute",top:12,left:"50%",transform:"translateX(-50%)"}}>
           <img src={tempoRunLogo} alt="TempoRun" style={{width:64,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
         </div>
       </div>
     );
 
-    // ── CARD 3: logo + horizontal stats only ──
+    // ── CARD 3: logo centered + horizontal stats only ──
     const Card3 = (
-      <div style={{background:cardBg,borderRadius:17,padding:"24px 20px 28px",border:cardBorder,boxShadow:cardShadow}}>
-        <img src={tempoRunLogo} alt="TempoRun" style={{width:72,height:"auto",objectFit:"contain",display:"block",marginBottom:24}}/>
+      <div style={{background:cardBg,borderRadius:17,padding:"24px 20px 28px",border:cardBorder,boxShadow:cardShadow,textAlign:"center"}}>
+        <img src={tempoRunLogo} alt="TempoRun" style={{width:72,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 20px"}}/>
         <p style={{color:"#ffffff44",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",margin:"0 0 20px"}}>{data}</p>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:8,textAlign:"left"}}>
           <div style={{flex:1,borderTop:"1px solid #a855f744",paddingTop:10}}>
             <p style={{color:"#f0f4ff",fontSize:32,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1,margin:0,lineHeight:1}}>{dist}</p>
             <p style={{color:"#ffffff44",fontSize:9,fontWeight:700,fontFamily:"monospace",letterSpacing:1,textTransform:"uppercase",margin:"4px 0 0"}}>km</p>
@@ -3038,7 +3054,9 @@ export default function TempoRunApp() {
       <div>
         {/* card + arrows */}
         <div style={{position:"relative",marginBottom:14}}>
-          {CARDS[cardIndex]}
+          <div ref={cardRef}>
+            {CARDS[cardIndex]}
+          </div>
           {/* left arrow */}
           <button onClick={()=>setCardIndex(i=>(i-1+TOTAL)%TOTAL)}
             style={{position:"absolute",top:"50%",left:-14,transform:"translateY(-50%)",width:32,height:32,borderRadius:16,background:C.s2,border:"1px solid "+C.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 12px #00000066"}}>
