@@ -1111,9 +1111,53 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
+const SESSION_KEY = "temporun_session";
+
+function saveSession(s) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({...s, saved_at: Date.now()})); } catch{}
+}
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    // Token válido por 7 dias (Supabase default é 1h mas com refresh dura mais)
+    // Guardamos por 7 dias localmente — Supabase vai rejeitar se expirado
+    if(Date.now() - (s.saved_at||0) > 7 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(SESSION_KEY); return null;
+    }
+    return s;
+  } catch{ return null; }
+}
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch{}
+}
+
 export default function TempoRunApp() {
-  const [session, setSession]   = useState(null); // { access_token, email }
+  const [session, setSession]   = useState(()=>loadSession()); // restaura sessão salva
+  const [authLoading, setAuthLoading] = useState(true); // evita flash da tela de login
   const loggedIn = !!session;
+
+  // Verifica se a sessão salva ainda é válida ao abrir o app
+  useEffect(()=>{
+    const saved = loadSession();
+    if(!saved) { setAuthLoading(false); return; }
+    // Tenta validar o token com o Supabase
+    fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${saved.access_token}` }
+    }).then(r=>r.json()).then(data=>{
+      if(data.id) {
+        // Token ainda válido — mantém sessão
+        setSession(s=>s||saved);
+      } else {
+        // Token expirado — limpa e pede login
+        clearSession(); setSession(null);
+      }
+    }).catch(()=>{
+      // Sem internet — mantém sessão local (app funciona offline)
+      setSession(s=>s||saved);
+    }).finally(()=>setAuthLoading(false));
+  },[]);
   const [tab, setTab] = useState("home");
   const [subScreen, setSubScreen] = useState(null);
   const [treinoTab, setTreinoTab] = useState("iniciar");
@@ -1510,7 +1554,7 @@ export default function TempoRunApp() {
               {id:"dados",  nome:"Dados pessoais",desc:"Nome, idade, peso, FC máxima", icon:"profile",  cor:C.violetL},
               {id:"logout", nome:"Logout",         desc:"Sair da conta",                icon:"back",     cor:C.coral},
             ].map(opt=>(
-              <button key={opt.id} onClick={()=>{if(opt.id==="logout"){sb.signOut(session?.access_token);setSession(null);setShowPerfil(false);setTab("home");}}} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
+              <button key={opt.id} onClick={()=>{if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();setSession(null);setShowPerfil(false);setTab("home");}}} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
                 <div style={{width:32,height:32,borderRadius:9,background:opt.cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+opt.cor+"33"}}>
                   <Ic n={opt.icon} z={16} c={opt.cor}/>
                 </div>
@@ -2673,12 +2717,21 @@ export default function TempoRunApp() {
         </div>
 
         <div className="sc" key={loggedIn?screenKey:"login"} style={{height:615,overflowY:"auto",padding:loggedIn?"0 17px 13px":"0",position:"relative"}}>
-          {!loggedIn && <LoginScreen onLogin={s=>setSession(s)} tab={tab} setTab={setTab}/>}
-          {loggedIn && tab==="home"     && renderHome()}
-          {loggedIn && tab==="explorar" && renderExplorar()}
-          {loggedIn && tab==="treino"   && renderTreino()}
-          {loggedIn && tab==="analise"  && renderAnalise()}
-          {loggedIn && tab==="studio"   && renderStudio()}
+          {authLoading ? (
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16}}>
+              <img src={logoImg} alt="TempoRun" style={{width:120,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 20px "+C.violet+"66)",opacity:0.9}}/>
+              <div style={{width:36,height:36,borderRadius:"50%",border:"3px solid "+C.border,borderTopColor:C.cyanB,animation:"spin 0.8s linear infinite"}}/>
+            </div>
+          ) : (
+            <>
+              {!loggedIn && <LoginScreen onLogin={s=>{ saveSession(s); setSession(s); }} tab={tab} setTab={setTab}/>}
+              {loggedIn && tab==="home"     && renderHome()}
+              {loggedIn && tab==="explorar" && renderExplorar()}
+              {loggedIn && tab==="treino"   && renderTreino()}
+              {loggedIn && tab==="analise"  && renderAnalise()}
+              {loggedIn && tab==="studio"   && renderStudio()}
+            </>
+          )}
         </div>
 
         <div style={{background:C.bg,borderTop:"1px solid "+C.border,padding:"7px 4px 12px",display:"flex",alignItems:"center",position:"relative"}}>
