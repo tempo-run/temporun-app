@@ -2835,6 +2835,270 @@ export default function TempoRunApp() {
     );
   }
 
+
+  // ── MAPA ARTE ────────────────────────────────────────────────────────────────
+  function MapaArte({ corrida, allRuns, C, fmtT }) {
+    const canvasRef = useRef(null);
+    const [selectedRun, setSelectedRunMapa] = useState(null);
+    const [mapaStyle, setMapaStyle] = useState("neon"); // neon | minimal | cyan
+    const [exported, setExported] = useState(false);
+
+    const run = selectedRun || corrida || allRuns?.[0] || null;
+
+    const STYLES = {
+      neon:    { name:"Neon",    routeColor:"#a855f7", glowColor:"#7c3aed", bgCity:"#1a1a2e", bgStreet:"#16213e", pinColor:"#c084fc", dotColor:"#22d3ee" },
+      minimal: { name:"Minimal", routeColor:"#e2e8f0", glowColor:"#94a3b8", bgCity:"#0f0f0f", bgStreet:"#1a1a1a", pinColor:"#f1f5f9", dotColor:"#cbd5e1" },
+      cyan:    { name:"Cyan",    routeColor:"#22d3ee", glowColor:"#06b6d4", bgCity:"#001a24", bgStreet:"#002a38", pinColor:"#67e8f9", dotColor:"#a855f7" },
+    };
+
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      const st = STYLES[mapaStyle];
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Background — semi transparent dark
+      ctx.fillStyle = st.bgCity + "dd";
+      ctx.fillRect(0, 0, W, H);
+
+      // City grid — subtle streets behind
+      ctx.strokeStyle = st.bgStreet;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.6;
+      // horizontal streets
+      for (let y = 20; y < H; y += 22 + Math.sin(y) * 8) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        // wavy city streets
+        for (let x = 0; x <= W; x += 10) {
+          ctx.lineTo(x, y + Math.sin(x * 0.04 + y * 0.02) * 2);
+        }
+        ctx.stroke();
+      }
+      // vertical streets
+      for (let x = 20; x < W; x += 28 + Math.cos(x) * 6) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        for (let y = 0; y <= H; y += 10) {
+          ctx.lineTo(x + Math.sin(y * 0.04 + x * 0.02) * 1.5, y);
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // Generate or use polyline
+      let pts = [];
+      if (run?.polyline && run.polyline.length > 2) {
+        // normalize polyline to canvas
+        const lats = run.polyline.map(p => p[0]);
+        const lngs = run.polyline.map(p => p[1]);
+        const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+        const pad = 40;
+        pts = run.polyline.map(p => ({
+          x: pad + ((p[1] - minLng) / (maxLng - minLng || 1)) * (W - pad * 2),
+          y: H - pad - ((p[0] - minLat) / (maxLat - minLat || 1)) * (H - pad * 2),
+        }));
+      } else {
+        // Generate demo route
+        const seed = run ? run.distancia_km : 10;
+        let x = W * 0.25, y = H * 0.55;
+        pts = [{x, y}];
+        for (let i = 0; i < 28; i++) {
+          x += (Math.sin(i * 1.3 + seed) * 22) + 8;
+          y += (Math.cos(i * 0.9 + seed) * 16);
+          x = Math.max(30, Math.min(W - 30, x));
+          y = Math.max(30, Math.min(H - 30, y));
+          pts.push({x, y});
+        }
+      }
+
+      if (pts.length < 2) return;
+
+      // Glow outer pass
+      ctx.shadowColor = st.glowColor;
+      ctx.shadowBlur = 18;
+      ctx.strokeStyle = st.glowColor + "66";
+      ctx.lineWidth = 6;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+
+      // Main route line
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = st.routeColor;
+      ctx.strokeStyle = st.routeColor;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+
+      // Km split dots
+      const total = pts.length;
+      const splitInterval = Math.floor(total / 4);
+      [1, 2, 3].forEach(i => {
+        const p = pts[Math.min(i * splitInterval, total - 1)];
+        const kmLabel = run ? ((run.distancia_km / 4) * i).toFixed(1) + "km" : (i * 2.5) + "km";
+        // dot
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#0d0f2e";
+        ctx.fill();
+        ctx.strokeStyle = st.dotColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // label bubble
+        const tw = ctx.measureText(kmLabel).width + 14;
+        const bx = Math.min(p.x - tw / 2, W - tw - 4);
+        const by = p.y - 26;
+        ctx.fillStyle = "#0d0f2ecc";
+        ctx.strokeStyle = st.dotColor + "88";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, tw, 18, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = st.dotColor;
+        ctx.font = "bold 9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(kmLabel, p.x, by + 12);
+      });
+
+      // Start pin
+      const s = pts[0];
+      ctx.fillStyle = st.pinColor;
+      ctx.shadowColor = st.pinColor;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // End pin — SVG-style pin drawn on canvas
+      const e = pts[pts.length - 1];
+      ctx.shadowColor = st.dotColor;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = st.dotColor;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y - 2, 7, 0, Math.PI * 2);
+      ctx.fill();
+      // pin tail
+      ctx.beginPath();
+      ctx.moveTo(e.x - 4, e.y + 3);
+      ctx.lineTo(e.x, e.y + 10);
+      ctx.lineTo(e.x + 4, e.y + 3);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(e.x, e.y - 2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Stats overlay bottom
+      const dist = run ? run.distancia_km.toFixed(1) + " km" : "10.4 km";
+      const pace = run?.pace_medio || "5:30";
+      const dur  = run ? fmtT(run.duracao_seg) : "54:00";
+      const bpm  = run?.bpm_medio ? run.bpm_medio + " bpm" : "158 bpm";
+
+      ctx.fillStyle = "#06071acc";
+      ctx.beginPath();
+      ctx.roundRect(10, H - 44, W - 20, 34, 8);
+      ctx.fill();
+      ctx.strokeStyle = st.routeColor + "44";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      const stats = [{l:"Dist", v:dist},{l:"Pace", v:pace},{l:"Tempo", v:dur},{l:"BPM", v:bpm}];
+      const sw = (W - 20) / stats.length;
+      stats.forEach((s, i) => {
+        const cx = 10 + sw * i + sw / 2;
+        ctx.fillStyle = "#8b9ec7";
+        ctx.font = "7px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(s.l.toUpperCase(), cx, H - 32);
+        ctx.fillStyle = "#f0f4ff";
+        ctx.font = "bold 10px 'Space Grotesk', sans-serif";
+        ctx.fillText(s.v, cx, H - 20);
+      });
+
+      // TempoRun watermark
+      ctx.fillStyle = st.routeColor + "55";
+      ctx.font = "bold 8px monospace";
+      ctx.textAlign = "right";
+      ctx.fillText("TEMPORUN", W - 12, 16);
+
+    }, [run, mapaStyle]);
+
+    function handleExport() {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const link = document.createElement("a");
+      link.download = "temporun_mapa.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      setExported(true);
+      setTimeout(() => setExported(false), 2000);
+    }
+
+    return (
+      <div>
+        <SL><Ic n="map" z={13} c={C.ts}/>Mapa da Corrida</SL>
+
+        {/* Run selector */}
+        {allRuns && allRuns.length > 1 && (
+          <div style={{marginBottom:12}}>
+            <select value={selectedRun?.id||""} onChange={e=>setSelectedRunMapa(allRuns.find(r=>r.id===e.target.value)||null)}
+              style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"9px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",appearance:"none"}}>
+              <option value="">Última corrida</option>
+              {allRuns.slice(0,10).map(r=>(
+                <option key={r.id} value={r.id}>{r.nome||r.data} — {r.distancia_km?.toFixed(1)}km</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Canvas */}
+        <div style={{borderRadius:14,overflow:"hidden",border:"1px solid "+STYLES[mapaStyle].routeColor+"33",marginBottom:12,boxShadow:"0 8px 32px #00000066"}}>
+          <canvas ref={canvasRef} width={356} height={240} style={{width:"100%",display:"block"}}/>
+        </div>
+
+        {/* Style picker */}
+        <SL><Ic n="star" z={13} c={C.ts}/>Estilo</SL>
+        <div style={{display:"flex",gap:7,marginBottom:14}}>
+          {Object.entries(STYLES).map(([k,v])=>(
+            <button key={k} onClick={()=>setMapaStyle(k)}
+              style={{flex:1,background:mapaStyle===k?v.routeColor+"22":C.s2,border:"1px solid "+(mapaStyle===k?v.routeColor+"66":C.border),borderRadius:10,padding:"9px 0",cursor:"pointer",color:mapaStyle===k?v.routeColor:C.tm,fontWeight:700,fontSize:11,fontFamily:"inherit"}}>
+              {v.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={handleExport} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+            <Ic n="save" z={15} c="#fff"/>{exported?"Salvo!":"Salvar PNG"}
+          </button>
+          <button style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 13px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+            <Ic n="share" z={15} c={C.cyanB}/>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── STUDIO ──────────────────────────────────────────────────────────────────
   function renderStudio() {
     const CARD_STYLES = [
@@ -2857,7 +3121,7 @@ export default function TempoRunApp() {
           <p style={{color:C.tm,fontSize:12,margin:0}}>Crie cards e gere conteúdo</p>
         </div>
         <div style={{display:"flex",background:C.s2,borderRadius:11,padding:4,marginBottom:14,gap:3}}>
-          {[{id:"card",l:"Card"},{id:"rps",l:"RPs"},{id:"efeitos",l:"Efeitos"}].map(t=>(
+          {[{id:"card",l:"Card"},{id:"mapa",l:"Mapa"},{id:"rps",l:"RPs"},{id:"efeitos",l:"Efeitos"}].map(t=>(
             <button key={t.id} onClick={()=>setStudioTab(t.id)} style={{flex:1,background:studioTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:studioTab===t.id?C.tp:C.tm,border:studioTab===t.id?"1px solid "+C.violet+"44":"1px solid transparent",borderRadius:8,padding:"8px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
               {t.l}
             </button>
@@ -2907,6 +3171,11 @@ export default function TempoRunApp() {
               <button style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 13px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center"}}><Ic n="save" z={15} c={C.cyanB}/></button>
             </div>
           </div>
+        )}
+
+
+        {studioTab==="mapa"&&(
+          <MapaArte corrida={corridas[0]||null} allRuns={allRuns} C={C} fmtT={fmtT}/>
         )}
 
         {studioTab==="rps"&&(
