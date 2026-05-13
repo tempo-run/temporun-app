@@ -2880,26 +2880,39 @@ export default function TempoRunApp() {
       }
       ctx.globalAlpha = 1;
 
-      // route pts
-      let pts = [];
+      // Generate raw points first, then normalize to fill canvas
+      let rawPts = [];
       if (run?.polyline && run.polyline.length > 2) {
-        const lats=run.polyline.map(p=>p[0]), lngs=run.polyline.map(p=>p[1]);
-        const minLat=Math.min(...lats),maxLat=Math.max(...lats);
-        const minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
-        const pad = small ? 14 : 24;
-        pts = run.polyline.map(p=>({
-          x: pad+((p[1]-minLng)/(maxLng-minLng||1))*(W-pad*2),
-          y: H-pad-((p[0]-minLat)/(maxLat-minLat||1))*(H-pad*2),
-        }));
+        rawPts = run.polyline.map(p=>({ x: p[1], y: -p[0] })); // lng, -lat
       } else {
         const seed = run ? run.distancia_km : 10;
-        let x=W*0.2, y=H*0.55; pts=[{x,y}];
-        for(let i=0;i<22;i++){
-          x+=(Math.sin(i*1.3+seed)*18)+7; y+=(Math.cos(i*0.9+seed)*12);
-          x=Math.max(18,Math.min(W-18,x)); y=Math.max(18,Math.min(H-18,y));
-          pts.push({x,y});
+        let rx=0, ry=0; rawPts=[{x:rx,y:ry}];
+        for(let i=0;i<28;i++){
+          rx += Math.sin(i*1.3+seed)*0.003 + 0.002;
+          ry += Math.cos(i*0.9+seed)*0.0025;
+          rawPts.push({x:rx,y:ry});
         }
       }
+
+      // Normalize to canvas with padding — centers route
+      const pad = small ? 18 : 36;
+      const minX = Math.min(...rawPts.map(p=>p.x));
+      const maxX = Math.max(...rawPts.map(p=>p.x));
+      const minY = Math.min(...rawPts.map(p=>p.y));
+      const maxY = Math.max(...rawPts.map(p=>p.y));
+      const rangeX = maxX - minX || 1;
+      const rangeY = maxY - minY || 1;
+      // Keep aspect ratio
+      const scaleX = (W - pad*2) / rangeX;
+      const scaleY = (H - pad*2) / rangeY;
+      const scale  = Math.min(scaleX, scaleY);
+      const offX = (W - rangeX*scale) / 2;
+      const offY = (H - rangeY*scale) / 2;
+      const pts = rawPts.map(p=>({
+        x: offX + (p.x - minX) * scale,
+        y: offY + (p.y - minY) * scale,
+      }));
+
       if (pts.length < 2) return;
 
       // glow
@@ -2926,7 +2939,8 @@ export default function TempoRunApp() {
           ctx.fillStyle="#0d0f2e"; ctx.fill();
           ctx.strokeStyle=NEON.dot; ctx.lineWidth=1.8; ctx.stroke();
           const tw=ctx.measureText(lbl).width+12;
-          const bx=Math.min(p.x-tw/2,W-tw-4), by=p.y-22;
+          const bx=Math.min(Math.max(p.x-tw/2, 4), W-tw-4);
+          const by=Math.max(p.y-22, 4);
           ctx.fillStyle="#0d0f2ecc"; ctx.strokeStyle=NEON.dot+"77"; ctx.lineWidth=0.8;
           ctx.beginPath(); ctx.roundRect(bx,by,tw,15,4); ctx.fill(); ctx.stroke();
           ctx.fillStyle=NEON.dot; ctx.font="bold 8px monospace"; ctx.textAlign="center";
@@ -2975,7 +2989,9 @@ export default function TempoRunApp() {
       logoImg.onload = () => {
         const logoAR = logoImg.naturalWidth / logoImg.naturalHeight;
 
-        // Background
+        // Background — clip all drawing to rounded card shape
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(0,0,W,cardH,17); ctx.clip();
         if (cardIndex === 1) {
           ctx.fillStyle = "#1a1a2e";
         } else {
@@ -2983,7 +2999,7 @@ export default function TempoRunApp() {
           grd.addColorStop(0,"#0c0830"); grd.addColorStop(1,"#0a1430");
           ctx.fillStyle = grd;
         }
-        ctx.beginPath(); ctx.roundRect(0,0,W,cardH,17); ctx.fill();
+        ctx.fillRect(0,0,W,cardH);
 
         if (cardIndex === 0) {
           // CARD 1: logo centered top + stats centered + map + logo watermark bottom
@@ -3035,6 +3051,7 @@ export default function TempoRunApp() {
           });
         }
 
+        ctx.restore(); // end clip region
         const link = document.createElement("a");
         link.download = `temporun_card${cardIndex+1}.png`;
         link.href = off.toDataURL("image/png");
