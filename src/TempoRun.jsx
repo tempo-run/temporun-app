@@ -19,12 +19,12 @@ const C = {
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 function Ic({ n, z=20, c="currentColor", st={} }) {
   const paths = {
-    home:     <><path d="M12 2L3 9v13h5v-7h4v7h5V9z" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></>,
-    run:      <><circle cx="14" cy="4" r="1.8" stroke={c} strokeWidth="1.5"/><path d="M12 8l-2.5 4.5 2.5 1.5v5M12 8l2 3-3 2M9.5 12.5L7 18M12 14.5l2.5 3.5M5 18.5h4M14 18.5h4" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></>,
-    explore:  <><path d="M3 18l5-9 4 5 3-4 5 8H3z" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/><path d="M3 14Q8 12 12 14Q16 16 21 14" stroke={c} strokeWidth="1" strokeLinecap="round" opacity="0.5"/></>,
-    studio:   <><rect x="3" y="5" width="18" height="14" rx="2" stroke={c} strokeWidth="1.6"/><path d="M3 9h18M3 15h18" stroke={c} strokeWidth="1.2" opacity="0.45"/><path d="M7 5v4M12 5v4M17 5v4M7 15v4M12 15v4M17 15v4" stroke={c} strokeWidth="1.3" strokeLinecap="round"/><path d="M10 12l4-2-4-2v4z" fill={c} opacity="0.8"/></>,
+    home:     <><path d="M12 2L3 9v13h5v-7h4v7h5V9z" stroke={c} strokeWidth="1.6" strokeLinejoin="round" fill={c} fillOpacity="0.18"/><path d="M9 22v-7h6v7" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></>,
+    run:      <><circle cx="15" cy="3.5" r="1.8" stroke={c} strokeWidth="1.5"/><path d="M15 5.3L13 9l-4 1.5M13 9l1 3.5-2.5 4M9 10.5l-2 5M14 12.5l3.5 4.5" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></>,
+    explore:  <><path d="M2 19l7-12 4 7 3-4 6 9H2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></>,
+    studio:   <><rect x="3" y="3" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/></>,
     science:  <><path d="M8 4C8 4 16 7 16 12C16 17 8 20 8 20M16 4C16 4 8 7 8 12C8 17 16 20 16 20" stroke={c} strokeWidth="1.6" strokeLinecap="round"/><path d="M8.5 8.5h7M8.5 15.5h7" stroke={c} strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/></>,
-    report:   <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke={c} strokeWidth="1.5" strokeLinejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={c} strokeWidth="1.4" strokeLinecap="round"/></>,
+    report:   <><rect x="4" y="2" width="16" height="20" rx="2" stroke={c} strokeWidth="1.5" strokeLinejoin="round"/><path d="M8 14l3-4 3 3 3-4" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 8h8" stroke={c} strokeWidth="1.3" strokeLinecap="round" opacity="0.45"/></>,
     profile:  <><circle cx="12" cy="7" r="3.5" stroke={c} strokeWidth="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></>,
     back:     <><path d="M19 12H5M12 5l-7 7 7 7" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></>,
     share:    <><circle cx="18" cy="5" r="2.5" stroke={c} strokeWidth="1.5"/><circle cx="6" cy="12" r="2.5" stroke={c} strokeWidth="1.5"/><circle cx="18" cy="19" r="2.5" stroke={c} strokeWidth="1.5"/><path d="M8.5 10.5l7-4M8.5 13.5l7 4" stroke={c} strokeWidth="1.4" strokeLinecap="round"/></>,
@@ -1076,15 +1076,13 @@ function LoginScreen({ onLogin }) {
   // Tela principal
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center"}}>
-      <div style={{marginTop:30,marginBottom:18,display:"flex",justifyContent:"center",width:"100%"}}>
-        <img src={logoImg} alt="TempoRun" style={{width:240,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 30px "+C.violet+"55)"}}/>
-      </div>
-      <div style={{textAlign:"center",marginBottom:32}}>
-        <h1 style={{margin:0,fontFamily:"'Space Grotesk',sans-serif",fontSize:32,fontWeight:800,letterSpacing:-0.5,fontStyle:"italic"}}>
+      <div style={{marginTop:20,marginBottom:28,display:"flex",flexDirection:"column",alignItems:"center",width:"100%",gap:0}}>
+        <img src={logoImg} alt="TempoRun" style={{width:200,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 30px "+C.violet+"55)",marginBottom:0}}/>
+        <h1 style={{margin:"4px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:30,fontWeight:800,letterSpacing:1,fontStyle:"italic",lineHeight:1}}>
           <span style={{color:C.tp}}>TEMPO </span>
           <span style={{background:"linear-gradient(135deg,"+C.violetL+","+C.cyanB+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>RUN</span>
         </h1>
-        <p style={{color:C.tm,fontSize:14,margin:"7px 0 0",fontWeight:400}}>Conecte-se para continuar</p>
+        <p style={{color:C.tm,fontSize:14,margin:"10px 0 0",fontWeight:400}}>Conecte-se para continuar</p>
       </div>
       <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
         <button onClick={()=>{setMode("otp_email");setErro("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
