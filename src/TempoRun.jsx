@@ -1075,9 +1075,9 @@ function LoginScreen({ onLogin }) {
 
   // Tela principal
   return (
-    <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center"}}>
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center",background:"#06071a"}}>
       <div style={{marginTop:16,marginBottom:24,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
-        <img src={logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 30px #7c3aed88) drop-shadow(0 0 60px #22d3ee33)",marginBottom:8}}/>
+        <img src={logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
         <p style={{color:C.ts,fontSize:13,margin:"0",fontWeight:400,letterSpacing:0.3}}>Conecte-se para continuar</p>
       </div>
       <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
