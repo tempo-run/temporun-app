@@ -1130,12 +1130,35 @@ function saveSession(s) {
   try { localStorage.setItem(SESSION_KEY, JSON.stringify({...s, saved_at: Date.now()})); } catch{}
 }
 function loadSession() {
+  // 1. Verifica hash (#access_token=...) — vem do Google OAuth
+  const hash = window.location.hash;
+  if(hash) {
+    const p = new URLSearchParams(hash.replace(/^#/,""));
+    const at = p.get("access_token");
+    if(at) {
+      window.history.replaceState(null,"",window.location.pathname);
+      const s = { access_token:at, email: p.get("user_email")||p.get("email")||"" };
+      saveSession(s);
+      return s;
+    }
+  }
+  // 2. Verifica query string (?access_token=...)
+  const search = window.location.search;
+  if(search) {
+    const p = new URLSearchParams(search);
+    const at = p.get("access_token");
+    if(at) {
+      window.history.replaceState(null,"",window.location.pathname);
+      const s = { access_token:at, email: p.get("email")||"" };
+      saveSession(s);
+      return s;
+    }
+  }
+  // 3. Verifica localStorage
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if(!raw) return null;
     const s = JSON.parse(raw);
-    // Token válido por 7 dias (Supabase default é 1h mas com refresh dura mais)
-    // Guardamos por 7 dias localmente — Supabase vai rejeitar se expirado
     if(Date.now() - (s.saved_at||0) > 7 * 24 * 60 * 60 * 1000) {
       localStorage.removeItem(SESSION_KEY); return null;
     }
