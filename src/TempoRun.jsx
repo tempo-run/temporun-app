@@ -2296,9 +2296,12 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{dadosForm.nome?dadosForm.nome.split(" ")[0]:session?.strava_athlete?.firstname||session?.email?.split("@")[0]||"Corredor"} {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}</h1>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
-              <div style={{width:44,height:44,borderRadius:22,background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showSaber?C.cyanB+"88":C.border),boxShadow:showSaber?"0 0 14px "+C.violet+"66":"none"}}>
-                <Ic n="science" z={20} c={showSaber?"#fff":C.ts}/>
+            <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
+              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <div style={{width:44,height:44,borderRadius:22,background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showSaber?C.cyanB+"88":C.border),boxShadow:showSaber?"0 0 14px "+C.violet+"66":"none"}}>
+                  <Ic n="science" z={20} c={showSaber?"#fff":C.ts}/>
+                </div>
+                {!isPro&&<div style={{background:"linear-gradient(135deg,"+C.violet+"cc,"+C.cyan+"99)",borderRadius:8,padding:"2px 6px",border:"1px solid "+C.violet+"55"}}><span style={{color:"#fff",fontSize:8,fontWeight:800,letterSpacing:0.5,fontFamily:"monospace"}}>PRO</span></div>}
               </div>
               <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Saber</span>
             </button>
@@ -3076,6 +3079,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
   }
   // ── ANÁLISE ─────────────────────────────────────────────────────────────────
   function renderAnalise() {
+    if(!isPro) return (
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:400,padding:"32px 24px",textAlign:"center"}}>
+        <div style={{width:72,height:72,borderRadius:36,background:"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)",border:"1px solid "+C.violet+"44",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20}}>
+          <Ic n="lock" z={32} c={C.violetL}/>
+        </div>
+        <p style={{color:C.tp,fontWeight:800,fontSize:20,margin:"0 0 8px",fontFamily:"'Space Grotesk',sans-serif"}}>Recurso Pro</p>
+        <p style={{color:C.tm,fontSize:14,margin:"0 0 28px",lineHeight:1.6,maxWidth:280}}>Esta funcionalidade está disponível apenas no plano Pro. Assine e desbloqueie análise biomecânica, cards de compartilhamento e muito mais.</p>
+        <button onClick={()=>setShowProModal(true)} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:14,padding:"15px 28px",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 6px 24px "+C.violet+"55"}}>
+          🚀 Ver planos Pro
+        </button>
+        <p style={{color:C.td,fontSize:12,margin:"16px 0 0"}}>A partir de R$19,90/mês · Cancele quando quiser</p>
+      </div>
+    );
     if(anStep==="upload") return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
@@ -4039,6 +4055,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
   // ── STUDIO ──────────────────────────────────────────────────────────────────
   function renderStudio() {
+    if(!isPro) return (
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:400,padding:"32px 24px",textAlign:"center"}}>
+        <div style={{width:72,height:72,borderRadius:36,background:"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)",border:"1px solid "+C.violet+"44",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20}}>
+          <Ic n="lock" z={32} c={C.violetL}/>
+        </div>
+        <p style={{color:C.tp,fontWeight:800,fontSize:20,margin:"0 0 8px",fontFamily:"'Space Grotesk',sans-serif"}}>Recurso Pro</p>
+        <p style={{color:C.tm,fontSize:14,margin:"0 0 28px",lineHeight:1.6,maxWidth:280}}>Esta funcionalidade está disponível apenas no plano Pro. Assine e desbloqueie análise biomecânica, cards de compartilhamento e muito mais.</p>
+        <button onClick={()=>setShowProModal(true)} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:14,padding:"15px 28px",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 6px 24px "+C.violet+"55"}}>
+          🚀 Ver planos Pro
+        </button>
+        <p style={{color:C.td,fontSize:12,margin:"16px 0 0"}}>A partir de R$19,90/mês · Cancele quando quiser</p>
+      </div>
+    );
     const CARD_STYLES = [
       {name:"Minimal",bg:"linear-gradient(135deg,#0c0830,#0a1430)"},
       {name:"Bold",bg:"linear-gradient(135deg,"+C.violet+","+C.cyan+")"},
