@@ -122,7 +122,7 @@ async function callAI(system,msg,history=[]) {
   const res=await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`,{
     method:"POST",
     headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON},
-    body:JSON.stringify({system,messages:msgs,max_tokens:1400})
+    body:JSON.stringify({system,messages:msgs,max_tokens:1400,model:"claude-haiku-4-5-20251001"})
   });
   const d=await res.json();
   return (d.content&&d.content[0]&&d.content[0].text)||"Erro.";

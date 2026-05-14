@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
 const cors = {
@@ -11,7 +9,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const { system, messages, max_tokens = 1400 } = await req.json();
+    const { system, messages, max_tokens = 1400, model = "claude-haiku-4-5-20251001" } = await req.json();
 
     if (!system || !messages) {
       return new Response(JSON.stringify({ error: "system e messages são obrigatórios" }), {
@@ -26,12 +24,7 @@ Deno.serve(async (req) => {
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens,
-        system,
-        messages,
-      }),
+      body: JSON.stringify({ model, max_tokens, system, messages }),
     });
 
     const data = await res.json();
