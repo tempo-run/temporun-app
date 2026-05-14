@@ -4,6 +4,7 @@ import runnerLanding from './assets/runner_landing.png';
 import runnerOverstride from './assets/runner_overstride.png';
 import logoImg from './assets/logo.png';
 import tempoRunLogo from './assets/tempo_run_logo.png';
+import iconCircle from './assets/icon_circle.png';
 import perfilImg from './assets/perfil.png';
 import inicioTreino from './assets/inicio_treino.png';
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -1980,19 +1981,16 @@ export default function TempoRunApp() {
           <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",textAlign:"center"}}>
             {/* Animated glow ring */}
             <div style={{position:"relative",marginBottom:32}}>
-              <div style={{width:120,height:120,borderRadius:60,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 60px "+C.violet+"66, 0 0 120px "+C.cyan+"33"}}>
-                <img src={logoImg} alt="TempoRun" style={{width:90,height:90,objectFit:"contain"}}/>
+              <div style={{width:130,height:130,borderRadius:65,overflow:"hidden",boxShadow:"0 0 50px "+C.violet+"66, 0 0 100px "+C.cyan+"33"}}>
+                <img src={iconCircle} alt="TempoRun" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
               </div>
               {/* Pulse rings */}
-              <div style={{position:"absolute",inset:-12,borderRadius:72,border:"2px solid "+C.violet+"33",animation:"pulse 2s infinite"}}/>
-              <div style={{position:"absolute",inset:-24,borderRadius:84,border:"1px solid "+C.violet+"22",animation:"pulse 2s infinite 0.5s"}}/>
+              <div style={{position:"absolute",inset:-10,borderRadius:75,border:"2px solid "+C.violet+"33"}}/>
+              <div style={{position:"absolute",inset:-22,borderRadius:87,border:"1px solid "+C.violet+"22"}}/>
             </div>
 
-            <p style={{color:C.ts,fontSize:12,fontWeight:700,letterSpacing:2,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 12px"}}>Bem-vindo ao</p>
-            <h1 style={{margin:"0 0 8px",fontFamily:"'Space Grotesk',sans-serif",fontSize:36,fontWeight:800,letterSpacing:-1}}>
-              <span style={{color:C.tp}}>Tempo</span>
-              <span style={{background:"linear-gradient(90deg,"+C.violetL+","+C.cyanB+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Run</span>
-            </h1>
+            <p style={{color:C.ts,fontSize:12,fontWeight:700,letterSpacing:2,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 14px"}}>Bem-vindo ao</p>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:180,height:"auto",objectFit:"contain",marginBottom:16}}/>
             <p style={{color:C.tp,fontSize:22,fontWeight:700,margin:"0 0 10px",fontFamily:"'Space Grotesk',sans-serif"}}>
               Olá, {primeiroNome}! 👋
             </p>
