@@ -398,9 +398,9 @@ function RunMapSvgFallback({ polyline, color=C.cyanB }) {
 
 // ─── LIVE MAP (canvas ao vivo durante gravação) ───────────────────────────────
 function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
-  const canvasRef = React.useRef(null);
+  const canvasRef = useRef(null);
 
-  React.useEffect(()=>{
+  useEffect(()=>{
     const canvas = canvasRef.current;
     if(!canvas) return;
     const ctx = canvas.getContext("2d");
