@@ -124,7 +124,7 @@ async function callAI(system,msg,history=[]) {
   return (d.content&&d.content[0]&&d.content[0].text)||"Erro.";
 }
 
-const SYS_COACH="Você é TEMPO, coach de corrida IA do TempoRun. Especialista em fisiologia, trail e prevenção de lesões. Conciso e motivador. Português.";
+const SYS_COACH=`Você é TEMPO, coach de corrida pessoal do TempoRun. Especialista em fisiologia do esporte, biomecânica, nutrição esportiva e prevenção de lesões. Conciso, motivador e científico. Português brasileiro. O perfil do atleta será fornecido no contexto — use-o para personalizar cada resposta. Nunca dê diagnóstico médico; para dor ou lesão, oriente a buscar profissional.`;
 const SYS_PLAN=`Você é TEMPO, coach IA do TempoRun. Gere plano semanal personalizado e seguro.
 REGRAS GERAIS: nunca aumente volume >10%/semana; mínimo 1-2 dias descanso; pós-lesão: 50% volume 2 semanas.
 REGRAS ESPECIAIS GLP-1 (Ozempic/Wegovy/Mounjaro/Saxenda): Se o atleta usa GLP-1, aplique:
@@ -137,7 +137,22 @@ REGRAS ESPECIAIS GLP-1 (Ozempic/Wegovy/Mounjaro/Saxenda): Se o atleta usa GLP-1,
 - Se náusea: substituir corrida por run-walk.
 Fontes: STEP trials, PMC 11848261, PMC 12683586, ADA Clinical Diabetes 2025.
 JSON apenas: {"plano":[{"dia":"","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}],"resumo_semanal":"","avisos_medicos":[],"progressao_segura":"","alerta_glp1":""}`;
-const SYS_SABER="Você é SABER, especialista em ciência da corrida. Biomecânica, fisiologia, nutrição, mitos. Direto, científico, max 3 parágrafos. Português.";
+const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro. Máximo 3 parágrafos objetivos.
+
+BASE DE CONHECIMENTO:
+BIOMECÂNICA: Cadência ideal 170-180 spm (Heiderscheit 2011). Overstriding aumenta força de impacto 3x. Oscilação vertical ideal <8cm. Aterrissagem sob o CG reduz lesões. Inclinação anterior 5-10° melhora economia. Fonte: BJSM, Journal of Biomechanics.
+FISIOLOGIA: VO2max melhora 5-15% em 8-12 semanas de treino aeróbico. Zonas de treino: Z1<65%FCmax (recuperação), Z2 65-75% (base aeróbica), Z3 75-85% (limiar), Z4 85-92% (anaeróbico), Z5>92% (neuromuscular). Glicogênio muscular dura ~90min em intensidade moderada. Fonte: ACSM Guidelines 2022.
+NUTRIÇÃO: Carboidrato 5-7g/kg/dia para corredores recreativos, 7-10g para alto volume. Gel energético a cada 30-45min em corridas >75min. Hidratação: 500-750ml/h em temperatura amena. Proteína 1.4-1.7g/kg/dia para recuperação muscular. Fonte: IOC Consensus 2023, ACSM.
+RECUPERAÇÃO: Janela anabólica: proteína+carboidrato em 30-60min pós-treino. Sono 7-9h fundamental para adaptação (crescimento hormonal pico em sono profundo). Foam rolling reduz DOMS 20-40%. Corrida leve 24-48h após esforço máximo acelera recuperação ativa. Fonte: NSCA, Sports Medicine.
+LESÕES COMUNS: Síndrome IT band: 8-10% corredores, causada por fraqueza glútea e aumento súbito de volume. Canelite: periostite tibial, excesso de pronação/supinação. Fascite plantar: primeiro passo matinal doloroso, tratamento inclui alongamento e palmilha. Regra: dor >3/10 = parar. Fonte: British Journal Sports Medicine.
+TREINOS: Rodagem leve (Z2, 60-70% volume semanal), intervalado (10-15%), fartlek (10%), longão semanal (20-25% volume, não exceder 35% semanal). Progressão máxima 10%/semana (regra dos 10%). Fonte: Daniels Running Formula, ACSM.
+GLP-1 (Ozempic/Wegovy/Mounjaro): evidência limitada em atletas. Reduz ingestão calórica 16-39%, risco de perda de massa muscular (STEP trials). Cautela com treinos longos em jejum. Proteína 1.2-1.6g/kg/dia essencial. Fonte: STEP trials, ADA 2025, PMC 11848261.
+EQUIPAMENTOS: Troca de tênis a cada 600-800km. Drop alto (>8mm) favorece aterrissagem em calcanhar, drop zero favorece forefoot. Meias de compressão reduzem DOMS em 10-20%. Fonte: BJSM, Journal Strength Cond Research.
+
+NÍVEIS DE RESPOSTA:
+🟢 LIVRE: biomecânica, nutrição geral, treinos, equipamentos, recuperação, estratégia de prova.
+🟡 COM RESSALVA: GLP-1/medicamentos, suplementos, overtraining, retorno pós-lesão. Responder com orientação + "consulte um profissional para decisões individuais".
+🔴 REDIRECIONAR: dor persistente >3 dias, sintomas cardíacos (dor no peito, tontura intensa), lesão com edema/inchaço, qualquer sintoma médico grave. Sempre responder: "Isso requer avaliação de um médico ou fisioterapeuta antes de continuar treinando."`;
 
 function avaliarPace(prop,base) {
   if(!prop||!base) return null;
@@ -1455,6 +1470,33 @@ export default function TempoRunApp() {
   const rpsExib=RPs_base.map(r=>{const s=rpsDb[r.dist];return s?{...r,tempo:s.tempoDisplay,data:s.data,melhora:s.melhora}:r;});
   const kmTotal=corridas.reduce((a,c)=>a+c.distancia_km,0);
   const dpTotal=corridas.reduce((a,c)=>a+(c.dplus||0),0);
+  // Monta contexto do perfil para injetar nas chamadas de IA
+  function buildPerfilCtx(){
+    const idade = dadosForm.dataNasc ? Math.floor((Date.now()-new Date(dadosForm.dataNasc))/(1000*60*60*24*365)) : null;
+    const kmMes = corridas.filter(r=>new Date(r.timestamp)>new Date(Date.now()-30*24*60*60*1000)).reduce((a,c)=>a+c.distancia_km,0);
+    const paceRecente = corridas.length ? corridas[0].pace_medio : null;
+    const lesaoRecente = corridas.filter(r=>new Date(r.timestamp)>new Date(Date.now()-7*24*60*60*1000));
+    const parts = [];
+    if(dadosForm.nome) parts.push(`Nome: ${dadosForm.nome.split(" ")[0]}`);
+    if(idade) parts.push(`Idade: ${idade} anos`);
+    if(dadosForm.sexo) parts.push(`Sexo: ${dadosForm.sexo}`);
+    if(dadosForm.peso) parts.push(`Peso: ${dadosForm.peso}kg`);
+    if(dadosForm.altura) parts.push(`Altura: ${dadosForm.altura}cm`);
+    if(onboardingData.objetivo) parts.push(`Objetivo: ${onboardingData.objetivo}`);
+    if(onboardingData.nivel||planForm.nivel) parts.push(`Nível: ${onboardingData.nivel||planForm.nivel}`);
+    if(planForm.pace_atual) parts.push(`Pace atual: ${planForm.pace_atual}/km`);
+    if(paceRecente) parts.push(`Pace recente: ${paceRecente}/km`);
+    if(kmMes>0) parts.push(`Volume últimos 30 dias: ${kmMes.toFixed(1)}km`);
+    if(corridas.length) parts.push(`Total de corridas: ${corridas.length}`);
+    if(planForm.glp1==="sim") parts.push(`GLP-1: SIM (${planForm.glp1_nausea==="sim"?"náusea ativa":"sem náusea"})`);
+    if(planForm.historico_lesoes) parts.push(`Histórico de lesões: ${planForm.historico_lesoes}`);
+    if(dadosForm.relogios?.length) parts.push(`Relógio: ${dadosForm.relogios[0]}`);
+    return parts.length ? `
+
+[PERFIL DO ATLETA]
+${parts.join(" | ")}` : "";
+  }
+
   function calcStreak(){if(!corridas.length) return 6;const ws=new Set(corridas.map(r=>{const d=new Date(r.timestamp);const m=new Date(d);m.setDate(d.getDate()-d.getDay());return m.toDateString();}));return ws.size;}
 
   // Haversine — distância entre dois pontos GPS em km
@@ -1497,8 +1539,8 @@ export default function TempoRunApp() {
   function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGBpm(158);setGpsStatus("off");setGpsAccuracy(null);gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
-  async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);try{const r=await callAI(SYS_COACH,msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
-  async function sendSaber(q){const msg=q||saberIn.trim();if(!msg||saberLoad)return;setSaberIn("");setSaberTab("perguntar");const nxt=[...saberMsgs,{from:"user",text:msg}];setSaberMsgs(nxt);setSaberLoad(true);try{const r=await callAI(SYS_SABER,msg,saberMsgs);setSaberMsgs([...nxt,{from:"ai",text:r}]);}catch{setSaberMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setSaberLoad(false);}
+  async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);try{const r=await callAI(SYS_COACH+buildPerfilCtx(),msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
+  async function sendSaber(q){const msg=q||saberIn.trim();if(!msg||saberLoad)return;setSaberIn("");setSaberTab("perguntar");const nxt=[...saberMsgs,{from:"user",text:msg}];setSaberMsgs(nxt);setSaberLoad(true);try{const r=await callAI(SYS_SABER+buildPerfilCtx(),msg,saberMsgs);setSaberMsgs([...nxt,{from:"ai",text:r}]);}catch{setSaberMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setSaberLoad(false);}
 
   function openTreino(treino, semana){
     setSelectedTreino({...treino, semana});
@@ -1521,7 +1563,19 @@ export default function TempoRunApp() {
     const glp1str=planForm.glp1==="sim"
       ?`\nUSO DE GLP-1: SIM — APLICAR TODAS AS REGRAS ESPECIAIS GLP-1\nNáusea ativa:${planForm.glp1_nausea}\nMedicamento reduz ingestão calórica 16-39% (PMC 12683586) — risco de glicogênio baixo e perda muscular`
       :"\nUSO DE GLP-1: NÃO";
-    const ctx=`ATLETA: Michel\nObjetivo:${planForm.objetivo}\nDistância:${planForm.dist_semana}km/sem\nPace:${planForm.pace_atual}/km\nDias:${planForm.dias_disponiveis}\nInatividade:${planForm.inatividade_semanas}sem\nLesões:${planForm.historico_lesoes||"Nenhuma"}\nNível:${planForm.nivel}${glp1str}${planImport?"\n"+planImport.fonte+":"+planImport.corridas_total+" corridas":""}${corridas.length?"\nHistórico:"+corridas.length+" corridas":""}`;
+    const idade=dadosForm.dataNasc?Math.floor((Date.now()-new Date(dadosForm.dataNasc))/(1000*60*60*24*365)):null;
+    const nomeAtleta=dadosForm.nome?dadosForm.nome.split(" ")[0]:"Atleta";
+    const kmRecente=corridas.filter(r=>new Date(r.timestamp)>new Date(Date.now()-30*24*60*60*1000)).reduce((a,c)=>a+c.distancia_km,0);
+    const ctx=`ATLETA: ${nomeAtleta}${idade?` | ${idade} anos`:""}${dadosForm.sexo?` | ${dadosForm.sexo}`:""}${dadosForm.peso?` | ${dadosForm.peso}kg`:""}${dadosForm.altura?` | ${dadosForm.altura}cm`:""}
+Objetivo:${planForm.objetivo||onboardingData.objetivo}
+Distância:${planForm.dist_semana}km/sem
+Pace:${planForm.pace_atual}/km
+Dias:${planForm.dias_disponiveis}
+Inatividade:${planForm.inatividade_semanas}sem
+Lesões:${planForm.historico_lesoes||"Nenhuma"}
+Nível:${planForm.nivel||onboardingData.nivel}${kmRecente>0?`
+Volume últimos 30 dias: ${kmRecente.toFixed(1)}km`:""}
+Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":"+planImport.corridas_total+" corridas":""}`;
     try{const r=await callAI(SYS_PLAN,ctx,[]);const p=JSON.parse(r.replace(/```json|```/g,"").trim());setPlanResult(p);setPlanScreen("result");}
     catch{setPlanResult({plano:[{dia:"—",tipo:"Erro",distancia_km:0,pace_alvo:"",descricao:"Tente novamente.",alerta_lesao:""}],resumo_semanal:"Erro.",avisos_medicos:[],progressao_segura:"",alerta_glp1:""});setPlanScreen("result");}
   }
