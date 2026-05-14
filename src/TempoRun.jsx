@@ -2083,7 +2083,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <p style={{color:C.ts,fontSize:12,fontWeight:700,letterSpacing:2,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 14px"}}>Bem-vindo ao</p>
             <img src={tempoRunLogo} alt="TempoRun" style={{width:180,height:"auto",objectFit:"contain",marginBottom:16}}/>
             <p style={{color:C.tp,fontSize:22,fontWeight:700,margin:"0 0 10px",fontFamily:"'Space Grotesk',sans-serif"}}>
-              Olá, {primeiroNome}! 👋
+              Olá, {primeiroNome}! {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}
             </p>
             <p style={{color:C.tm,fontSize:15,margin:"0 0 48px",lineHeight:1.6}}>
               Seu coach de corrida com IA.<br/>Vamos personalizar sua experiência em 2 passos rápidos.
@@ -2200,7 +2200,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,paddingBottom:12}}>
           <div style={{textAlign:"left"}}>
             <p style={{color:C.tm,fontSize:13,margin:0}}>Bom dia 🌤</p>
-            <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{session?.strava_athlete?.firstname || session?.email?.split("@")[0] || "Michel"} 👋</h1>
+            <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{dadosForm.nome?dadosForm.nome.split(" ")[0]:session?.strava_athlete?.firstname||session?.email?.split("@")[0]||"Corredor"} {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}</h1>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
@@ -2211,7 +2211,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </button>
             <button onClick={()=>{setShowPerfil(!showPerfil);setShowSaber(false);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px"}}>
               <div style={{position:"relative"}}>
-                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":"transparent"),boxShadow:showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:"contain"}}/></div>
+                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":"transparent"),boxShadow:showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={dadosForm.foto||perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:dadosForm.foto?"cover":"contain"}}/></div>
                 {isPro&&<div style={{position:"absolute",bottom:-1,right:-1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:6,padding:"1px 4px",border:"1px solid "+C.bg}}><span style={{color:"#fff",fontSize:7,fontWeight:800,letterSpacing:0.3}}>PRO</span></div>}
               </div>
               <span style={{color:showPerfil?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Perfil</span>
@@ -3975,7 +3975,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:17,padding:18,marginBottom:14,border:"1px solid "+C.violet+"44"}}>
               <div style={{textAlign:"center",marginBottom:14}}>
                 <p style={{color:"#ffffffaa",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 5px"}}>Meus Recordes Pessoais</p>
-                <p style={{color:"#fff",fontWeight:800,fontSize:18,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Michel Costa</p>
+                <p style={{color:"#fff",fontWeight:800,fontSize:18,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{dadosForm.nome||session?.strava_athlete?.firstname||"Corredor"}</p>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
                 {rpsExib.map((r,i)=>(
