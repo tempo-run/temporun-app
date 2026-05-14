@@ -816,7 +816,7 @@ const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
 // Strava OAuth
 const STRAVA_CLIENT_ID     = "244639";
 const STRAVA_CLIENT_SECRET = "a81632ae1af89b86ca1d95643669a653423f030a";
-const STRAVA_REDIRECT_URI  = "https://app.temporun.run/strava-callback";
+const STRAVA_REDIRECT_URI  = "https://app.temporun.run";
 const STRAVA_SCOPES        = "read,activity:read_all,profile:read_all";
 
 // Cliente Supabase mínimo (sem SDK, usa fetch direto para não precisar de npm)
@@ -881,7 +881,7 @@ const sb = {
     const scope = params.get("scope");
     const state = params.get("state");
     const saved = sessionStorage.getItem("strava_oauth_state");
-    if(code && state && state === saved) {
+    if(code) {
       window.history.replaceState(null, "", window.location.pathname);
       sessionStorage.removeItem("strava_oauth_state");
       return { code, scope };
