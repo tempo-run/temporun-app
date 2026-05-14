@@ -4280,7 +4280,22 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           })}
           <button disabled={!loggedIn} onClick={()=>{if(loggedIn){setTab("treino");setSubScreen(null);}}} style={{background:"none",border:"none",cursor:loggedIn?"pointer":"default",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"0 10px",opacity:loggedIn?1:0.85}}>
             <div style={{width:52,height:52,borderRadius:16,background:loggedIn&&tab==="treino"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"linear-gradient(135deg,"+C.s2+","+C.s3+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:loggedIn&&tab==="treino"?"0 4px 22px "+C.violet+"55":"none",border:"1px solid "+(loggedIn&&tab==="treino"?C.violet+"66":C.border),marginTop:-20}}>
-              <img src={inicioTreino} alt="treino" style={{width:26,height:26,objectFit:"contain",filter:loggedIn&&tab==="treino"?"brightness(0) invert(1)":"brightness(0) saturate(100%) invert(35%) sepia(10%) hue-rotate(200deg)"}}/>
+              <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Cabeça */}
+                <circle cx="16" cy="3.5" r="2.2" fill={loggedIn&&tab==="treino"?"#fff":"#6b7db3"}/>
+                {/* Torso inclinado */}
+                <line x1="15" y1="5.5" x2="11" y2="13" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="2" strokeLinecap="round"/>
+                {/* Braço direito (para frente) */}
+                <line x1="14" y1="8" x2="18" y2="12" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="1.8" strokeLinecap="round"/>
+                {/* Braço esquerdo (para trás) */}
+                <line x1="13" y1="8.5" x2="9" y2="11" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="1.8" strokeLinecap="round"/>
+                {/* Perna direita (para frente-baixo) */}
+                <line x1="11" y1="13" x2="14" y2="19" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="2" strokeLinecap="round"/>
+                <line x1="14" y1="19" x2="18" y2="22" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="1.8" strokeLinecap="round"/>
+                {/* Perna esquerda (para trás-cima) */}
+                <line x1="11" y1="13" x2="8" y2="18" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="2" strokeLinecap="round"/>
+                <line x1="8" y1="18" x2="5" y2="16" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
             </div>
             <span style={{fontSize:8.5,fontWeight:700,color:loggedIn&&tab==="treino"?C.tp:C.tg,letterSpacing:0.2,fontFamily:"monospace",textTransform:"uppercase",marginTop:2}}>Treino</span>
           </button>
