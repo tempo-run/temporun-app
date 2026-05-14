@@ -2313,14 +2313,20 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </div>
 
         {showSaber&&(
-          <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:18,padding:14,marginBottom:14,border:"1px solid "+C.violet+"44",animation:"fadeIn 0.2s ease"}}>
-            <div style={{display:"flex",marginBottom:10,background:C.s3,borderRadius:10,padding:3}}>
-              {[{id:"explorar",l:"Explorar"},{id:"perguntar",l:"Perguntar à IA"}].map(t=>(
-                <button key={t.id} onClick={()=>setSaberTab(t.id)} style={{flex:1,background:saberTab===t.id?"linear-gradient(135deg,"+C.violet+"55,"+C.cyan+"22)":"transparent",color:saberTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
-              ))}
+          <div style={{position:"fixed",inset:0,background:C.bg,zIndex:150,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto"}}>
+            <div style={{background:C.s1,borderBottom:"1px solid "+C.border,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+              <button onClick={()=>setShowSaber(false)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+                <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
+              </button>
+              <div style={{flex:1,display:"flex",background:C.s3,borderRadius:10,padding:3}}>
+                {[{id:"explorar",l:"Explorar"},{id:"perguntar",l:"Perguntar à IA"}].map(t=>(
+                  <button key={t.id} onClick={()=>setSaberTab(t.id)} style={{flex:1,background:saberTab===t.id?"linear-gradient(135deg,"+C.violet+"55,"+C.cyan+"22)":"transparent",color:saberTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
+                ))}
+              </div>
             </div>
+            <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column",padding:"14px 16px 0"}}>
             {saberTab==="explorar"&&(
-              <div style={{maxHeight:340,overflowY:"auto"}}>
+              <div style={{flex:1,overflowY:"auto",paddingBottom:24}}>
                 <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"33",borderRadius:12,padding:12,marginBottom:10}}>
                   <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 5px"}}>curiosidade do dia</p>
                   <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:"0 0 6px",lineHeight:1.4}}>Corredores com cadência acima de 170 spm têm 30% menos risco de lesão no joelho</p>
@@ -2352,20 +2358,21 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               </div>
             )}
             {saberTab==="perguntar"&&(
-              <div>
+              <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
                 {!saberMsgs.length&&(
-                  <div style={{textAlign:"center",padding:"10px 0 14px"}}>
+                  <div style={{textAlign:"center",padding:"20px 0 14px"}}>
                     <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 4px"}}>Pergunte qualquer coisa</p>
                     <p style={{color:C.td,fontSize:12,margin:"0 0 12px"}}>Biomecânica, nutrição, mitos...</p>
                   </div>
                 )}
-                <div style={{maxHeight:220,overflowY:"auto",marginBottom:8}}>{saberMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{saberLoad&&<Dots color={C.cyan}/>}</div>
-                <div style={{display:"flex",gap:7}}>
+                <div style={{flex:1,overflowY:"auto",marginBottom:8}}>{saberMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{saberLoad&&<Dots color={C.cyan}/>}</div>
+                <div style={{display:"flex",gap:7,paddingBottom:20,paddingTop:4,background:C.bg,flexShrink:0}}>
                   <input value={saberIn} onChange={e=>setSaberIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendSaber()} placeholder={isPro?"Sua pergunta...":`Pergunta... (${Math.max(0,AI_LIMITS.saber-(getAiUsage().saber||0))} restantes)`} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-                  <button onClick={()=>sendSaber()} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,width:40,height:40,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic n="share" z={15} c="#fff"/></button>
+                  <button onClick={()=>sendSaber()} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,width:40,height:40,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="share" z={15} c="#fff"/></button>
                 </div>
               </div>
             )}
+          </div>
           </div>
         )}
 
@@ -4129,7 +4136,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <span style={{color:C.td,fontFamily:"monospace",fontSize:9,letterSpacing:0.8}}>GPS · WiFi · BAT</span>
         </div>
 
-        <div className="sc" key={loggedIn?screenKey:"login"} style={{height:615,overflowY:"auto",padding:loggedIn?"0 17px 13px":"0",position:"relative"}}>
+        <div className="sc" key={loggedIn?screenKey:"login"} style={{height:615,overflowY:"auto",padding:loggedIn?"0 17px 13px":"0",position:"relative"}}
+          onTouchStart={e=>{if(!loggedIn)return;window._swipeX=e.touches[0].clientX;window._swipeY=e.touches[0].clientY;}}
+          onTouchEnd={e=>{
+            if(!loggedIn||!window._swipeX)return;
+            const dx=e.changedTouches[0].clientX-window._swipeX;
+            const dy=Math.abs(e.changedTouches[0].clientY-(window._swipeY||0));
+            if(Math.abs(dx)<60||dy>Math.abs(dx))return;
+            const TABS=["home","explorar","treino","analise","studio"];
+            const cur=TABS.indexOf(tab);
+            if(dx<-60&&cur<TABS.length-1) setTab(TABS[cur+1]);
+            if(dx>60&&cur>0) setTab(TABS[cur-1]);
+            window._swipeX=null;
+          }}>
           {authLoading ? (
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16}}>
               <img src={logoImg} alt="TempoRun" style={{width:120,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 20px "+C.violet+"66)",opacity:0.9}}/>
