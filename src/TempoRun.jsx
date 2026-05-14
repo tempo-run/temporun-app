@@ -810,6 +810,8 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
+const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
+const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
 
 // Strava OAuth
 const STRAVA_CLIENT_ID     = "244639";
@@ -1155,6 +1157,20 @@ export default function TempoRunApp() {
       setSession(s=>s||saved);
     }).finally(()=>setAuthLoading(false));
   },[]);
+
+  // Verifica assinatura Pro ao logar
+  useEffect(()=>{
+    if(!session?.access_token) return;
+    fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${session.id||""}&select=status,plan,current_period_end&limit=1`, {
+      headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
+    }).then(r=>r.json()).then(data=>{
+      if(Array.isArray(data) && data.length > 0) {
+        const sub = data[0];
+        setProStatus(sub.status);
+        setIsPro(sub.status === "active" || sub.status === "trialing");
+      }
+    }).catch(()=>{});
+  },[session?.access_token]);
   const [tab, setTab] = useState("home");
   const [subScreen, setSubScreen] = useState(null);
   const [treinoTab, setTreinoTab] = useState("iniciar");
@@ -1206,6 +1222,11 @@ export default function TempoRunApp() {
   const [showSaber, setShowSaber]   = useState(false);
   const [showDadosModal, setShowDadosModal]   = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showProModal, setShowProModal]     = useState(false);
+  const [isPro, setIsPro]                   = useState(false);
+  const [proStatus, setProStatus]           = useState(null); // null | "active" | "canceled" | "trialing"
+  const [proLoading, setProLoading]         = useState(false);
+  const [proError, setProError]             = useState("");
   const [dadosForm, setDadosForm] = useState({nome:"", foto:null, dataNasc:"", sexo:"", pais:"Brasil", cidade:"", altura:"", peso:"", tenis:[], relogios:[], fones:[]});
   const [configForm, setConfigForm] = useState({lembreteTreino:true, rpNotif:true, tema:"dark", vozGenero:"masculina", vozEstilo:"motivacional", mapaOffline:false, mostrarAltimetria:true, rotasSeguras:false, autoPause:true, vibracaoSplit:true, alertasHidratacao:false, cadenciaAlvo:"180", idioma:"pt-BR", assinaturaPro:false, backupSync:true});
   const [equipDropdown, setEquipDropdown] = useState(null);
@@ -1670,13 +1691,14 @@ export default function TempoRunApp() {
 
           {section("settings","Conta",C.ts,<>
             {selCfg("idioma","Idioma","Idioma do aplicativo",[{v:"pt-BR",l:"🇧🇷 Português (Brasil)"},{v:"en",l:"🇬🇧 English"},{v:"es",l:"🇪🇸 Español"},{v:"fr",l:"🇫🇷 Français"},{v:"de",l:"🇩🇪 Deutsch"}])}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid "+C.bsub}}>
+            <div onClick={()=>{setShowConfigModal(false);setShowProModal(true);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid "+C.bsub,cursor:"pointer"}}>
               <div>
                 <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:0}}>Assinatura Pro</p>
-                <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>Treinos avançados, análise ilimitada</p>
+                <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>{isPro?"Ativa — gerencie sua assinatura":"Treinos avançados, análise ilimitada"}</p>
               </div>
-              <div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:20,padding:"4px 12px"}}>
-                <span style={{color:"#fff",fontSize:11,fontWeight:700}}>PRO</span>
+              <div style={{background:isPro?"linear-gradient(135deg,"+C.green+",#16a34a)":"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:20,padding:"4px 12px",display:"flex",alignItems:"center",gap:5}}>
+                {isPro&&<div style={{width:6,height:6,borderRadius:"50%",background:"#fff"}}/>}
+                <span style={{color:"#fff",fontSize:11,fontWeight:700}}>{isPro?"ATIVO":"PRO"}</span>
               </div>
             </div>
             {tog("backupSync","Backup / Sync","Sincronizar dados na nuvem automaticamente")}
@@ -1687,6 +1709,161 @@ export default function TempoRunApp() {
             </div>
           </>)}
 
+        </div>
+      </div>
+    );
+  }
+
+
+  // ── PRO MODAL ─────────────────────────────────────────────────────────────────
+  function renderProModal() {
+    const [selectedPlan, setSelectedPlan] = useState("yearly");
+
+    const PLANS = {
+      monthly: { label:"Mensal", priceR:"R$ 19,90", priceE:"€ 4,99", period:"/mês", save:null },
+      yearly:  { label:"Anual",  priceR:"R$ 159,90", priceE:"€ 39,99", period:"/ano", save:"Economize 33%" },
+    };
+
+    const features = [
+      { icon:"ai",      text:"Coach IA ilimitado — perguntas e planos sem limite" },
+      { icon:"chart",   text:"Análise biomecânica avançada — histórico completo" },
+      { icon:"run",     text:"Planos de treino personalizados com perfil" },
+      { icon:"map",     text:"Mapas offline e rotas seguras" },
+      { icon:"trophy",  text:"Conquistas exclusivas Pro" },
+      { icon:"streak",  text:"Backup e sync automático na nuvem" },
+    ];
+
+    async function handleCheckout() {
+      if (!session?.access_token) return;
+      setProLoading(true); setProError("");
+      try {
+        const r = await fetch(STRIPE_CHECKOUT_FN, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+            "apikey": SUPABASE_ANON,
+          },
+          body: JSON.stringify({
+            plan: selectedPlan, // "monthly" | "yearly"
+            user_id: session.id,
+            email: session.email,
+            success_url: "https://app.temporun.run?pro=success",
+            cancel_url:  "https://app.temporun.run?pro=cancel",
+          }),
+        });
+        const data = await r.json();
+        if (data?.url) {
+          window.location.href = data.url;
+        } else {
+          setProError(data?.error || "Erro ao iniciar checkout. Tente novamente.");
+        }
+      } catch(e) {
+        setProError("Erro de conexão. Verifique sua internet.");
+      }
+      setProLoading(false);
+    }
+
+    async function handlePortal() {
+      if (!session?.access_token) return;
+      setProLoading(true);
+      try {
+        const r = await fetch(STRIPE_PORTAL_FN, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+            "apikey": SUPABASE_ANON,
+          },
+          body: JSON.stringify({
+            return_url: "https://app.temporun.run",
+          }),
+        });
+        const data = await r.json();
+        if (data?.url) window.location.href = data.url;
+      } catch(e) {}
+      setProLoading(false);
+    }
+
+    return (
+      <div style={{position:"fixed",inset:0,background:"#00000099",zIndex:300,display:"flex",flexDirection:"column",justifyContent:"flex-end",maxWidth:430,margin:"0 auto"}}>
+        <div style={{background:C.bg,borderRadius:"20px 20px 0 0",border:"1px solid "+C.violet+"44",maxHeight:"92vh",overflowY:"auto",animation:"slideUp 0.3s ease"}}>
+
+          {/* header */}
+          <div style={{padding:"16px 18px 0",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background:C.bg,zIndex:1,borderBottom:"1px solid "+C.border,paddingBottom:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:10,padding:"6px 10px"}}>
+                <Ic n="pro" z={18} c="#fff"/>
+              </div>
+              <div>
+                <p style={{color:C.tp,fontWeight:800,fontSize:17,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>TempoRun Pro</p>
+                <p style={{color:C.tm,fontSize:11,margin:0}}>Desbloqueie o potencial completo</p>
+              </div>
+            </div>
+            <button onClick={()=>setShowProModal(false)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:8,padding:"6px 10px",cursor:"pointer",color:C.ts,fontSize:18,lineHeight:1}}>×</button>
+          </div>
+
+          <div style={{padding:"18px 18px 32px"}}>
+
+            {/* Active subscription state */}
+            {isPro && (
+              <div style={{background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"44",borderRadius:14,padding:"14px 16px",marginBottom:18,textAlign:"center"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:6}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:C.green,boxShadow:"0 0 6px "+C.green}}/>
+                  <p style={{color:C.green,fontWeight:700,fontSize:13,margin:0}}>Assinatura ativa</p>
+                </div>
+                <p style={{color:C.tm,fontSize:12,margin:"0 0 14px"}}>
+                  {proStatus === "trialing" ? "Período de avaliação ativo" : "Pro ativo — obrigado pelo apoio! 🙏"}
+                </p>
+                <button onClick={handlePortal} disabled={proLoading}
+                  style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"10px 20px",cursor:"pointer",color:C.ts,fontSize:13,fontWeight:600,fontFamily:"inherit"}}>
+                  {proLoading ? "Carregando..." : "Gerenciar assinatura"}
+                </button>
+              </div>
+            )}
+
+            {/* Features list */}
+            <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 12px",fontFamily:"monospace"}}>O que você desbloqueia</p>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:22}}>
+              {features.map((f,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"9px 12px",background:C.s1,borderRadius:11,border:"1px solid "+C.border}}>
+                  <div style={{width:30,height:30,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <Ic n={f.icon} z={15} c={C.violetB}/>
+                  </div>
+                  <p style={{color:C.tp,fontSize:13,margin:0,lineHeight:1.4}}>{f.text}</p>
+                  <Ic n="check" z={14} c={C.green} st={{flexShrink:0,marginLeft:"auto"}}/>
+                </div>
+              ))}
+            </div>
+
+            {/* Plan selector */}
+            {!isPro && (<>
+              <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 10px",fontFamily:"monospace"}}>Escolha seu plano</p>
+              <div style={{display:"flex",gap:8,marginBottom:16}}>
+                {Object.entries(PLANS).map(([k,v])=>(
+                  <button key={k} onClick={()=>setSelectedPlan(k)}
+                    style={{flex:1,background:selectedPlan===k?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"2px solid "+(selectedPlan===k?C.violet:C.border),borderRadius:13,padding:"14px 10px",cursor:"pointer",textAlign:"center",position:"relative",transition:"all 0.15s"}}>
+                    {v.save&&<div style={{position:"absolute",top:-9,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:10,padding:"2px 8px",whiteSpace:"nowrap"}}>
+                      <span style={{color:"#fff",fontSize:9,fontWeight:700}}>{v.save}</span>
+                    </div>}
+                    <p style={{color:selectedPlan===k?C.tp:C.tm,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>{v.label}</p>
+                    <p style={{color:selectedPlan===k?C.cyanB:C.ts,fontWeight:800,fontSize:18,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>{v.priceR}</p>
+                    <p style={{color:C.td,fontSize:10,margin:0}}>{v.priceE} {v.period}</p>
+                  </button>
+                ))}
+              </div>
+
+              {proError && <p style={{color:C.coral,fontSize:12,textAlign:"center",margin:"0 0 12px"}}>{proError}</p>}
+
+              <button onClick={handleCheckout} disabled={proLoading}
+                style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:14,padding:"16px 0",fontWeight:800,fontSize:16,cursor:proLoading?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 6px 24px "+C.violet+"55",opacity:proLoading?0.7:1,marginBottom:10}}>
+                {proLoading ? "Redirecionando..." : "Assinar Pro →"}
+              </button>
+              <p style={{color:C.td,fontSize:11,textAlign:"center",margin:0,lineHeight:1.6}}>
+                Cancele a qualquer momento · Pagamento seguro via Stripe
+              </p>
+            </>)}
+          </div>
         </div>
       </div>
     );
@@ -1716,7 +1893,10 @@ export default function TempoRunApp() {
               <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Saber</span>
             </button>
             <button onClick={()=>{setShowPerfil(!showPerfil);setShowSaber(false);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px"}}>
-              <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":"transparent"),boxShadow:showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:"contain"}}/></div>
+              <div style={{position:"relative"}}>
+                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":"transparent"),boxShadow:showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:"contain"}}/></div>
+                {isPro&&<div style={{position:"absolute",bottom:-1,right:-1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:6,padding:"1px 4px",border:"1px solid "+C.bg}}><span style={{color:"#fff",fontSize:7,fontWeight:800,letterSpacing:0.3}}>PRO</span></div>}
+              </div>
               <span style={{color:showPerfil?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Perfil</span>
             </button>
           </div>
@@ -3547,6 +3727,7 @@ export default function TempoRunApp() {
               {!loggedIn && <LoginScreen onLogin={s=>{ saveSession(s); setSession(s); }} tab={tab} setTab={setTab}/>}
               {loggedIn && showDadosModal && renderDadosModal()}
               {loggedIn && showConfigModal && renderConfigModal()}
+              {loggedIn && showProModal && renderProModal()}
               {loggedIn && tab==="home"     && renderHome()}
               {loggedIn && tab==="explorar" && renderExplorar()}
               {loggedIn && tab==="treino"   && renderTreino()}
