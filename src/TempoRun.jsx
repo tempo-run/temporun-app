@@ -923,8 +923,9 @@ const sb = {
       const access_token = params.get("access_token");
       if(access_token) {
         const email = params.get("user_email") || "";
+        const id = params.get("user_id") || "";
         window.history.replaceState(null,"",window.location.pathname);
-        return { access_token, email };
+        return { access_token, email, id };
       }
     }
     // Tenta query string (?access_token=... ou ?code=...)
@@ -934,7 +935,7 @@ const sb = {
       const access_token = params.get("access_token");
       if(access_token) {
         window.history.replaceState(null,"",window.location.pathname);
-        return { access_token, email: params.get("email") || "" };
+        return { access_token, email: params.get("email") || "", id: params.get("user_id") || "" };
       }
     }
     return null;
@@ -1001,7 +1002,7 @@ function LoginScreen({ onLogin }) {
     const data = await sb.verifyOTP(email, code);
     setLoading(false);
     if(data.access_token) {
-      onLogin({ access_token:data.access_token, email:data.user?.email||email });
+      onLogin({ access_token:data.access_token, email:data.user?.email||email, id:data.user?.id||"" });
     } else {
       setErro("Código inválido ou expirado.");
       setOtp(["","","","","",""]);
@@ -1137,7 +1138,7 @@ function loadSession() {
     const at = p.get("access_token");
     if(at) {
       window.history.replaceState(null,"",window.location.pathname);
-      const s = { access_token:at, email: p.get("user_email")||p.get("email")||"" };
+      const s = { access_token:at, email: p.get("user_email")||p.get("email")||"", id: p.get("user_id")||"" };
       saveSession(s);
       return s;
     }
@@ -1212,6 +1213,20 @@ export default function TempoRunApp() {
       setSession(s=>s||saved);
     }).finally(()=>setAuthLoading(false));
   },[]);
+
+  // Busca user.id se não estiver na sessão
+  useEffect(()=>{
+    if(!session?.access_token || session?.id) return;
+    fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
+    }).then(r=>r.json()).then(data=>{
+      if(data?.id) {
+        const updated = {...session, id: data.id, email: data.email||session.email};
+        saveSession(updated);
+        setSession(updated);
+      }
+    }).catch(()=>{});
+  },[session?.access_token]);
 
   // Verifica assinatura Pro ao logar
   useEffect(()=>{
