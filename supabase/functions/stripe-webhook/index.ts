@@ -14,25 +14,25 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+function safeDate(ts: number | null | undefined): string | null {
+  if (!ts || isNaN(ts) || ts <= 0) return null;
+  try { return new Date(ts * 1000).toISOString(); } catch { return null; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   let event: Stripe.Event;
-
   try {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-
     if (signature && webhookSecret) {
-      // Valida assinatura quando disponível
       event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     } else {
-      // Aceita sem assinatura (novo sistema Event Destinations do Stripe)
       event = JSON.parse(body) as Stripe.Event;
     }
   } catch (err) {
-    console.error("Parse error:", err);
     return new Response(`Error: ${(err as Error).message}`, { status: 400 });
   }
 
@@ -43,7 +43,6 @@ Deno.serve(async (req) => {
     if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
       const sub = event.data.object as Stripe.Subscription;
       const userId = sub.metadata?.supabase_user_id;
-
       console.log(`Subscription ${sub.status} - userId: ${userId}`);
 
       if (userId) {
@@ -54,15 +53,13 @@ Deno.serve(async (req) => {
           status: sub.status,
           plan: sub.metadata?.plan || "monthly",
           price_id: sub.items.data[0]?.price?.id || "",
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          current_period_end: safeDate(sub.current_period_end),
           cancel_at_period_end: sub.cancel_at_period_end,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
 
-        if (error) console.error("Upsert error:", error);
+        if (error) console.error("Upsert error:", JSON.stringify(error));
         else console.log(`Subscription salva para user ${userId}`);
-      } else {
-        console.warn("user_id não encontrado nos metadados");
       }
 
     } else if (event.type === "customer.subscription.deleted") {
@@ -75,10 +72,8 @@ Deno.serve(async (req) => {
 
     } else if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.supabase_user_id
-        || (session as any).subscription_data?.metadata?.supabase_user_id;
-
-      console.log(`Checkout completado - userId: ${userId}`);
+      const userId = session.metadata?.supabase_user_id;
+      console.log(`Checkout completado - userId: ${userId}, subscription: ${session.subscription}`);
 
       if (userId) {
         await supabase.from("checkouts").upsert({
@@ -88,21 +83,22 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: "stripe_session_id" });
 
-        // Busca a subscription criada e atualiza
         if (session.subscription) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-          await supabase.from("subscriptions").upsert({
+          const { error } = await supabase.from("subscriptions").upsert({
             user_id: userId,
             stripe_customer_id: sub.customer as string,
             stripe_subscription_id: sub.id,
             status: sub.status,
             plan: sub.metadata?.plan || "monthly",
             price_id: sub.items.data[0]?.price?.id || "",
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            current_period_end: safeDate(sub.current_period_end),
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
           }, { onConflict: "user_id" });
-          console.log(`Subscription criada via checkout para user ${userId}`);
+
+          if (error) console.error("Checkout upsert error:", JSON.stringify(error));
+          else console.log(`Subscription criada via checkout para user ${userId}`);
         }
       }
 
@@ -120,12 +116,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ received: true, type: event.type }), {
+    return new Response(JSON.stringify({ received: true }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
 
   } catch (err) {
-    console.error("Processing error:", err);
+    console.error("Processing error:", (err as Error).message);
     return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });

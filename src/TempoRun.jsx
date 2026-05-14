@@ -1293,6 +1293,11 @@ export default function TempoRunApp() {
   const [showDadosModal, setShowDadosModal]   = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showProModal, setShowProModal]     = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(()=>{
+    try { return !localStorage.getItem("tr_onboarding_done"); } catch { return true; }
+  });
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingData, setOnboardingData] = useState({ objetivo:"", nivel:"" });
   const [selectedPlan, setSelectedPlan]     = useState("yearly");
   const [isPro, setIsPro]                   = useState(false);
   const [proStatus, setProStatus]           = useState(null); // null | "active" | "canceled" | "trialing"
@@ -1935,6 +1940,159 @@ export default function TempoRunApp() {
             </>)}
           </div>
         </div>
+      </div>
+    );
+  }
+
+
+  // ── ONBOARDING ────────────────────────────────────────────────────────────────
+  function renderOnboarding() {
+    const nome = dadosForm.nome || session?.email?.split("@")[0] || "corredor";
+    const primeiroNome = nome.split(" ")[0];
+
+    const objetivos = [
+      { id:"5k",      emoji:"🏃", label:"Correr 5km",        desc:"Começar ou retomar" },
+      { id:"10k",     emoji:"🎯", label:"Correr 10km",       desc:"Evoluir a distância" },
+      { id:"meia",    emoji:"⚡", label:"Meia maratona",     desc:"21km é o desafio" },
+      { id:"maratona",emoji:"🏆", label:"Maratona",          desc:"42km, o sonho grande" },
+      { id:"saude",   emoji:"❤️", label:"Saúde e bem-estar", desc:"Correr para viver melhor" },
+      { id:"perda",   emoji:"🔥", label:"Perda de peso",     desc:"Correr para emagrecer" },
+    ];
+
+    const niveis = [
+      { id:"iniciante",    emoji:"🌱", label:"Iniciante",     desc:"Nunca corri ou voltando do zero" },
+      { id:"intermediario",emoji:"💪", label:"Intermediário", desc:"Corro há algum tempo" },
+      { id:"avancado",     emoji:"🚀", label:"Avançado",      desc:"Corro com consistência" },
+    ];
+
+    function finish() {
+      try { localStorage.setItem("tr_onboarding_done","1"); } catch {}
+      // Save to dadosForm
+      setDadosForm(p=>({...p, objetivo: onboardingData.objetivo, nivel: onboardingData.nivel}));
+      setShowOnboarding(false);
+    }
+
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:400,background:C.bg,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",overflow:"hidden"}}>
+
+        {/* Step 0 — Boas-vindas */}
+        {onboardingStep === 0 && (
+          <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",textAlign:"center"}}>
+            {/* Animated glow ring */}
+            <div style={{position:"relative",marginBottom:32}}>
+              <div style={{width:120,height:120,borderRadius:60,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 60px "+C.violet+"66, 0 0 120px "+C.cyan+"33"}}>
+                <img src={logoImg} alt="TempoRun" style={{width:90,height:90,objectFit:"contain"}}/>
+              </div>
+              {/* Pulse rings */}
+              <div style={{position:"absolute",inset:-12,borderRadius:72,border:"2px solid "+C.violet+"33",animation:"pulse 2s infinite"}}/>
+              <div style={{position:"absolute",inset:-24,borderRadius:84,border:"1px solid "+C.violet+"22",animation:"pulse 2s infinite 0.5s"}}/>
+            </div>
+
+            <p style={{color:C.ts,fontSize:12,fontWeight:700,letterSpacing:2,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 12px"}}>Bem-vindo ao</p>
+            <h1 style={{margin:"0 0 8px",fontFamily:"'Space Grotesk',sans-serif",fontSize:36,fontWeight:800,letterSpacing:-1}}>
+              <span style={{color:C.tp}}>Tempo</span>
+              <span style={{background:"linear-gradient(90deg,"+C.violetL+","+C.cyanB+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Run</span>
+            </h1>
+            <p style={{color:C.tp,fontSize:22,fontWeight:700,margin:"0 0 10px",fontFamily:"'Space Grotesk',sans-serif"}}>
+              Olá, {primeiroNome}! 👋
+            </p>
+            <p style={{color:C.tm,fontSize:15,margin:"0 0 48px",lineHeight:1.6}}>
+              Seu coach de corrida com IA.<br/>Vamos personalizar sua experiência em 2 passos rápidos.
+            </p>
+
+            <button onClick={()=>setOnboardingStep(1)}
+              style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:16,padding:"17px 0",fontWeight:800,fontSize:16,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 8px 32px "+C.violet+"55",letterSpacing:0.3}}>
+              Vamos começar →
+            </button>
+            <button onClick={finish} style={{background:"none",border:"none",color:C.td,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginTop:16,padding:"8px 0"}}>
+              Pular por agora
+            </button>
+          </div>
+        )}
+
+        {/* Step 1 — Objetivo */}
+        {onboardingStep === 1 && (
+          <div style={{flex:1,display:"flex",flexDirection:"column",padding:"32px 20px 24px",overflowY:"auto"}}>
+            <div style={{marginBottom:28}}>
+              <div style={{display:"flex",gap:6,marginBottom:20}}>
+                {[0,1,2].map(i=>(
+                  <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<=0?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border}}/>
+                ))}
+              </div>
+              <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 8px"}}>Passo 1 de 2</p>
+              <h2 style={{color:C.tp,fontSize:24,fontWeight:800,margin:"0 0 6px",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>
+                Qual é o seu objetivo?
+              </h2>
+              <p style={{color:C.tm,fontSize:14,margin:0}}>Vamos montar seu plano ideal.</p>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,flex:1}}>
+              {objetivos.map(o=>(
+                <button key={o.id} onClick={()=>{setOnboardingData(p=>({...p,objetivo:o.id}));}}
+                  style={{background:onboardingData.objetivo===o.id?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"2px solid "+(onboardingData.objetivo===o.id?C.violet:C.border),borderRadius:14,padding:"14px 10px",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                  <span style={{fontSize:24,display:"block",marginBottom:6}}>{o.emoji}</span>
+                  <p style={{color:onboardingData.objetivo===o.id?C.tp:C.ts,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{o.label}</p>
+                  <p style={{color:C.td,fontSize:11,margin:0,lineHeight:1.3}}>{o.desc}</p>
+                  {onboardingData.objetivo===o.id&&(
+                    <div style={{marginTop:6,display:"flex",alignItems:"center",gap:4}}>
+                      <div style={{width:6,height:6,borderRadius:3,background:C.violet}}/>
+                      <span style={{color:C.violetB,fontSize:10,fontWeight:700}}>Selecionado</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={()=>{if(onboardingData.objetivo) setOnboardingStep(2);}}
+              disabled={!onboardingData.objetivo}
+              style={{width:"100%",background:onboardingData.objetivo?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"#1e2456",color:"#fff",border:"none",borderRadius:14,padding:"16px 0",fontWeight:800,fontSize:15,cursor:onboardingData.objetivo?"pointer":"default",fontFamily:"'Space Grotesk',sans-serif",marginTop:16,opacity:onboardingData.objetivo?1:0.5,transition:"all 0.2s"}}>
+              Continuar →
+            </button>
+          </div>
+        )}
+
+        {/* Step 2 — Nível */}
+        {onboardingStep === 2 && (
+          <div style={{flex:1,display:"flex",flexDirection:"column",padding:"32px 20px 24px"}}>
+            <div style={{marginBottom:28}}>
+              <div style={{display:"flex",gap:6,marginBottom:20}}>
+                {[0,1,2].map(i=>(
+                  <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<=1?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border}}/>
+                ))}
+              </div>
+              <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 8px"}}>Passo 2 de 2</p>
+              <h2 style={{color:C.tp,fontSize:24,fontWeight:800,margin:"0 0 6px",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>
+                Você já corre?
+              </h2>
+              <p style={{color:C.tm,fontSize:14,margin:0}}>Isso ajuda a calibrar sua intensidade.</p>
+            </div>
+
+            <div style={{display:"flex",flexDirection:"column",gap:12,flex:1}}>
+              {niveis.map(n=>(
+                <button key={n.id} onClick={()=>setOnboardingData(p=>({...p,nivel:n.id}))}
+                  style={{background:onboardingData.nivel===n.id?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"2px solid "+(onboardingData.nivel===n.id?C.violet:C.border),borderRadius:16,padding:"18px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",transition:"all 0.15s"}}>
+                  <span style={{fontSize:32,flexShrink:0}}>{n.emoji}</span>
+                  <div style={{flex:1}}>
+                    <p style={{color:onboardingData.nivel===n.id?C.tp:C.ts,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{n.label}</p>
+                    <p style={{color:C.tm,fontSize:12,margin:0}}>{n.desc}</p>
+                  </div>
+                  {onboardingData.nivel===n.id&&(
+                    <div style={{width:22,height:22,borderRadius:11,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <Ic n="check" z={12} c="#fff"/>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={()=>{if(onboardingData.nivel) finish();}}
+              disabled={!onboardingData.nivel}
+              style={{width:"100%",background:onboardingData.nivel?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"#1e2456",color:"#fff",border:"none",borderRadius:14,padding:"16px 0",fontWeight:800,fontSize:15,cursor:onboardingData.nivel?"pointer":"default",fontFamily:"'Space Grotesk',sans-serif",marginTop:16,opacity:onboardingData.nivel?1:0.5,transition:"all 0.2s"}}>
+              🚀 Começar a treinar
+            </button>
+          </div>
+        )}
+
       </div>
     );
   }
@@ -3795,6 +3953,7 @@ export default function TempoRunApp() {
           ) : (
             <>
               {!loggedIn && <LoginScreen onLogin={s=>{ saveSession(s); setSession(s); }} tab={tab} setTab={setTab}/>}
+              {loggedIn && showOnboarding && renderOnboarding()}
               {loggedIn && showDadosModal && renderDadosModal()}
               {loggedIn && showConfigModal && renderConfigModal()}
               {loggedIn && showProModal && renderProModal()}
