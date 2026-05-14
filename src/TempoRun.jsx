@@ -2230,7 +2230,7 @@ export default function TempoRunApp() {
               {id:"logout", nome:"Logout",         desc:"Sair da conta",                icon:"back",     cor:C.coral},
             ].map(opt=>(
               <button key={opt.id} onClick={()=>{
-                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();setSession(null);setShowPerfil(false);setTab("home");}
+                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();try{localStorage.removeItem("tr_onboarding_done");}catch{}setSession(null);setShowPerfil(false);setShowOnboarding(true);setOnboardingStep(0);setTab("home");}
                 if(opt.id==="dados"){setShowPerfil(false);setShowDadosModal(true);}
                 if(opt.id==="config"){setShowPerfil(false);setShowConfigModal(true);}
               }} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
