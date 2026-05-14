@@ -2297,15 +2297,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
-              <div style={{position:"relative"}}>
-                <div style={{width:44,height:44,borderRadius:22,background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showSaber?C.cyanB+"88":C.border),boxShadow:showSaber?"0 0 14px "+C.violet+"66":"none"}}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={showSaber?"#fff":C.ts} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 3H7a2 2 0 0 0-2 2v1a2 2 0 0 1-2 2 2 2 0 0 1 2 2v1a2 2 0 0 0 2 2h2"/>
-                    <path d="M15 3h2a2 2 0 0 1 2 2v1a2 2 0 0 0 2 2 2 2 0 0 0-2 2v1a2 2 0 0 1-2 2h-2"/>
-                    <path d="M12 8v4M10 10h4"/>
-                  </svg>
-                </div>
-                {!isPro&&<div style={{position:"absolute",top:-3,right:-3,background:C.s3,border:"1px solid "+C.border,borderRadius:8,padding:"1px 4px"}}><span style={{color:C.tm,fontSize:6,fontWeight:800,letterSpacing:0.3}}>FREE</span></div>}
+              <div style={{width:44,height:44,borderRadius:22,background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showSaber?C.cyanB+"88":C.border),boxShadow:showSaber?"0 0 14px "+C.violet+"66":"none"}}>
+                <Ic n="science" z={20} c={showSaber?"#fff":C.ts}/>
               </div>
               <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Saber</span>
             </button>
