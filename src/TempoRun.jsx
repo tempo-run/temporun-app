@@ -953,6 +953,20 @@ function LoginScreen({ onLogin }) {
   useEffect(()=>{
     const session = sb.parseHashSession();
     if(session) { onLogin(session); return; }
+
+    // Verifica strava code guardado pelo callback handler
+    const savedStravaCode = sessionStorage.getItem("strava_code");
+    if(savedStravaCode) {
+      sessionStorage.removeItem("strava_code");
+      setLoading(true);
+      sb.exchangeStravaCode(savedStravaCode).then(data=>{
+        if(data.access_token) {
+          onLogin({ access_token:data.access_token, email:data.athlete?.email||`strava_${data.athlete?.id}@temporun.run`, strava_token:data.access_token, strava_refresh:data.refresh_token, strava_athlete:data.athlete, provider:"strava" });
+        } else { setErro("Erro ao conectar com Strava."); setLoading(false); }
+      });
+      return;
+    }
+
     const strava = sb.parseStravaCallback();
     if(strava) {
       setLoading(true);
@@ -1136,6 +1150,24 @@ export default function TempoRunApp() {
   const [session, setSession]   = useState(()=>loadSession()); // restaura sessão salva
   const [authLoading, setAuthLoading] = useState(true); // evita flash da tela de login
   const loggedIn = !!session;
+
+  // Trata o callback do Strava — redireciona para raiz com o code
+  useEffect(()=>{
+    if(window.location.pathname === "/strava-callback") {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const error = params.get("error");
+      if(code) {
+        // Guarda o code e redireciona para raiz onde o LoginScreen vai processar
+        sessionStorage.setItem("strava_code", code);
+      }
+      window.history.replaceState(null,"","/");
+    }
+    // Trata pro=success após checkout Stripe
+    if(window.location.search.includes("pro=success")) {
+      window.history.replaceState(null,"","/");
+    }
+  },[]);
 
   // Verifica se a sessão salva ainda é válida ao abrir o app
   useEffect(()=>{
