@@ -1278,6 +1278,7 @@ export default function TempoRunApp() {
   const [showDadosModal, setShowDadosModal]   = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showProModal, setShowProModal]     = useState(false);
+  const [selectedPlan, setSelectedPlan]     = useState("yearly");
   const [isPro, setIsPro]                   = useState(false);
   const [proStatus, setProStatus]           = useState(null); // null | "active" | "canceled" | "trialing"
   const [proLoading, setProLoading]         = useState(false);
@@ -1772,7 +1773,6 @@ export default function TempoRunApp() {
 
   // ── PRO MODAL ─────────────────────────────────────────────────────────────────
   function renderProModal() {
-    const [selectedPlan, setSelectedPlan] = useState("yearly");
 
     const PLANS = {
       monthly: { label:"Mensal", priceR:"R$ 19,90", priceE:"€ 4,99", period:"/mês", save:null },
