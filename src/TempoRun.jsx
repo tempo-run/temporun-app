@@ -1338,6 +1338,11 @@ export default function TempoRunApp() {
   const [gKm, setGKm]         = useState(0);
   const [gBpm, setGBpm]       = useState(158);
   const timerRef=useRef(null); const gSR=useRef(0); const gKR=useRef(0); const gBR=useRef(158);
+  const watchRef=useRef(null);        // GPS watchPosition ID
+  const lastPosRef=useRef(null);      // última posição GPS {lat,lng,ts}
+  const routeRef=useRef([]);          // array de pontos [[lat,lng],...]
+  const [gpsStatus, setGpsStatus]=useState("off"); // off|searching|active|error
+  const [gpsAccuracy, setGpsAccuracy]=useState(null);
   const [explTab, setExplTab] = useState("rotas");
   const [studioTab, setStudioTab] = useState("card");
   const [cardType, setCardType]   = useState("treino");
@@ -1412,13 +1417,13 @@ export default function TempoRunApp() {
     setShowGarminModal(false);
   }
 
-  async function salvarCorrida(seg,km,bpm,pace){
+  async function salvarCorrida(seg,km,bpm,pace,polyline=[]){
     setSalvando(true);
     const now=new Date();
     const run={
       id:"r"+now.getTime(),
       source:"local",
-      nome:"Intervalado 6×800m",
+      nome:"Corrida livre",
       data:now.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"2-digit"}),
       timestamp:now.toISOString(),
       duracao_seg:seg,
@@ -1429,7 +1434,7 @@ export default function TempoRunApp() {
       forca_w:null,
       dplus:Math.round(km*32),
       xp_ganho:Math.round(km*45+seg/60*2),
-      polyline:null,
+      polyline:polyline.length>1 ? polyline : null,
     };
     const defs=[{key:"1K",min:0.9,max:1.1},{key:"5K",min:4.5,max:5.5},{key:"10K",min:9,max:11},{key:"21K",min:19,max:23},{key:"42K",min:40,max:44}];
     const matched=defs.find(d=>km>=d.min&&km<=d.max);
@@ -1452,13 +1457,45 @@ export default function TempoRunApp() {
   const dpTotal=corridas.reduce((a,c)=>a+(c.dplus||0),0);
   function calcStreak(){if(!corridas.length) return 6;const ws=new Set(corridas.map(r=>{const d=new Date(r.timestamp);const m=new Date(d);m.setDate(d.getDate()-d.getDay());return m.toDateString();}));return ws.size;}
 
-  function startTimer(){timerRef.current=setInterval(()=>{gSR.current+=1;gKR.current=Math.round((gKR.current+0.0028)*10000)/10000;gBR.current=Math.min(185,Math.max(140,gBR.current+(Math.random()>0.5?1:-1)));setGSeg(gSR.current);setGKm(gKR.current);setGBpm(gBR.current);},1000);}
-  function iniciar(){gSR.current=0;gKR.current=0;gBR.current=158;setGStatus("ativo");setGSeg(0);setGKm(0);setGBpm(158);setSavedRun(null);startTimer();}
-  function pausar(){clearInterval(timerRef.current);setGStatus("pausado");}
-  function retomar(){setGStatus("ativo");startTimer();}
-  async function finalizar(){clearInterval(timerRef.current);setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gBR.current,p);}
-  function resetGrav(){clearInterval(timerRef.current);setGStatus("idle");setGSeg(0);setGKm(0);setGBpm(158);gSR.current=0;gKR.current=0;gBR.current=158;}
-  useEffect(()=>()=>clearInterval(timerRef.current),[]);
+  // Haversine — distância entre dois pontos GPS em km
+  function haversine(lat1,lon1,lat2,lon2){const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+
+  function startTimer(){timerRef.current=setInterval(()=>{gSR.current+=1;gBR.current=Math.min(185,Math.max(140,gBR.current+(Math.random()>0.5?1:-1)));setGSeg(gSR.current);setGBpm(gBR.current);},1000);}
+
+  function startGPS(){
+    if(!navigator.geolocation){setGpsStatus("error");return;}
+    setGpsStatus("searching");
+    watchRef.current=navigator.geolocation.watchPosition(
+      (pos)=>{
+        const {latitude:lat,longitude:lng,accuracy}=pos.coords;
+        setGpsAccuracy(Math.round(accuracy));
+        setGpsStatus("active");
+        const last=lastPosRef.current;
+        if(last){
+          const dist=haversine(last.lat,last.lng,lat,lng);
+          const dt=(Date.now()-last.ts)/1000;
+          const speed=dt>0?dist/dt:0;
+          if(accuracy<=30&&speed<0.1){
+            gKR.current=Math.round((gKR.current+dist)*10000)/10000;
+            setGKm(gKR.current);
+          }
+        }
+        lastPosRef.current={lat,lng,ts:Date.now()};
+        routeRef.current.push([lat,lng]);
+      },
+      (err)=>{console.warn("GPS:",err.message);setGpsStatus("error");},
+      {enableHighAccuracy:true,timeout:10000,maximumAge:2000}
+    );
+  }
+
+  function stopGPS(){if(watchRef.current!==null){navigator.geolocation.clearWatch(watchRef.current);watchRef.current=null;}setGpsStatus("off");}
+
+  function iniciar(){gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;setGStatus("ativo");setGSeg(0);setGKm(0);setGBpm(158);setSavedRun(null);startTimer();startGPS();}
+  function pausar(){clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
+  function retomar(){setGStatus("ativo");startTimer();startGPS();}
+  async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gBR.current,p,routeRef.current);}
+  function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGBpm(158);setGpsStatus("off");setGpsAccuracy(null);gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;}
+  useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
   async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);try{const r=await callAI(SYS_COACH,msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
   async function sendSaber(q){const msg=q||saberIn.trim();if(!msg||saberLoad)return;setSaberIn("");setSaberTab("perguntar");const nxt=[...saberMsgs,{from:"user",text:msg}];setSaberMsgs(nxt);setSaberLoad(true);try{const r=await callAI(SYS_SABER,msg,saberMsgs);setSaberMsgs([...nxt,{from:"ai",text:r}]);}catch{setSaberMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setSaberLoad(false);}
@@ -2409,7 +2446,10 @@ export default function TempoRunApp() {
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:6}}>
             <div><p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p><p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p></div>
             <div style={{display:"flex",gap:6}}>
-              <div style={{background:C.cyanB+"22",border:"1px solid "+C.cyanB+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{color:C.cyanB,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span><span style={{color:C.cyanB,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>ativo</span></div>
+              <div style={{background:gpsStatus==="active"?C.cyanB+"22":gpsStatus==="searching"?C.amber+"22":C.coral+"22",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":gpsStatus==="searching"?C.amber+"44":C.coral+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
+                <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
+              </div>
               <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span><span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gBpm}</span></div>
             </div>
           </div>
@@ -2429,7 +2469,7 @@ export default function TempoRunApp() {
           </div>
           <div style={{background:C.s1,borderRadius:15,overflow:"hidden",marginBottom:10,border:"1px solid "+C.violet+"33"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 11px 6px"}}>
-              <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.2,margin:0}}>GPS · mapa ao vivo</p>
+              <p style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.2,margin:0}}>{gpsStatus==="active"?`GPS · ±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"GPS · buscando sinal...":gpsStatus==="error"?"GPS · sem sinal":"GPS · mapa ao vivo"}</p>
             </div>
             <StreetMap km={gKm}/>
           </div>
