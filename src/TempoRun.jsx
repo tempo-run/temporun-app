@@ -1250,17 +1250,20 @@ export default function TempoRunApp() {
 
   // Verifica assinatura Pro ao logar
   useEffect(()=>{
-    if(!session?.access_token) return;
-    fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${session.id||""}&select=status,plan,current_period_end&limit=1`, {
+    if(!session?.access_token || !session?.id) return;
+    fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${session.id}&select=status,plan,current_period_end&limit=1`, {
       headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
     }).then(r=>r.json()).then(data=>{
       if(Array.isArray(data) && data.length > 0) {
         const sub = data[0];
         setProStatus(sub.status);
         setIsPro(sub.status === "active" || sub.status === "trialing");
+      } else {
+        setIsPro(false);
+        setProStatus(null);
       }
     }).catch(()=>{});
-  },[session?.access_token]);
+  },[session?.access_token, session?.id]);
   const [tab, setTab] = useState("home");
   const [subScreen, setSubScreen] = useState(null);
   const [treinoTab, setTreinoTab] = useState("iniciar");
