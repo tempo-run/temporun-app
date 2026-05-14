@@ -119,7 +119,11 @@ function parsePace(str) {
 async function callAI(system,msg,history=[]) {
   const msgs=history.map(m=>({role:m.from==="user"?"user":"assistant",content:m.text}));
   msgs.push({role:"user",content:msg});
-  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1400,system,messages:msgs})});
+  const res=await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON},
+    body:JSON.stringify({system,messages:msgs,max_tokens:1400})
+  });
   const d=await res.json();
   return (d.content&&d.content[0]&&d.content[0].text)||"Erro.";
 }
@@ -1316,6 +1320,32 @@ export default function TempoRunApp() {
   const [onboardingData, setOnboardingData] = useState({ objetivo:"", nivel:"" });
   const [selectedPlan, setSelectedPlan]     = useState("yearly");
   const [isPro, setIsPro]                   = useState(false);
+
+  // Limites de IA para plano Free
+  const AI_LIMITS = { coach: 5, saber: 3, plano: 1 };
+  function getAiUsage() {
+    try {
+      const today = new Date().toDateString();
+      const raw = localStorage.getItem("tr_ai_usage");
+      const data = raw ? JSON.parse(raw) : {};
+      if (data.date !== today) return { date: today, coach: 0, saber: 0, plano: 0 };
+      return data;
+    } catch { return { date: new Date().toDateString(), coach: 0, saber: 0, plano: 0 }; }
+  }
+  function incAiUsage(type) {
+    try {
+      const usage = getAiUsage();
+      usage[type] = (usage[type] || 0) + 1;
+      localStorage.setItem("tr_ai_usage", JSON.stringify(usage));
+    } catch {}
+  }
+  function checkAiLimit(type) {
+    if (isPro) return true;
+    const usage = getAiUsage();
+    return (usage[type] || 0) < AI_LIMITS[type];
+  }
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState("");
   const [proStatus, setProStatus]           = useState(null); // null | "active" | "canceled" | "trialing"
   const [proLoading, setProLoading]         = useState(false);
   const [proError, setProError]             = useState("");
@@ -1539,8 +1569,8 @@ ${parts.join(" | ")}` : "";
   function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGBpm(158);setGpsStatus("off");setGpsAccuracy(null);gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
-  async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);try{const r=await callAI(SYS_COACH+buildPerfilCtx(),msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
-  async function sendSaber(q){const msg=q||saberIn.trim();if(!msg||saberLoad)return;setSaberIn("");setSaberTab("perguntar");const nxt=[...saberMsgs,{from:"user",text:msg}];setSaberMsgs(nxt);setSaberLoad(true);try{const r=await callAI(SYS_SABER+buildPerfilCtx(),msg,saberMsgs);setSaberMsgs([...nxt,{from:"ai",text:r}]);}catch{setSaberMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setSaberLoad(false);}
+  async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;if(!checkAiLimit("coach")){setUpgradeReason(`Você usou suas ${AI_LIMITS.coach} perguntas ao Coach hoje. `);setShowUpgradeModal(true);return;}setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);incAiUsage("coach");try{const r=await callAI(SYS_COACH+buildPerfilCtx(),msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
+  async function sendSaber(q){const msg=q||saberIn.trim();if(!msg||saberLoad)return;if(!checkAiLimit("saber")){setUpgradeReason(`Você usou suas ${AI_LIMITS.saber} perguntas ao Saber hoje. `);setShowUpgradeModal(true);return;}setSaberIn("");setSaberTab("perguntar");const nxt=[...saberMsgs,{from:"user",text:msg}];setSaberMsgs(nxt);setSaberLoad(true);incAiUsage("saber");try{const r=await callAI(SYS_SABER+buildPerfilCtx(),msg,saberMsgs);setSaberMsgs([...nxt,{from:"ai",text:r}]);}catch{setSaberMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setSaberLoad(false);}
 
   function openTreino(treino, semana){
     setSelectedTreino({...treino, semana});
@@ -1559,6 +1589,8 @@ ${parts.join(" | ")}` : "";
   }
 
   async function gerarPlano(){
+    if(!checkAiLimit("plano")){setUpgradeReason(`Você já gerou seu plano gratuito deste mês. `);setShowUpgradeModal(true);return;}
+    incAiUsage("plano");
     setPlanScreen("loading");setPlanResult(null);
     const glp1str=planForm.glp1==="sim"
       ?`\nUSO DE GLP-1: SIM — APLICAR TODAS AS REGRAS ESPECIAIS GLP-1\nNáusea ativa:${planForm.glp1_nausea}\nMedicamento reduz ingestão calórica 16-39% (PMC 12683586) — risco de glicogênio baixo e perda muscular`
@@ -2186,6 +2218,64 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     );
   }
 
+
+  // ── UPGRADE MODAL ────────────────────────────────────────────────────────────
+  function renderUpgradeModal() {
+    const usage = getAiUsage();
+    return (
+      <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center",maxWidth:430,margin:"0 auto"}} onClick={()=>setShowUpgradeModal(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,borderRadius:"20px 20px 0 0",border:"1px solid "+C.violet+"44",padding:"24px 20px 36px",width:"100%"}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
+            <div style={{width:40,height:4,borderRadius:2,background:C.border}}/>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+            <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <Ic n="ai" z={22} c="#fff"/>
+            </div>
+            <div>
+              <p style={{color:C.tp,fontWeight:700,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Limite diário atingido</p>
+              <p style={{color:C.tm,fontSize:12,margin:0}}>{upgradeReason}Assine o Pro para uso ilimitado.</p>
+            </div>
+          </div>
+
+          <div style={{background:C.s1,borderRadius:13,border:"1px solid "+C.border,padding:"12px 14px",marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+              <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"monospace",margin:0}}>Uso hoje</p>
+            </div>
+            {[
+              {label:"Coach IA", key:"coach", limit:AI_LIMITS.coach, icon:"ai"},
+              {label:"Saber", key:"saber", limit:AI_LIMITS.saber, icon:"book"},
+              {label:"Planos", key:"plano", limit:AI_LIMITS.plano, icon:"run"},
+            ].map(item=>{
+              const used = usage[item.key]||0;
+              const pct = Math.min(100, (used/item.limit)*100);
+              return (
+                <div key={item.key} style={{marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                    <span style={{color:C.ts,fontSize:12}}>{item.label}</span>
+                    <span style={{color:used>=item.limit?C.coral:C.tm,fontSize:12,fontWeight:600}}>{used}/{item.limit}</span>
+                  </div>
+                  <div style={{height:4,background:C.s2,borderRadius:2,overflow:"hidden"}}>
+                    <div style={{width:pct+"%",height:"100%",background:used>=item.limit?"linear-gradient(90deg,"+C.coral+",#ef4444)":"linear-gradient(90deg,"+C.violet+","+C.cyan+")",borderRadius:2,transition:"width 0.3s"}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button onClick={()=>{setShowUpgradeModal(false);setShowProModal(true);}}
+            style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:14,padding:"15px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 6px 20px "+C.violet+"44",marginBottom:10}}>
+            🚀 Assinar Pro — Ilimitado
+          </button>
+          <button onClick={()=>setShowUpgradeModal(false)}
+            style={{width:"100%",background:"none",border:"none",color:C.td,fontSize:13,cursor:"pointer",fontFamily:"inherit",padding:"8px 0"}}>
+            Continuar com plano gratuito
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── HOME ─────────────────────────────────────────────────────────────────────
   function renderHome() {
     return (
@@ -2268,7 +2358,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 )}
                 <div style={{maxHeight:220,overflowY:"auto",marginBottom:8}}>{saberMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{saberLoad&&<Dots color={C.cyan}/>}</div>
                 <div style={{display:"flex",gap:7}}>
-                  <input value={saberIn} onChange={e=>setSaberIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendSaber()} placeholder="Sua pergunta..." style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                  <input value={saberIn} onChange={e=>setSaberIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendSaber()} placeholder={isPro?"Sua pergunta...":`Pergunta... (${Math.max(0,AI_LIMITS.saber-(getAiUsage().saber||0))} restantes)`} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
                   <button onClick={()=>sendSaber()} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,width:40,height:40,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic n="share" z={15} c="#fff"/></button>
                 </div>
               </div>
@@ -4049,6 +4139,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               {loggedIn && showDadosModal && renderDadosModal()}
               {loggedIn && showConfigModal && renderConfigModal()}
               {loggedIn && showProModal && renderProModal()}
+              {loggedIn && showUpgradeModal && renderUpgradeModal()}
               {loggedIn && tab==="home"     && renderHome()}
               {loggedIn && tab==="explorar" && renderExplorar()}
               {loggedIn && tab==="treino"   && renderTreino()}
