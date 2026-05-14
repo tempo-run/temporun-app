@@ -1349,6 +1349,22 @@ export default function TempoRunApp() {
   }
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
+  const [lang, setLang] = useState(()=>{try{return localStorage.getItem("tr_lang")||"pt";}catch{return "pt";}});
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const LANGS = [
+    {id:"pt", flag:"🇧🇷", label:"Português"},
+    {id:"en", flag:"🇬🇧", label:"English"},
+    {id:"es", flag:"🇪🇸", label:"Español"},
+    {id:"fr", flag:"🇫🇷", label:"Français"},
+  ];
+  const T = {
+    pt:{greeting_m:"Bom dia", coach_hello:"Olá! Pronto para mais um treino? 🔥", saber_label:"Saber", perfil_label:"Perfil", explorar:"Explorar", perguntar:"Perguntar à IA", config:"Configurações", dados:"Dados pessoais", logout:"Logout", inicio:"Início", treino:"Treino", analise:"Análise", studio:"Studio", motivation:"{t.motivation}", records:"{t.records}", evolution:"EVOLUÇÃO KM"},
+    en:{greeting_m:"Good morning", coach_hello:"Hi! Ready for another workout? 🔥", saber_label:"Learn", perfil_label:"Profile", explorar:"Explore", perguntar:"Ask AI", config:"Settings", dados:"Personal data", logout:"Logout", inicio:"Home", treino:"Training", analise:"Analysis", studio:"Studio", motivation:"MOTIVATION", records:"PERSONAL RECORDS", evolution:"KM EVOLUTION"},
+    es:{greeting_m:"Buenos días", coach_hello:"¡Hola! ¿Listo para entrenar? 🔥", saber_label:"Saber", perfil_label:"Perfil", explorar:"Explorar", perguntar:"Preguntar IA", config:"Configuración", dados:"Datos personales", logout:"Cerrar sesión", inicio:"Inicio", treino:"Entrenamiento", analise:"Análisis", studio:"Studio", motivation:"MOTIVACIÓN DEL DÍA", records:"RÉCORDS PERSONALES", evolution:"EVOLUCIÓN KM"},
+    fr:{greeting_m:"Bonjour", coach_hello:"Salut! Prêt pour l'entraînement? 🔥", saber_label:"Savoir", perfil_label:"Profil", explorar:"Explorer", perguntar:"Demander IA", config:"Paramètres", dados:"Données personnelles", logout:"Déconnexion", inicio:"Accueil", treino:"Entraînement", analise:"Analyse", studio:"Studio", motivation:"MOTIVATION DU JOUR", records:"RECORDS PERSONNELS", evolution:"ÉVOLUTION KM"},
+  };
+  const t = T[lang]||T.pt;
+  function changeLang(l){setLang(l);try{localStorage.setItem("tr_lang",l);}catch{}setShowLangMenu(false);}
   const [proStatus, setProStatus]           = useState(null); // null | "active" | "canceled" | "trialing"
   const [proLoading, setProLoading]         = useState(false);
   const [proError, setProError]             = useState("");
@@ -1524,6 +1540,8 @@ export default function TempoRunApp() {
     if(planForm.glp1==="sim") parts.push(`GLP-1: SIM (${planForm.glp1_nausea==="sim"?"náusea ativa":"sem náusea"})`);
     if(planForm.historico_lesoes) parts.push(`Histórico de lesões: ${planForm.historico_lesoes}`);
     if(dadosForm.relogios?.length) parts.push(`Relógio: ${dadosForm.relogios[0]}`);
+    const langNames = {pt:"Português",en:"English",es:"Español",fr:"Français"};
+    parts.push(`Idioma de resposta: ${langNames[lang]||"Português"} — SEMPRE responda neste idioma`);
     return parts.length ? `
 
 [PERFIL DO ATLETA]
@@ -2292,22 +2310,39 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,paddingBottom:12}}>
           <div style={{textAlign:"left"}}>
-            <p style={{color:C.tm,fontSize:13,margin:0}}>Bom dia 🌤</p>
+            <p style={{color:C.tm,fontSize:13,margin:0}}>{t.greeting_m} 🌤</p>
             <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{dadosForm.nome?dadosForm.nome.split(" ")[0]:session?.strava_athlete?.firstname||session?.email?.split("@")[0]||"Corredor"} {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}</h1>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
+            <div style={{position:"relative"}}>
+              <button onClick={()=>{setShowLangMenu(!showLangMenu);setShowSaber(false);setShowPerfil(false);}} style={{background:showLangMenu?"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)":"none",border:"1px solid "+(showLangMenu?C.violet+"66":C.border),cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px 6px",borderRadius:13,width:44,height:52,justifyContent:"center"}}>
+                <span style={{fontSize:22,lineHeight:1}}>{LANGS.find(l=>l.id===lang)?.flag||"🇧🇷"}</span>
+                <span style={{color:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>{lang.toUpperCase()}</span>
+              </button>
+              {showLangMenu&&(
+                <div style={{position:"absolute",top:58,right:0,background:C.s1,border:"1px solid "+C.border,borderRadius:14,padding:6,zIndex:200,minWidth:150,boxShadow:"0 8px 32px #00000066"}}>
+                  {LANGS.map(l=>(
+                    <button key={l.id} onClick={()=>changeLang(l.id)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:lang===l.id?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":"none",border:"none",borderRadius:9,padding:"8px 12px",cursor:"pointer",fontFamily:"inherit"}}>
+                      <span style={{fontSize:18}}>{l.flag}</span>
+                      <span style={{color:lang===l.id?C.tp:C.tm,fontSize:13,fontWeight:lang===l.id?700:400}}>{l.label}</span>
+                      {lang===l.id&&<span style={{marginLeft:"auto",color:C.violet,fontSize:14}}>✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);setShowLangMenu(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
               <div style={{width:44,height:44,borderRadius:22,background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showSaber?C.cyanB+"88":C.border),boxShadow:showSaber?"0 0 14px "+C.violet+"66":"none"}}>
                 <Ic n="science" z={20} c={showSaber?"#fff":C.ts}/>
               </div>
-              <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Saber</span>
+              <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>{t.saber_label}</span>
             </button>
             <button onClick={()=>{setShowPerfil(!showPerfil);setShowSaber(false);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px"}}>
               <div style={{position:"relative"}}>
                 <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":C.violet+"44"),boxShadow:isPro?"0 0 12px "+C.violet+"55":showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={dadosForm.foto||perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:dadosForm.foto?"cover":"contain"}}/></div>
                 {isPro&&<div style={{position:"absolute",bottom:-2,right:-2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:7,padding:"2px 5px",border:"1.5px solid "+C.bg,boxShadow:"0 0 8px "+C.violet+"66"}}><span style={{color:"#fff",fontSize:7,fontWeight:800,letterSpacing:0.5}}>PRO</span></div>}
               </div>
-              <span style={{color:showPerfil?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Perfil</span>
+              <span style={{color:showPerfil?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>{t.perfil_label}</span>
             </button>
           </div>
         </div>
@@ -2319,8 +2354,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
               </button>
               <div style={{flex:1,display:"flex",background:C.s3,borderRadius:10,padding:3}}>
-                {[{id:"explorar",l:"Explorar"},{id:"perguntar",l:"Perguntar à IA"}].map(t=>(
-                  <button key={t.id} onClick={()=>setSaberTab(t.id)} style={{flex:1,background:saberTab===t.id?"linear-gradient(135deg,"+C.violet+"55,"+C.cyan+"22)":"transparent",color:saberTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
+                {[{id:"explorar",l:t.explorar},{id:"perguntar",l:t.perguntar}].map(tt=>(
+                  <button key={t.id} onClick={()=>setSaberTab(tt.id)} style={{flex:1,background:saberTab===tt.id?"linear-gradient(135deg,"+C.violet+"55,"+C.cyan+"22)":"transparent",color:saberTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{tt.l}</button>
                 ))}
               </div>
             </div>
@@ -2379,9 +2414,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         {showPerfil&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:18,padding:14,marginBottom:14,border:"1px solid "+C.violet+"44",animation:"fadeIn 0.2s ease",display:"flex",flexDirection:"column",gap:6}}>
             {[
-              {id:"config", nome:"Configurações", desc:"Notificações, tema, corrida, conta",  icon:"settings", cor:C.cyanB},
-              {id:"dados",  nome:"Dados pessoais",desc:"Perfil, equipamentos, cidade", icon:"profile",  cor:C.violetL},
-              {id:"logout", nome:"Logout",         desc:"Sair da conta",                icon:"back",     cor:C.coral},
+              {id:"config", nome:t.config, desc:"Notificações, tema, corrida, conta",  icon:"settings", cor:C.cyanB},
+              {id:"dados",  nome:t.dados, desc:"Perfil, equipamentos, cidade", icon:"profile",  cor:C.violetL},
+              {id:"logout", nome:t.logout, desc:"Sair da conta",                icon:"back",     cor:C.coral},
             ].map(opt=>(
               <button key={opt.id} onClick={()=>{
                 if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();try{localStorage.removeItem("tr_onboarding_done");}catch{}setSession(null);setShowPerfil(false);setShowOnboarding(true);setOnboardingStep(0);setTab("home");}
@@ -4173,8 +4208,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         <div style={{background:C.bg,borderTop:"1px solid "+C.border,padding:"7px 4px 12px",display:"flex",alignItems:"center",position:"relative"}}>
           {[
-            {id:"home",   n:"home",   l:"Início"},
-            {id:"explorar",n:"explore",l:"Explorar"},
+            {id:"home",   n:"home",   l:t.inicio},
+            {id:"explorar",n:"explore",l:t.inicio==="Home"?"Explore":t.explorar},
           ].map(t=>{
             const active = loggedIn ? tab===t.id : t.id==="home";
             const disabled = !loggedIn && t.id!=="home";
