@@ -1026,6 +1026,13 @@ const sb = {
 
   // Verifica se voltou de OAuth (hash com access_token ou query params)
   parseHashSession() {
+    // Decode JWT to extract user id
+    function jwtUserId(token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        return payload.sub || payload.user_id || "";
+      } catch { return ""; }
+    }
     // Tenta hash primeiro (#access_token=...)
     const hash = window.location.hash;
     if(hash) {
@@ -1033,19 +1040,19 @@ const sb = {
       const access_token = params.get("access_token");
       if(access_token) {
         const email = params.get("user_email") || "";
-        const id = params.get("user_id") || "";
+        const id = params.get("user_id") || jwtUserId(access_token);
         window.history.replaceState(null,"",window.location.pathname);
         return { access_token, email, id };
       }
     }
-    // Tenta query string (?access_token=... ou ?code=...)
+    // Tenta query string (?access_token=...)
     const search = window.location.search;
     if(search) {
       const params = new URLSearchParams(search);
       const access_token = params.get("access_token");
       if(access_token) {
         window.history.replaceState(null,"",window.location.pathname);
-        return { access_token, email: params.get("email") || "", id: params.get("user_id") || "" };
+        return { access_token, email: params.get("email") || "", id: params.get("user_id") || jwtUserId(access_token) };
       }
     }
     return null;
@@ -1240,6 +1247,13 @@ const SESSION_KEY = "temporun_session";
 function saveSession(s) {
   try { localStorage.setItem(SESSION_KEY, JSON.stringify({...s, saved_at: Date.now()})); } catch{}
 }
+function jwtUserId(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    return payload.sub || payload.user_id || "";
+  } catch { return ""; }
+}
+
 function loadSession() {
   // 1. Verifica hash (#access_token=...) — vem do Google OAuth
   const hash = window.location.hash;
@@ -1248,7 +1262,7 @@ function loadSession() {
     const at = p.get("access_token");
     if(at) {
       window.history.replaceState(null,"",window.location.pathname);
-      const s = { access_token:at, email: p.get("user_email")||p.get("email")||"", id: p.get("user_id")||"" };
+      const s = { access_token:at, email: p.get("user_email")||p.get("email")||"", id: p.get("user_id")||jwtUserId(at) };
       saveSession(s);
       return s;
     }
@@ -1260,7 +1274,7 @@ function loadSession() {
     const at = p.get("access_token");
     if(at) {
       window.history.replaceState(null,"",window.location.pathname);
-      const s = { access_token:at, email: p.get("email")||"" };
+      const s = { access_token:at, email: p.get("email")||"", id: p.get("user_id")||jwtUserId(at) };
       saveSession(s);
       return s;
     }
@@ -1340,7 +1354,17 @@ export default function TempoRunApp() {
 
   // Busca user.id se não estiver na sessão
   useEffect(()=>{
-    if(!session?.access_token || session?.id) return;
+    if(!session?.access_token) return;
+    // Primeiro tenta extrair do JWT localmente (sem chamada de rede)
+    const jwtId = jwtUserId(session.access_token);
+    if(jwtId && !session.id) {
+      const updated = {...session, id: jwtId};
+      saveSession(updated);
+      setSession(updated);
+      return;
+    }
+    if(session?.id) return;
+    // Fallback — busca no Supabase
     fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
     }).then(r=>r.json()).then(data=>{
