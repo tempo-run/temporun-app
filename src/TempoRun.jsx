@@ -3261,8 +3261,11 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>Coach Tempo</p>
           <p style={{color:C.ts,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>Hoje focamos em velocidade de limiar. Execute em ~5:10/km.</p>
-          <button onClick={()=>{setPlanScreen("form");setSubScreen("plano");}} style={{width:"100%",background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"33",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+          <button onClick={()=>{setPlanScreen("form");setSubScreen("plano");}} style={{width:"100%",background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"33",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:8}}>
             <Ic n="ai" z={14} c={C.cyanB}/>Criar plano com IA
+          </button>
+          <button onClick={()=>setSubScreen("gravacao")} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"12px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 20px "+C.violet+"44",letterSpacing:0.3}}>
+            <Ic n="run" z={18} c="#fff"/>Iniciar treino
           </button>
         </div>
 
