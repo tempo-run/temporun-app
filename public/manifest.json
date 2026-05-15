@@ -1,0 +1,35 @@
+{
+  "name": "TempoRun",
+  "short_name": "TempoRun",
+  "description": "Seu coach de corrida com IA",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#06071a",
+  "theme_color": "#7c3aed",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "sports"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Iniciar corrida",
+      "short_name": "Correr",
+      "url": "/",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}
