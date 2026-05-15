@@ -918,15 +918,13 @@ function RunDetailModal({ run, onClose }) {
             {v:run.pace_medio+"/km",   l:"Pace",        c:C.cyan},
             {v:calorias+" kcal",       l:"Calorias",    c:C.amber},
             {v:(run.cadencia_media||"—")+" spm", l:"Cadência", c:C.violetL},
-          ].map((s,i,arr)=>(
-            <React.Fragment key={i}>
-              <div style={{textAlign:"center",flex:1}}>
-                <p style={{color:C.td,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 4px"}}>{s.l}</p>
-                <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:0,letterSpacing:-0.5,lineHeight:1}}>{s.v}</p>
-              </div>
-              {i<arr.length-1&&divider}
-            </React.Fragment>
-          ))}
+          ].map((s,i,arr)=>[
+            <div key={i} style={{textAlign:"center",flex:1}}>
+              <p style={{color:C.td,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 4px"}}>{s.l}</p>
+              <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:0,letterSpacing:-0.5,lineHeight:1}}>{s.v}</p>
+            </div>,
+            i<arr.length-1&&<div key={"d"+i} style={{width:1,background:C.cyanB,opacity:0.35,alignSelf:"stretch",margin:"0 4px"}}/>,
+          ])}
         </div>
 
         {/* SPLITS */}
