@@ -1550,6 +1550,9 @@ export default function TempoRunApp() {
   const [treinosVinculados, setTreinosVinculados] = useState({}); // key: "S1-Seg" → run id
   const [vinculandoKey, setVinculandoKey] = useState(null); // qual treino está sendo vinculado
   const [planScreen, setPlanScreen] = useState("form");
+  const [savedPlan, setSavedPlan] = useState(()=>{
+    try{ const p=localStorage.getItem("tr_saved_plan"); return p?JSON.parse(p):null; }catch{return null;}
+  });
   const [showAddTreino, setShowAddTreino] = useState(false);
   const [addTreinoDia, setAddTreinoDia] = useState(null); // index do dia no plano
   const [addStep, setAddStep] = useState("tipo"); // tipo | subtipo | config
@@ -2997,7 +3000,12 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             })}
             <div style={{display:"flex",gap:8,marginTop:13}}>
               <button onClick={()=>setPlanScreen("form")} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Refazer</button>
-              <button style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>Usar este plano</button>
+              <button onClick={()=>{
+                setSavedPlan(planResult);
+                try{localStorage.setItem("tr_saved_plan",JSON.stringify(planResult));}catch{}
+                setPlanScreen("form");
+                setSubScreen("verPlano");
+              }} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>✓ Usar este plano</button>
             </div>
           </div>
         )}
@@ -3072,442 +3080,160 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
     // Sub: Ver Plano semanal
     if(subScreen==="verPlano") {
-      const semanas = [
-        { semana:1, foco:"Base aeróbica", dias:[
-          {dia:"Seg",tipo:"Corrida fácil",nome:"Fácil 5km",km:"5 km",dur:"30 min",intensidade:"leve",pace:"6:00-6:30/km",fc:"130-145 bpm",descricao:"Corrida bem leve para construir base aeróbica. Você deve conseguir conversar normalmente durante o treino.",dicas:["Respire pelo nariz se conseguir","Não force o ritmo","Foco em postura ereta","Hidrate-se antes e depois"]},
-          {dia:"Ter",tipo:"Descanso ativo",nome:"Caminhada ou alongamento",km:"—",dur:"20 min",intensidade:"rest"},
-          {dia:"Qua",tipo:"Intervalado",nome:"Intervalado 4×400m",km:"6 km",dur:"35 min",intensidade:"forte",pace:"4:30-4:45/km nos 400m",fc:"170-180 bpm nos picos",descricao:"4 tiros de 400m em ritmo forte com 90s de caminhada entre eles. Aquecimento de 10min e volta à calma de 10min são obrigatórios.",dicas:["Aqueça bem antes dos tiros","Não comece muito rápido","Recuperação ativa caminhando","Termine sempre com energia reserva"]},
-          {dia:"Qui",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-          {dia:"Sex",tipo:"Corrida fácil",nome:"Fácil 6km",km:"6 km",dur:"36 min",intensidade:"leve",pace:"6:00-6:30/km",fc:"130-145 bpm",descricao:"Mais um treino leve para consolidar base. Mantenha o ritmo confortável.",dicas:["Pode escolher trilha leve","Cadência ~170 spm","Hidrate-se bem","Pode dividir em 2 sessões"]},
-          {dia:"Sáb",tipo:"Long run",nome:"Long run 10km",km:"10 km",dur:"60 min",intensidade:"moderado",pace:"5:50-6:10/km",fc:"140-155 bpm",descricao:"Primeiro longão da semana. Mantenha ritmo confortável e foque na duração, não na velocidade.",dicas:["Coma carbo 2-3h antes","Leve água se passar de 60min","Não acelere no fim","Alongue ao terminar"]},
-          {dia:"Dom",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-        ]},
-        { semana:2, foco:"Progressão de volume", dias:[
-          {dia:"Seg",tipo:"Corrida fácil",nome:"Fácil 6km",km:"6 km",dur:"36 min",intensidade:"leve",pace:"5:50-6:20/km",fc:"130-145 bpm",descricao:"Aumento progressivo de volume. Mantenha intensidade baixa.",dicas:["Aumente 1km da semana anterior","Foco em economia de corrida","Pode incluir terreno leve","Alongue após"]},
-          {dia:"Ter",tipo:"Descanso ativo",nome:"Caminhada ou alongamento",km:"—",dur:"20 min",intensidade:"rest"},
-          {dia:"Qua",tipo:"Intervalado",nome:"Intervalado 6×400m",km:"7 km",dur:"40 min",intensidade:"forte",pace:"4:25-4:40/km nos 400m",fc:"170-180 bpm nos picos",descricao:"6 tiros de 400m, recuperação de 90s entre eles. Aquecimento de 10min e volta à calma de 10min.",dicas:["Mantenha os tiros consistentes","Não desacelere na metade","Hidratação no aquecimento","Cadência alta nos tiros"]},
-          {dia:"Qui",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-          {dia:"Sex",tipo:"Tempo run",nome:"Tempo 5km em ritmo médio",km:"5 km",dur:"27 min",intensidade:"moderado",pace:"5:00-5:20/km",fc:"160-170 bpm",descricao:"Tempo run: ritmo desafiador mas sustentável por todo o treino. Aquecimento e volta à calma essenciais.",dicas:["Aqueça 10min antes","Mantenha pace constante","Respiração rítmica","Volta à calma de 10min"]},
-          {dia:"Sáb",tipo:"Long run",nome:"Long run 12km",km:"12 km",dur:"72 min",intensidade:"moderado",pace:"5:50-6:10/km",fc:"140-155 bpm",descricao:"Longão aumentado em 2km. Pode dividir em dois blocos com pausa curta se necessário.",dicas:["Café da manhã 2h antes","Gel ou banana no meio","Hidratação a cada 20min","Trilha leve ou parque"]},
-          {dia:"Dom",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-        ]},
-        { semana:3, foco:"Velocidade de limiar", dias:[
-          {dia:"Seg",tipo:"Corrida fácil",nome:"Fácil 6km",km:"6 km",dur:"36 min",intensidade:"leve",pace:"5:50-6:20/km",fc:"130-145 bpm",descricao:"Recuperação ativa antes do treino forte de terça.",dicas:["Pode ser bem fácil","Foco em soltar pernas","Cadência confortável","Hidrate-se bem"]},
-          {dia:"Ter",tipo:"Intervalado",nome:"Intervalado 6×800m",km:"10 km",dur:"55 min",intensidade:"forte",pace:"4:50-5:00/km nos 800m",fc:"170-180 bpm nos picos",descricao:"Treino-chave da semana. 6 tiros de 800m com 2min de recuperação ativa. Aquecimento e volta à calma de 10min cada.",dicas:["Aquecimento progressivo","Não comece os 800m muito rápido","Recuperação ativa caminhando","Hidrate-se antes e durante"]},
-          {dia:"Qua",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-          {dia:"Qui",tipo:"Corrida fácil",nome:"Fácil 7km",km:"7 km",dur:"42 min",intensidade:"leve",pace:"5:50-6:20/km",fc:"130-145 bpm",descricao:"Volume leve para recuperar do treino de terça.",dicas:["Mantenha bem leve","Não force","Pode incluir strides curtos","Alongue após"]},
-          {dia:"Sex",tipo:"Tempo run",nome:"Tempo 6km race pace",km:"6 km",dur:"31 min",intensidade:"forte",pace:"4:55-5:10/km",fc:"165-175 bpm",descricao:"Tempo run em ritmo de prova. Foque em manter pace constante durante todo o esforço principal.",dicas:["Aqueça 15min","Pace alvo: 5:00/km","Respire fundo","Volta à calma essencial"]},
-          {dia:"Sáb",tipo:"Long run",nome:"Long run 14km",km:"14 km",dur:"84 min",intensidade:"moderado",pace:"5:50-6:10/km",fc:"140-155 bpm",descricao:"Longão pico da semana. Pode incluir últimos 2km em ritmo levemente mais forte (negative split).",dicas:["Hidrate-se a cada 20min","Gel no km 7","Negative split nos últimos 2km","Alongue 10min ao terminar"]},
-          {dia:"Dom",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-        ]},
-        { semana:4, foco:"Semana de recuperação", dias:[
-          {dia:"Seg",tipo:"Corrida fácil",nome:"Fácil 5km regenerativo",km:"5 km",dur:"32 min",intensidade:"leve",pace:"6:00-6:30/km",fc:"125-140 bpm",descricao:"Semana de recuperação: volume reduzido para permitir adaptação.",dicas:["Muito leve mesmo","Foco em soltar pernas","Não busque pace","Aproveite a recuperação"]},
-          {dia:"Ter",tipo:"Descanso ativo",nome:"Yoga ou mobilidade",km:"—",dur:"30 min",intensidade:"rest"},
-          {dia:"Qua",tipo:"Strides",nome:"Fácil 5km + 4 strides",km:"5 km",dur:"30 min",intensidade:"leve",pace:"6:00/km + strides 4:00/km",fc:"130-150 bpm",descricao:"Corrida leve seguida de 4 strides de 80m (acelerações progressivas) com caminhada de recuperação.",dicas:["Strides são curtos e rápidos","Recuperação caminhando","Foco em técnica","Não acelere demais"]},
-          {dia:"Qui",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-          {dia:"Sex",tipo:"Corrida fácil",nome:"Fácil 5km",km:"5 km",dur:"30 min",intensidade:"leve",pace:"6:00-6:30/km",fc:"130-145 bpm",descricao:"Última corrida leve antes do longão de sábado.",dicas:["Mantenha bem leve","Hidrate-se bem","Coma bem à noite","Sono cedo"]},
-          {dia:"Sáb",tipo:"Long run",nome:"Long run 10km (suave)",km:"10 km",dur:"65 min",intensidade:"leve",pace:"6:00-6:20/km",fc:"135-150 bpm",descricao:"Longão regenerativo. Volume reduzido para consolidar adaptações das semanas anteriores.",dicas:["Ritmo bem confortável","Foco na duração","Pode dividir em 2 blocos","Alongue ao terminar"]},
-          {dia:"Dom",tipo:"Descanso",nome:"Descanso completo",km:"—",dur:"—",intensidade:"rest"},
-        ]},
-      ];
-      const intCor = {leve:C.cyanB, moderado:C.amber, forte:C.coral, rest:C.tg};
-      const intLabel = {leve:"Leve", moderado:"Moderado", forte:"Forte", rest:"Descanso"};
-
-      // ── Tela de detalhe do treino clicado ──
-      if(selectedTreino) {
-        const t = selectedTreino;
-        const cor = intCor[t.intensidade]||C.cyanB;
+      // Se tem plano IA guardado, mostra-o
+      if(savedPlan?.plano) {
+        const intCor2 = (tipo) => {
+          if(!tipo) return C.tg;
+          const t = tipo.toLowerCase();
+          if(t.includes("descanso")||t.includes("rest")) return C.tg;
+          if(t.includes("interval")||t.includes("forte")||t.includes("tiro")||t.includes("fartlek")||t.includes("pirâmide")||t.includes("subida")) return C.coral;
+          if(t.includes("longo")||t.includes("longão")||t.includes("long")) return C.amber;
+          if(t.includes("tempo")||t.includes("limiar")) return C.violetL;
+          return C.cyanB;
+        };
         return (
           <div>
             <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
-              <button onClick={()=>setSelectedTreino(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:7}}>
-                  <Badge text={"SEMANA "+t.semana} color={C.violet}/>
-                  <Badge text={intLabel[t.intensidade]} color={cor}/>
-                </div>
-                <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:19,margin:"5px 0 0"}}>{t.nome}</h1>
-              </div>
-            </div>
-
-            {/* Card explicação do treino */}
-            <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+cor+"44",borderRadius:16,padding:14,marginBottom:12}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:11}}>
-                <div style={{width:34,height:34,borderRadius:10,background:cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+cor+"44"}}>
-                  <Ic n="run" z={18} c={cor}/>
-                </div>
-                <div style={{flex:1}}>
-                  <p style={{color:cor,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.6}}>{t.dia} · {t.tipo}</p>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:"2px 0 0"}}>{t.nome}</p>
-                </div>
-              </div>
-
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:11}}>
-                {[
-                  {l:"Distância",v:t.km,c:C.cyanB,i:"run"},
-                  {l:"Duração",  v:t.dur,c:C.cyan,i:"watch"},
-                  {l:"Pace alvo",v:t.pace||"—",c:cor,i:"bolt"},
-                  {l:"FC alvo",  v:t.fc||"—",c:C.coral,i:"heart"},
-                ].map((s,i)=>(
-                  <div key={i} style={{background:C.s3,borderRadius:10,padding:"9px 11px",border:"1px solid "+s.c+"22"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
-                      <Ic n={s.i} z={12} c={s.c}/>
-                      <p style={{color:s.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:0.8,margin:0,opacity:0.8}}>{s.l}</p>
-                    </div>
-                    <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:14,margin:0,letterSpacing:-0.3}}>{s.v}</p>
-                  </div>
-                ))}
-              </div>
-
-              {t.descricao&&(
-                <div style={{background:C.s3,borderRadius:11,padding:"10px 12px",marginBottom:11,border:"1px solid "+C.border}}>
-                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,margin:"0 0 6px",textTransform:"uppercase",letterSpacing:0.5}}>Descrição</p>
-                  <p style={{color:C.tp,fontSize:13,margin:0,lineHeight:1.6}}>{t.descricao}</p>
-                </div>
-              )}
-
-              {t.dicas&&t.dicas.length>0&&(
-                <div>
-                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.5}}>Dicas para o treino</p>
-                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                    {t.dicas.map((d,i)=>(
-                      <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                        <div style={{width:18,height:18,borderRadius:5,background:cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
-                          <Ic n="check" z={11} c={cor}/>
-                        </div>
-                        <p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.5,flex:1}}>{d}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Card menor - chat com Coach TEMPO sobre o treino */}
-            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:14,padding:12,marginBottom:14}}>
-              <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:10}}>
-                <div style={{width:28,height:28,borderRadius:9,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <Ic n="ai" z={15} c="#fff"/>
-                </div>
-                <div style={{flex:1}}>
-                  <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.5}}>Fale com o Coach TEMPO</p>
-                  <p style={{color:C.ts,fontSize:11,margin:"2px 0 0"}}>Tire dúvidas sobre este treino</p>
-                </div>
-              </div>
-
-              {/* Sugestões rápidas */}
-              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:9}}>
-                {["Como executar?","Posso adaptar?","E se eu cansar?","Antes/depois?"].map((q,i)=>(
-                  <button key={i} onClick={()=>sendTreinoChat(q)} style={{background:C.s2,color:C.violetL,border:"1px solid "+C.violet+"33",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{q}</button>
-                ))}
-              </div>
-
-              {/* Mensagens */}
-              <div style={{background:C.s1,borderRadius:11,padding:10,maxHeight:180,overflowY:"auto",marginBottom:8,border:"1px solid "+C.border}}>
-                {treinoChatMsgs.map((m,i)=><Bubble key={i} m={m}/>)}
-                {treinoChatLoad&&<Dots color={C.cyanB}/>}
-              </div>
-
-              {/* Input */}
-              <div style={{display:"flex",gap:7}}>
-                <input value={treinoChatIn} onChange={e=>setTreinoChatIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendTreinoChat()} placeholder="Pergunte sobre este treino..." style={{flex:1,background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:12,outline:"none",fontFamily:"inherit"}}/>
-                <button onClick={()=>sendTreinoChat()} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,width:38,height:38,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <Ic n="share" z={14} c="#fff"/>
-                </button>
-              </div>
-            </div>
-
-            <button onClick={()=>{resetGrav();setSubScreen("gravacao");setSelectedTreino(null);}} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3,boxShadow:"0 4px 20px "+C.violet+"44",marginBottom:14}}>
-              INICIAR ESTE TREINO
-            </button>
-          </div>
-        );
-      }
-
-      // Corridas dos últimos 7 dias disponíveis para vincular
-      const seteD = new Date(Date.now() - 7*864e5);
-      const runsRecentes = allRuns.filter(r => new Date(r.timestamp) >= seteD);
-
-      // Modal de vinculação
-      if(vinculandoKey) {
-        const [sPart, diaPart] = vinculandoKey.split("-");
-        return (
-          <div>
-            <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
-              <button onClick={()=>setVinculandoKey(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
+              <button onClick={()=>setSubScreen(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
               <div>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.5}}>Vincular corrida ao treino</p>
-                <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:18,margin:"4px 0 0"}}>{sPart} · {diaPart}</h1>
+                <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:18,margin:0}}>Meu Plano IA</h1>
+                <p style={{color:C.tm,fontSize:12,margin:"2px 0 0"}}>{savedPlan.plano.length} dias · personalizado</p>
               </div>
+              <button onClick={()=>{setPlanScreen("form");setSubScreen(null);setTab("treino");}} style={{marginLeft:"auto",background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",fontSize:11,color:C.tm,fontFamily:"inherit"}}>Novo plano</button>
             </div>
 
-            {runsRecentes.length === 0 ? (
-              <div style={{background:C.s1,borderRadius:13,padding:18,textAlign:"center",border:"1px dashed "+C.border,marginBottom:12}}>
-                <Ic n="run" z={28} c={C.tg}/>
-                <p style={{color:C.ts,fontWeight:600,fontSize:13,margin:"10px 0 4px"}}>Nenhuma corrida nos últimos 7 dias</p>
-                <p style={{color:C.td,fontSize:12,margin:0}}>Finalize um treino para poder vincular</p>
-              </div>
-            ) : (
-              <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 6px",textTransform:"uppercase",letterSpacing:0.5}}>Corridas dos últimos 7 dias</p>
-                {runsRecentes.map((r,i)=>{
-                  const isStrava=r.source==="strava", isGarmin=r.source==="garmin";
-                  const srcColor=isStrava?C.strava:isGarmin?C.garmin:C.cyanB;
-                  const jaVinculado=Object.values(treinosVinculados).includes(r.id||r.timestamp);
-                  return (
-                    <button key={i} onClick={()=>{
-                      setTreinosVinculados(v=>({...v,[vinculandoKey]:r.id||r.timestamp}));
-                      setTreinosCompletos(c=>({...c,[vinculandoKey]:true}));
-                      setVinculandoKey(null);
-                    }} disabled={jaVinculado} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:"11px 13px",border:"1px solid "+(jaVinculado?C.tg:srcColor+"44"),cursor:jaVinculado?"default":"pointer",display:"flex",alignItems:"center",gap:11,fontFamily:"inherit",opacity:jaVinculado?0.45:1}}>
-                      <div style={{width:36,height:36,borderRadius:10,background:srcColor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+srcColor+"33"}}>
-                        {isStrava?<span style={{color:C.strava,fontWeight:900,fontSize:13,fontFamily:"monospace"}}>S</span>:isGarmin?<Ic n="watch" z={16} c={C.garmin}/>:<Ic n="run" z={16} c={C.cyanB}/>}
-                      </div>
-                      <div style={{flex:1,minWidth:0,textAlign:"left"}}>
-                        <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.nome||"Corrida"}</p>
-                        <div style={{display:"flex",gap:6,marginTop:2}}>
-                          <span style={{color:srcColor,fontSize:11,fontWeight:700,fontFamily:"monospace"}}>{r.distancia_km} km</span>
-                          <span style={{color:C.tg}}>·</span>
-                          <span style={{color:C.tm,fontSize:11,fontFamily:"monospace"}}>{r.pace_medio}/km</span>
-                          <span style={{color:C.tg}}>·</span>
-                          <span style={{color:C.td,fontSize:10,fontFamily:"monospace"}}>{r.data}</span>
-                        </div>
-                      </div>
-                      {jaVinculado
-                        ? <Badge text="vinculado" color={C.tg}/>
-                        : <div style={{width:22,height:22,borderRadius:6,background:srcColor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+srcColor+"44"}}><Ic n="link" z={12} c={srcColor}/></div>
-                      }
-                    </button>
-                  );
-                })}
+            {savedPlan.resumo_semanal&&typeof savedPlan.resumo_semanal==="string"&&(
+              <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:13,padding:12,marginBottom:12,display:"flex",gap:9,alignItems:"flex-start"}}>
+                <Ic n="ai" z={18} c={C.cyanB}/>
+                <p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{savedPlan.resumo_semanal}</p>
               </div>
             )}
 
-            <div style={{background:C.s1,borderRadius:11,padding:"10px 12px",border:"1px solid "+C.border,display:"flex",gap:8,alignItems:"center"}}>
-              <Ic n="warning" z={14} c={C.amber} st={{flexShrink:0}}/>
-              <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.5}}>Vincular uma corrida ao treino do plano marca o dia como concluído automaticamente.</p>
-            </div>
+            {savedPlan.avisos_medicos?.length>0&&(
+              <div style={{background:C.amber+"11",border:"1px solid "+C.amber+"33",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
+                <p style={{color:C.amber,fontWeight:700,fontSize:12,margin:"0 0 6px",fontFamily:"monospace"}}>⚠️ AVISOS MÉDICOS</p>
+                {savedPlan.avisos_medicos.slice(0,3).map((a,i)=>(
+                  <p key={i} style={{color:C.tm,fontSize:11,margin:"0 0 4px",lineHeight:1.4}}>{typeof a==="string"?a:JSON.stringify(a)}</p>
+                ))}
+              </div>
+            )}
+
+            {savedPlan.plano.map((d,i)=>{
+              const isDescanso=d.tipo?.toLowerCase().includes("descanso")||d.distancia_km===0;
+              const cor=intCor2(d.tipo);
+              return (
+                <div key={i} style={{borderRadius:13,marginBottom:7,border:"1px solid "+(d.alerta_lesao?C.amber+"44":C.border),overflow:"hidden"}}>
+                  <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",padding:"11px 13px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:d.descricao?5:0}}>
+                      <div style={{width:4,height:36,borderRadius:2,background:cor,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 3px"}}>{d.dia}</p>
+                        <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+                          <span style={{color:isDescanso?C.td:C.tp,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',sans-serif"}}>{d.tipo}</span>
+                          {d.distancia_km>0&&<Badge text={d.distancia_km+"km"} color={C.cyan}/>}
+                          {d.pace_alvo&&d.pace_alvo!=="—"&&<Badge text={d.pace_alvo} color={C.cyanL}/>}
+                        </div>
+                      </div>
+                    </div>
+                    {d.descricao&&<p style={{color:C.tm,fontSize:12,margin:"4px 0 0 14px",lineHeight:1.5}}>{d.descricao}</p>}
+                    {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&d.alerta_lesao!=="Nenhum"&&(
+                      <p style={{color:C.amber,fontSize:11,margin:"6px 0 0",lineHeight:1.4}}>⚠️ {d.alerta_lesao}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
       }
 
+      // Sem plano IA guardado — mostra CTA
       return (
         <div>
           <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
-            <button onClick={()=>{setSubScreen(null);setSelectedTreino(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
-            <div>
-              <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>Plano de Treino</h1>
-              <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>4 semanas · Intermediário · 10K em 50 min</p>
+            <button onClick={()=>setSubScreen(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
+            <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:18,margin:0}}>Meu Plano</h1>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:380,padding:"32px 24px",textAlign:"center"}}>
+            <div style={{width:72,height:72,borderRadius:36,background:"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)",border:"1px solid "+C.violet+"44",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20}}>
+              <Ic n="run" z={32} c={C.violetL}/>
+            </div>
+            <p style={{color:C.tp,fontWeight:800,fontSize:20,margin:"0 0 10px",fontFamily:"'Space Grotesk',sans-serif"}}>Que tal criarmos um plano personalizado?</p>
+            <p style={{color:C.tm,fontSize:14,margin:"0 0 28px",lineHeight:1.6,maxWidth:280}}>A IA vai montar uma semana de treinos baseada no seu perfil, objetivo e histórico de corridas.</p>
+            <button onClick={()=>{setPlanScreen("form");setSubScreen(null);setTab("treino");}}
+              style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:14,padding:"15px 28px",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 6px 24px "+C.violet+"55"}}>
+              ✨ Criar meu plano com IA
+            </button>
+          </div>
+        </div>
+      );
+    }
+    // Sub: Gravação
+    if(subScreen==="gravacao") {
+      if(gStatus==="fim") return (
+        <div>
+          <div style={{paddingTop:10,paddingBottom:8,display:"flex",alignItems:"center",gap:10}}>
+            <button onClick={()=>setSubScreen(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
+            <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{salvando?"Salvando...":"Treino concluído"}</h1>
+          </div>
+          {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>Corrida salva</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · aparece nos Treinos Concluídos</p></div></div>}
+          {novoRP&&<div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:12,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}><Ic n="trophy" z={22} c="#fff"/><div><p style={{color:"#fff",fontWeight:800,fontSize:14,margin:0}}>Novo Recorde!</p><p style={{color:"#ffffffcc",fontSize:12,margin:0}}>{novoRP.dist} em {novoRP.tempo}</p></div></div>}
+          <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"44",borderRadius:17,padding:16,marginBottom:12}}>
+            <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 11px"}}>resumo</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:13}}>
+              {[{v:gKm.toFixed(2)+" km",l:"distância",c:C.cyanB},{v:fmtT(gSeg),l:"tempo",c:C.cyan},{v:pace+"/km",l:"pace médio",c:C.cyanL},{v:gBpm+" bpm",l:"freq. card.",c:C.amber}].map((s,i)=>(
+                <div key={i} style={{background:C.s3,borderRadius:11,padding:"11px 12px",border:"1px solid "+s.c+"22"}}><p style={{color:s.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1.2,margin:"0 0 4px",opacity:0.8}}>{s.l}</p><p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:20,margin:0,letterSpacing:-0.5}}>{s.v}</p></div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:5}}>{[1,2,3,4,5,6].map(n=><div key={n} style={{flex:1,height:27,borderRadius:7,background:n<=intDone?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s3,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:n<=intDone?"#fff":C.tg,fontSize:11,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif"}}>{n}</span></div>)}</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setTab("studio");setStudioTab("card");setSubScreen(null);}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>Criar card</button>
+            <button onClick={()=>{setSubScreen(null);resetGrav();}} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Voltar</button>
+          </div>
+        </div>
+      );
+      return (
+        <div style={{display:"flex",flexDirection:"column",minHeight:565}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:6}}>
+            <div><p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p><p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p></div>
+            <div style={{display:"flex",gap:6}}>
+              <div style={{background:gpsStatus==="active"?C.cyanB+"22":gpsStatus==="searching"?C.amber+"22":C.coral+"22",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":gpsStatus==="searching"?C.amber+"44":C.coral+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
+                <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
+              </div>
+              <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span><span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gBpm}</span></div>
             </div>
           </div>
-
-          {/* Resumo de progresso */}
-          {(()=>{
-            const total = Object.values(treinosCompletos).length;
-            const max = 28; // 4 semanas × ~5 treinos
-            return total > 0 ? (
-              <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"10px 13px",marginBottom:13,border:"1px solid "+C.cyanB+"33",display:"flex",alignItems:"center",gap:10}}>
-                <div style={{flex:1}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                    <span style={{color:C.ts,fontSize:11,fontWeight:600}}>Progresso do plano</span>
-                    <span style={{color:C.cyanB,fontSize:11,fontWeight:700,fontFamily:"monospace"}}>{total} treinos concluídos</span>
-                  </div>
-                  <div style={{background:C.s3,borderRadius:99,height:5,overflow:"hidden"}}>
-                    <div style={{width:Math.min(total/max*100,100)+"%",height:"100%",background:"linear-gradient(90deg,"+C.violet+","+C.cyanB+")",borderRadius:99,transition:"width 0.4s"}}/>
-                  </div>
-                </div>
-              </div>
-            ) : null;
-          })()}
-
-          <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-            {Object.entries(intLabel).map(([k,v])=>(
-              <div key={k} style={{display:"flex",alignItems:"center",gap:4,background:C.s2,borderRadius:7,padding:"3px 8px",border:"1px solid "+C.border}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:intCor[k]}}/>
-                <span style={{color:C.ts,fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{v}</span>
+          <div style={{background:"linear-gradient(160deg,#06071a,#0c0830)",borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
+            <p style={{color:C.tm,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,margin:"0 0 5px",position:"relative"}}>tempo de corrida</p>
+            <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:50,fontWeight:800,margin:"0 0 3px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{fmtT(gSeg)}</p>
+            <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>{gStatus==="ativo"?"Em andamento":gStatus==="pausado"?"Pausado":"Pronto"}</p>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+            {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:""+gBpm,u:"bpm",c:zC,l:"fc"}].map((m,i)=>(
+              <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"10px 8px",textAlign:"center",border:"1px solid "+m.c+"22"}}>
+                <p style={{color:m.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1.1,margin:"0 0 4px",opacity:0.8}}>{m.l}</p>
+                <p style={{color:m.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:"0 0 1px",letterSpacing:-0.5}}>{m.v}</p>
+                <p style={{color:C.td,fontSize:9,fontWeight:600,textTransform:"uppercase",letterSpacing:0.4,margin:0,fontFamily:"monospace"}}>{m.u}</p>
               </div>
             ))}
           </div>
-
-          {semanas.map((sem)=>(
-            <div key={sem.semana} style={{marginBottom:18}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                <div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:9,padding:"4px 11px",flexShrink:0}}>
-                  <span style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:12}}>S{sem.semana}</span>
-                </div>
-                <div style={{flex:1,height:1,background:C.border}}/>
-                <span style={{color:C.tm,fontSize:11,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.5}}>{sem.foco}</span>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {sem.dias.map((d,i)=>{
-                  const isRest = d.intensidade==="rest";
-                  const tKey = `S${sem.semana}-${d.dia}`;
-                  const completo = !!treinosCompletos[tKey];
-                  const vinculado = treinosVinculados[tKey];
-                  const runVinc = vinculado ? allRuns.find(r=>(r.id||r.timestamp)===vinculado) : null;
-
-                  if(isRest) return (
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:10,background:"transparent",borderRadius:11,padding:"6px 10px",border:"1px dashed "+C.border+"88"}}>
-                      <div style={{width:34,flexShrink:0,textAlign:"center"}}><span style={{color:C.tg,fontFamily:"monospace",fontWeight:700,fontSize:11}}>{d.dia}</span></div>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:intCor[d.intensidade],flexShrink:0}}/>
-                      <p style={{color:C.tg,fontWeight:500,fontSize:12,margin:0,flex:1}}>{d.nome}</p>
-                    </div>
-                  );
-
-                  return (
-                    <div key={i} style={{background:completo?"linear-gradient(135deg,#041a0e,#061e10)":"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:11,border:"1px solid "+(completo?C.green+"44":C.border),overflow:"hidden"}}>
-                      {/* Linha principal — clicável abre detalhe */}
-                      <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
-                        {/* Checkbox */}
-                        <button onClick={e=>{e.stopPropagation();setTreinosCompletos(c=>({...c,[tKey]:!c[tKey]}));}} style={{width:22,height:22,borderRadius:6,background:completo?"linear-gradient(135deg,"+C.green+",#16a34a)":C.s3,border:"1px solid "+(completo?C.green:C.border),cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
-                          {completo&&<Ic n="check" z={13} c="#fff"/>}
-                        </button>
-                        <div style={{width:30,flexShrink:0,textAlign:"center"}}><span style={{color:completo?C.green:C.ts,fontFamily:"monospace",fontWeight:700,fontSize:11}}>{d.dia}</span></div>
-                        <div style={{width:8,height:8,borderRadius:"50%",background:completo?C.green:intCor[d.intensidade],flexShrink:0}}/>
-                        <button onClick={()=>openTreino(d, sem.semana)} style={{flex:1,background:"none",border:"none",cursor:"pointer",textAlign:"left",padding:0,fontFamily:"inherit",minWidth:0}}>
-                          <p style={{color:completo?C.green:C.tp,fontWeight:700,fontSize:12,margin:0,textDecoration:completo?"line-through":"none",opacity:completo?0.7:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.nome}</p>
-                          <p style={{color:C.tg,fontSize:10,margin:"1px 0 0",fontFamily:"monospace"}}>{d.tipo}</p>
-                        </button>
-                        <div style={{display:"flex",gap:4,flexShrink:0,alignItems:"center"}}>
-                          <div style={{background:intCor[d.intensidade]+"22",border:"1px solid "+intCor[d.intensidade]+"44",borderRadius:5,padding:"2px 7px"}}>
-                            <span style={{color:intCor[d.intensidade],fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{d.km}</span>
-                          </div>
-                          <div style={{background:C.s2,border:"1px solid "+C.border,borderRadius:5,padding:"2px 7px"}}>
-                            <span style={{color:C.ts,fontSize:10,fontFamily:"monospace"}}>{d.dur}</span>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Linha de vinculação */}
-                      <div style={{borderTop:"1px solid "+C.border+"66",padding:"7px 12px",display:"flex",alignItems:"center",gap:8,background:C.bg+"44"}}>
-                        {runVinc ? (
-                          <>
-                            <div style={{width:6,height:6,borderRadius:"50%",background:C.green,flexShrink:0}}/>
-                            <span style={{color:C.green,fontSize:10,fontWeight:700,fontFamily:"monospace",flex:1}}>{runVinc.nome||"Corrida"} · {runVinc.distancia_km}km · {runVinc.pace_medio}/km</span>
-                            <button onClick={()=>setTreinosVinculados(v=>{const nv={...v};delete nv[tKey];return nv;})} style={{background:"none",border:"none",color:C.coral,fontSize:10,cursor:"pointer",fontFamily:"inherit",padding:0,fontWeight:600}}>remover</button>
-                          </>
-                        ) : (
-                          <>
-                            <Ic n="link" z={12} c={C.td}/>
-                            <span style={{color:C.td,fontSize:10,flex:1}}>
-                              {runsRecentes.length>0?"Vincular corrida dos últimos 7 dias":"Nenhuma corrida recente"}
-                            </span>
-                            {runsRecentes.length>0&&(
-                              <button onClick={()=>setVinculandoKey(tKey)} style={{background:C.violet+"22",color:C.violetL,border:"1px solid "+C.violet+"44",borderRadius:6,padding:"3px 9px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                                Vincular
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          <div style={{background:C.s1,borderRadius:15,overflow:"hidden",marginBottom:10,border:"1px solid "+C.violet+"33"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 11px 6px"}}>
+              <p style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.2,margin:0}}>{gpsStatus==="active"?`GPS · ±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"GPS · buscando sinal...":gpsStatus==="error"?"GPS · sem sinal":"GPS · mapa ao vivo"}</p>
             </div>
-          ))}
-          <div style={{height:16}}/>
+            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick}/>
+          </div>
+          <div style={{display:"flex",gap:8,marginTop:"auto"}}>
+            {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
+            :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
+            :(<button onClick={iniciar} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+          </div>
         </div>
       );
     }
 
-    // Main Treino screen
-    return (
-      <div>
-        <div style={{paddingTop:8,paddingBottom:12}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <Badge text="HOJE" color={C.cyan}/>
-            <button onClick={()=>{resetGrav();setSubScreen("gravacao");}} style={{background:C.s2,border:"1px solid "+C.coral+"44",borderRadius:10,padding:"6px 12px",color:C.amber,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}><Ic n="run" z={13} c={C.amber}/>Treino livre</button>
-          </div>
-          <h1 style={{color:C.tp,margin:"6px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>Intervalado 6×800m</h1>
-          <p style={{color:C.tm,fontSize:12,margin:0}}>Corrida de rua · Moderado · 55 min · 10,4 km</p>
-        </div>
-
-        <div style={{display:"flex",background:C.s2,borderRadius:11,padding:4,marginBottom:14,gap:3}}>
-          {[{id:"iniciar",label:"Iniciar"},{id:"plano",label:"Plano"}].map(t=>(
-            <button key={t.id} onClick={()=>setTreinoTab(t.id)} style={{flex:1,background:treinoTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:treinoTab===t.id?C.tp:C.tm,border:treinoTab===t.id?"1px solid "+C.violet+"44":"1px solid transparent",borderRadius:8,padding:"9px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",transition:"all 0.15s"}}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {treinoTab==="iniciar"&&(
-          <div>
-            <RunsBlock
-              allRuns={allRuns}
-              onRunClick={r=>setSelectedRun(r)}
-              stravaConnected={stravaConnected}
-              onConnectStrava={connectStrava}
-              garminConnected={garminConnected}
-              onConnectGarmin={connectGarmin}
-            />
-            <div style={{height:1,background:C.border,marginBottom:14}}/>
-
-            {[{fase:"Aquecimento",desc:"15 min fácil (~6:30/km)",tempo:"15 min",cor:C.cyanB},{fase:"6× 800m",desc:"5:10/km · 2 min recuperação",tempo:"~30 min",cor:C.cyan},{fase:"Volta à calma",desc:"10 min muito leve + alongamento",tempo:"10 min",cor:C.cyanL}].map((s,i)=>(
-              <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"10px 12px",marginBottom:7,display:"flex",gap:11,alignItems:"center",border:"1px solid "+C.border}}>
-                <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{color:s.cor,fontWeight:800,fontSize:12,fontFamily:"'Space Grotesk',sans-serif"}}>{i+1}</span></div>
-                <div style={{flex:1}}><p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>{s.fase}</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0",lineHeight:1.4}}>{s.desc}</p></div>
-                <Badge text={s.tempo} color={s.cor}/>
-              </div>
-            ))}
-
-            <button onClick={()=>{iniciar();setSubScreen("gravacao");}} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.5,boxShadow:"0 4px 20px "+C.violet+"44",marginTop:4,marginBottom:14}}>INICIAR</button>
-
-            <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:14,marginBottom:13,border:"1px solid "+C.border}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:9}}><Ic n="watch" z={16} c={C.amber}/><p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>Ajustar pace</p></div>
-              <p style={{color:C.tm,fontSize:12,margin:"0 0 10px"}}>Sugerido: <span style={{color:C.cyanB,fontWeight:700}}>5:10/km</span> · Base: <span style={{color:C.ts,fontWeight:600}}>5:30/km</span></p>
-              <input value={paceCustom} onChange={e=>handlePaceCustom(e.target.value)} placeholder="Ex: 4:30 — deixe vazio para usar o sugerido" style={{width:"100%",background:C.s3,border:"1px solid "+(paceAlerta?paceAlerta.cor:C.border),borderRadius:10,padding:"9px 12px",color:C.tp,fontSize:14,fontFamily:"monospace",outline:"none",letterSpacing:1,boxSizing:"border-box"}}/>
-              {paceAlerta&&paceAlerta.nivel!=="ok"&&(
-                <div style={{marginTop:10,background:paceAlerta.cor+"18",border:"1px solid "+paceAlerta.cor+"44",borderRadius:10,padding:"10px 12px",display:"flex",gap:9,alignItems:"flex-start"}}>
-                  <Ic n="warning" z={18} c={paceAlerta.cor} st={{flexShrink:0,marginTop:1}}/>
-                  <div>
-                    <p style={{color:paceAlerta.cor,fontFamily:"monospace",fontWeight:700,fontSize:10,margin:"0 0 3px",textTransform:"uppercase",letterSpacing:0.5}}>{paceAlerta.nivel==="atencao"?"Atenção":paceAlerta.nivel==="risco"?"Risco de Lesão":"Alerta Médico"}</p>
-                    <p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{paceAlerta.msg}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:10,display:"flex",gap:10,alignItems:"flex-start"}}>
-              <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ai" z={16} c="#fff"/></div>
-              <div><p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,margin:"0 0 4px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Coach TEMPO</p><p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.6}}>Hoje focamos em velocidade de limiar. Execute em ~5:10/km.</p></div>
-            </div>
-            <SL><Ic n="ai" z={13} c={C.ts}/>Chat com Coach TEMPO</SL>
-            <div style={{background:C.s1,borderRadius:13,padding:11,maxHeight:160,overflowY:"auto",marginBottom:8,border:"1px solid "+C.border}}>{coachMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{coachLoad&&<Dots color={C.cyanB}/>}</div>
-            <div style={{display:"flex",gap:8}}>
-              <input value={coachIn} onChange={e=>setCoachIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendCoach()} placeholder="Como foi o treino?" style={{flex:1,background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-              <button onClick={sendCoach} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,width:43,height:43,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic n="share" z={16} c="#fff"/></button>
-            </div>
-          </div>
-        )}
-
-        {treinoTab==="plano"&&(
-          <div>
-            <button onClick={()=>setSubScreen("verPlano")} style={{width:"100%",background:"linear-gradient(135deg,#0a1430,#0c0c30)",border:"1px solid "+C.violet+"55",borderRadius:14,padding:"12px 14px",marginBottom:12,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
-              <div style={{width:38,height:38,borderRadius:11,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <Ic n="chart" z={19} c="#fff"/>
-              </div>
-              <div style={{flex:1}}>
-                <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano</p>
-                <p style={{color:C.ts,fontSize:11,margin:"3px 0 0"}}>4 semanas · Blocos semanais com todos os treinos</p>
-              </div>
-              <Ic n="back" z={14} c={C.violet} st={{transform:"rotate(180deg)"}}/>
-            </button>
-            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:13,display:"flex",gap:10,alignItems:"flex-start"}}>
-              <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ai" z={16} c="#fff"/></div>
-              <div><p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,margin:"0 0 4px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Coach TEMPO</p><p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.6}}>Hoje focamos em velocidade de limiar. Execute em ~5:10/km.</p></div>
-            </div>
-            <button onClick={()=>setSubScreen("plano")} style={{width:"100%",background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:16}}><Ic n="ai" z={14} c={C.cyanB}/>Criar plano com IA</button>
-            <SL><Ic n="ai" z={13} c={C.ts}/>Chat com Coach TEMPO</SL>
-            <div style={{background:C.s1,borderRadius:13,padding:11,maxHeight:160,overflowY:"auto",marginBottom:8,border:"1px solid "+C.border}}>{coachMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{coachLoad&&<Dots color={C.cyanB}/>}</div>
-            <div style={{display:"flex",gap:8}}>
-              <input value={coachIn} onChange={e=>setCoachIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendCoach()} placeholder="Como foi o treino?" style={{flex:1,background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-              <button onClick={sendCoach} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,width:43,height:43,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic n="share" z={16} c="#fff"/></button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
   // ── ANÁLISE ─────────────────────────────────────────────────────────────────
   function renderAnalise() {
     if(anStep==="upload") return (
