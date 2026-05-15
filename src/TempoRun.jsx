@@ -1951,6 +1951,7 @@ ${parts.join(" | ")}` : "";
 
   function startGPS(){
     if(!navigator.geolocation){setGpsStatus("error");return;}
+    if(watchRef.current!==null) return; // já tem watch ativo — reusar
     setGpsStatus("searching");
     watchRef.current=navigator.geolocation.watchPosition(
       (pos)=>{
@@ -1958,7 +1959,7 @@ ${parts.join(" | ")}` : "";
         setGpsAccuracy(Math.round(accuracy));
         setGpsStatus("active");
         const last=lastPosRef.current;
-        if(last){
+        if(last && gSR.current>0){ // só grava distância se a corrida já iniciou
           const dist=haversine(last.lat,last.lng,lat,lng);
           const dt=(Date.now()-last.ts)/1000;
           const speed=dt>0?dist/dt:0;
@@ -1979,9 +1980,12 @@ ${parts.join(" | ")}` : "";
             setGCad(gCR.current);
           }
         }
+        // Atualiza posição sempre (para o mapa)
+        if(gSR.current>0) routeRef.current.push([lat,lng]); // só grava rota se corrida ativa
         lastPosRef.current={lat,lng,ts:Date.now()};
-        routeRef.current.push([lat,lng]);
-        if(routeRef.current.length%3===0) setRouteTick(t=>t+1); // actualiza mapa cada 3 pontos
+        // Centraliza mapa na posição atual sempre
+        if(routeRef.current.length===0) routeRef.current=[[lat,lng]]; // pré-aquecimento: só posição
+        setRouteTick(t=>t+1);
       },
       (err)=>{console.warn("GPS:",err.message);setGpsStatus("error");},
       {enableHighAccuracy:true,timeout:10000,maximumAge:2000}
@@ -1994,35 +1998,19 @@ ${parts.join(" | ")}` : "";
   function pausar(){clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
   function retomar(){setGStatus("ativo");startTimer();startGPS();}
   async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gCR.current,p,routeRef.current);}
-  function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);setGpsStatus("off");setGpsAccuracy(null);setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
+  function resetGrav(keepGPS=false){clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
   // Pré-aquecimento GPS ao entrar na tela de gravação
   useEffect(()=>{
     if(subScreen==="gravacao" && gStatus==="idle"){
-      // Inicia GPS só para posicionar o mapa — não grava rota
-      if(!navigator.geolocation) return;
-      setGpsStatus("searching");
-      const wid = navigator.geolocation.watchPosition(
-        (pos)=>{
-          const {latitude:lat, longitude:lng, accuracy} = pos.coords;
-          setGpsAccuracy(Math.round(accuracy));
-          setGpsStatus("active");
-          // Atualiza mapa com posição atual mas sem gravar rota
-          if(gStatus==="idle"){
-            routeRef.current = [[lat,lng]];
-            setRouteTick(t=>t+1);
-          }
-        },
-        (err)=>{ console.warn("GPS pré:", err.message); setGpsStatus("error"); },
-        {enableHighAccuracy:true, timeout:15000, maximumAge:5000}
-      );
-      return ()=>{ navigator.geolocation.clearWatch(wid); };
+      startGPS(); // liga GPS imediatamente — startGPS não duplica se já estiver ativo
     }
-    if(subScreen!=="gravacao"){
-      if(gStatus==="idle") setGpsStatus("off");
+    if(subScreen!=="gravacao" && gStatus==="idle"){
+      stopGPS();
+      setGpsStatus("off");
     }
-  }, [subScreen, gStatus]);
+  }, [subScreen]);
 
   async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;if(!checkAiLimit("coach")){setUpgradeReason(`Você usou suas ${AI_LIMITS.coach} perguntas ao Coach hoje. `);setShowUpgradeModal(true);return;}setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);incAiUsage("coach");try{const r=await callAI(SYS_COACH+buildPerfilCtx(),msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
   async function sendSaber(q){const msg=q||saberIn.trim();if(!msg||saberLoad)return;if(!checkAiLimit("saber")){setUpgradeReason(`Você usou suas ${AI_LIMITS.saber} perguntas ao Saber hoje. `);setShowUpgradeModal(true);return;}setSaberIn("");setSaberTab("perguntar");const nxt=[...saberMsgs,{from:"user",text:msg}];setSaberMsgs(nxt);setSaberLoad(true);incAiUsage("saber");try{const r=await callAI(SYS_SABER+buildPerfilCtx(),msg,saberMsgs);setSaberMsgs([...nxt,{from:"ai",text:r}]);}catch{setSaberMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setSaberLoad(false);}
@@ -3507,7 +3495,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               ?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
               :gStatus==="pausado"
                 ?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-              :(<button onClick={()=>{resetGrav();iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+              :(<button onClick={()=>{resetGrav(true);iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
 
         </div>
@@ -3828,7 +3816,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{display:"flex",gap:8,marginTop:"auto"}}>
             {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
             :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-            :(<button onClick={()=>{resetGrav();iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+            :(<button onClick={()=>{resetGrav(true);iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
         </div>
       );
