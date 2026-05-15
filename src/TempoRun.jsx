@@ -822,17 +822,14 @@ function RunDetailModal({ run, onClose }) {
   const mapboxStaticUrl = (()=>{
     try {
       if(!run.polyline||run.polyline.length<2) return null;
-      // polyline pode ser [lng,lat] ou [lat,lng] — detectar pelo range
-      // Dublin: lng ~-6.x, lat ~53.x — se p[0] < 0 é lng, se > 10 é lat
       const sample = run.polyline[0];
       if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
-      // Normalizar para [lng, lat] (formato GeoJSON)
-      const coords = run.polyline.map(p => {
-        const a=p[0], b=p[1];
-        // Se |a| < 10 provavelmente é lng (relativo), se |a| > 10 é lat
-        // Convenção das corridas demo: [lng, lat]
-        return [a, b];
-      }).filter(p=>p[0]!==undefined&&p[1]!==undefined);
+      // Detectar formato: se p[0] é negativo e |p[0]| < 90 → é lng (Dublin: -6.x)
+      // Se p[0] > 10 → é lat (Dublin: 53.x). Normalizar para GeoJSON [lng, lat]
+      const isLngLat = sample[0] < 0 || Math.abs(sample[0]) < 90;
+      const coords = run.polyline
+        .filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)
+        .map(p => isLngLat ? [p[0], p[1]] : [p[1], p[0]]); // GeoJSON: [lng, lat]
       if(coords.length<2) return null;
       const geoJson = {type:"Feature",properties:{stroke:"#22d3ee","stroke-width":4,"stroke-opacity":1},geometry:{type:"LineString",coordinates:coords}};
       const geoStr = encodeURIComponent(JSON.stringify(geoJson));
@@ -2019,21 +2016,26 @@ export default function TempoRunApp() {
   async function salvarCorrida(seg,km,bpm,pace,polyline=[]){
     setSalvando(true);
     const now=new Date();
+    // Nome: usa treino selecionado ou "Corrida livre"
+    const nomeRun = selectedTreino?.nome || "Corrida livre";
+    // Filtrar pontos válidos do polyline
+    const validPoly = polyline.filter(p=>Array.isArray(p)&&p.length>=2&&p[0]!==undefined&&p[1]!==undefined);
     const run={
       id:"r"+now.getTime(),
       source:"local",
-      nome:"Corrida livre",
+      nome:nomeRun,
       data:now.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"2-digit"}),
       timestamp:now.toISOString(),
       duracao_seg:seg,
       distancia_km:parseFloat(km.toFixed(2)),
       pace_medio:pace,
-      bpm_medio:0, cadencia_media:gCR.current||174,
-      cadencia_media:174,
+      bpm_medio:0,
+      cadencia_media:gCR.current||174,
+      calorias:Math.round(km*65),
       forca_w:null,
       dplus:Math.round(km*32),
       xp_ganho:Math.round(km*45+seg/60*2),
-      polyline:polyline.length>1 ? polyline : null,
+      polyline:validPoly.length>1 ? validPoly : null,
     };
     const defs=[{key:"1K",min:0.9,max:1.1},{key:"5K",min:4.5,max:5.5},{key:"10K",min:9,max:11},{key:"21K",min:19,max:23},{key:"42K",min:40,max:44}];
     const matched=defs.find(d=>km>=d.min&&km<=d.max);
