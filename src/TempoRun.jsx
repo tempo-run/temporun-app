@@ -3434,28 +3434,18 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       return (
         <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 160px)",maxHeight:620,gap:0}}>
 
-          {/* Header — status + badges */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:8}}>
-            <div>
-              <p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p>
-              <p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p>
+          {/* Header — só título do treino se houver */}
+          {selectedTreino?.nome && (
+            <div style={{paddingTop:10,paddingBottom:4}}>
+              <p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:8,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:"0 0 1px"}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p>
+              <p style={{color:C.ts,fontSize:13,fontWeight:600,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{selectedTreino.nome}</p>
             </div>
-            <div style={{display:"flex",gap:6}}>
-              <div style={{background:gpsStatus==="active"?C.cyanB+"22":gpsStatus==="searching"?C.amber+"22":C.coral+"22",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":gpsStatus==="searching"?C.amber+"44":C.coral+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
-                <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
-                <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
-              </div>
-              <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
-                <span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span>
-                <span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gBpm}</span>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Tempo — sem card, direto */}
-          <div style={{textAlign:"center",paddingBottom:6}}>
-            <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:54,fontWeight:800,margin:0,letterSpacing:-2,lineHeight:1}}>{fmtT(gSeg)}</p>
-            <p style={{color:C.cyanB,fontSize:11,fontWeight:600,margin:"3px 0 0",fontFamily:"monospace",letterSpacing:1,textTransform:"uppercase"}}>{gStatus==="ativo"?"em andamento":gStatus==="pausado"?"pausado":"pronto"}</p>
+          <div style={{textAlign:"center",paddingTop:selectedTreino?.nome?4:14,paddingBottom:4}}>
+            <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:62,fontWeight:800,margin:0,letterSpacing:-2,lineHeight:1}}>{fmtT(gSeg)}</p>
+            <p style={{color:C.cyanB,fontSize:10,fontWeight:600,margin:"2px 0 0",fontFamily:"monospace",letterSpacing:1,textTransform:"uppercase"}}>{gStatus==="ativo"?"em andamento":gStatus==="pausado"?"pausado":"pronto"}</p>
           </div>
 
           {/* Métricas — sem card, só texto */}
