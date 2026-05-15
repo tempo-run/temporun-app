@@ -1894,7 +1894,6 @@ ${parts.join(" | ")}` : "";
       durCtx=`Tipo: POR OBJETIVO\nObjetivo: ${objLabels[planObjetivo.objetivo]||planObjetivo.objetivo}\nSemanas: ${planObjetivo.semanas}`;
     }
 
-    // Volume floor por distância e nível — evita planos subótimos
     const nivel = planForm.nivel||onboardingData.nivel||"iniciante";
     const distProva = planTipo==="prova" ? planProva.distancia : (planObjetivo.objetivo==="maratona"?"maratona":planObjetivo.objetivo==="meia"?"meia_maratona":"outro");
     const volumeFloors = {
@@ -1949,7 +1948,6 @@ ${parts.join(" | ")}` : "";
 
     try{
       const r=await callAI(SYS_PLAN_WEEK,ctx,[],2500);
-      // Extrai JSON mesmo que venha com texto ao redor
       const jsonMatch=r.match(/\[[\s\S]*\]/);
       const clean=jsonMatch ? jsonMatch[0] : r.replace(/```json|```/g,"").trim();
       const dias=JSON.parse(clean);
@@ -3725,7 +3723,13 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
           <div style={{flex:1}}>
             <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano Completo</p>
-            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.plano?"Plano IA · "+savedPlan.plano.length+" dias":"Crie um plano personalizado"}</p>
+            <p style={{color:C.tm,fontSize:12,margin:0}}>{
+              savedPlan?.tipo==="macro"
+                ? (savedPlan.titulo||"Meu Plano")+" · "+(savedPlan.semanas_macro?.length||0)+" semanas"
+                : savedPlan?.plano?.length
+                  ? (savedPlan.titulo||"Plano IA")+" · "+savedPlan.plano.length+" dias"
+                  : "Crie um plano personalizado"
+            }</p>
           </div>
           <Ic n="chevron-right" z={18} c={C.td}/>
         </div>
