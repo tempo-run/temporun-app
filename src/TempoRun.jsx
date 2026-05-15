@@ -1738,7 +1738,7 @@ export default function TempoRunApp() {
   const [subScreen, setSubScreen] = useState(null);
   const [treinoTab, setTreinoTab] = useState("iniciar");
   const [dbReady, setDbReady] = useState(false);
-  const [corridas, setCorridas] = useState([]);
+  const [corridas, setCorridas] = useState(CORRIDAS_DEMO);
   const [rpsDb, setRpsDb] = useState({});
   const [xpTotal, setXpTotal] = useState(3240);
   const [novoRP, setNovoRP] = useState(null);
