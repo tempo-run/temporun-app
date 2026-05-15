@@ -2847,11 +2847,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const subs = addTipo ? SUBTREINOS[addTipo]||[] : [];
 
     function confirmar() {
-      if(!planResult||addTreinoDia===null) return;
+      if(addTreinoDia===null) return;
       const sub = subs.find(s=>s.id===addSubtipo);
-      const novosPlano = [...planResult.plano];
-      novosPlano[addTreinoDia] = {
-        ...novosPlano[addTreinoDia],
+      const novoTreino = {
         tipo: sub ? sub.label : (tipo?.label||"Treino"),
         distancia_km: addModo==="dist" ? addDistancia : 0,
         duracao_min: addModo==="duracao" ? addDuracao : null,
@@ -2860,7 +2858,18 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         alerta_lesao: "",
         customizado: true,
       };
-      setPlanResult({...planResult, plano:novosPlano});
+      // Editar planResult (plano sendo criado) ou savedPlan (plano salvo)
+      if(planResult?.plano){
+        const novosPlano = [...planResult.plano];
+        novosPlano[addTreinoDia] = {...novosPlano[addTreinoDia], ...novoTreino};
+        setPlanResult({...planResult, plano:novosPlano});
+      } else if(savedPlan?.plano){
+        const novosPlano = [...savedPlan.plano];
+        novosPlano[addTreinoDia] = {...novosPlano[addTreinoDia], ...novoTreino};
+        const updated = {...savedPlan, plano:novosPlano};
+        setSavedPlan(updated);
+        try{localStorage.setItem("tr_saved_plan",JSON.stringify(updated));}catch{}
+      }
       setShowAddTreino(false);
       setAddStep("tipo"); setAddTipo(null); setAddSubtipo(null);
     }
