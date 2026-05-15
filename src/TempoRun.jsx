@@ -446,90 +446,93 @@ function RunMapSvgFallback({ polyline, color=C.cyanB }) {
 
 // ─── LIVE MAP (canvas ao vivo durante gravação) ───────────────────────────────
 function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
-  const canvasRef = useRef(null);
+  const mapContainer = useRef(null);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const [mbLoaded, setMbLoaded] = useState(false);
 
+  // Carrega Mapbox GL JS dinamicamente
   useEffect(()=>{
-    const canvas = canvasRef.current;
-    if(!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0,0,W,H);
+    if(window.mapboxgl){ setMbLoaded(true); return; }
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css";
+    document.head.appendChild(link);
+    const script = document.createElement("script");
+    script.src = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js";
+    script.onload = () => setMbLoaded(true);
+    document.head.appendChild(script);
+  }, []);
 
-    // Background
-    ctx.fillStyle = "#080a24";
-    ctx.fillRect(0,0,W,H);
+  // Inicializa o mapa quando a lib estiver carregada
+  useEffect(()=>{
+    if(!mbLoaded || !mapContainer.current || mapRef.current) return;
+    window.mapboxgl.accessToken = MAPBOX_TOKEN;
+    const center = route.length > 0 ? [route[route.length-1][1], route[route.length-1][0]] : [-6.2603, 53.3498]; // Dublin fallback
+    mapRef.current = new window.mapboxgl.Map({
+      container: mapContainer.current,
+      style: "mapbox://styles/mapbox/satellite-streets-v12",
+      center,
+      zoom: 15,
+      attributionControl: false,
+      logoPosition: "bottom-left",
+    });
+    mapRef.current.addControl(new window.mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+    mapRef.current.on("load", ()=>{
+      // Layer da rota
+      mapRef.current.addSource("route", { type:"geojson", data:{ type:"Feature", geometry:{ type:"LineString", coordinates:[] }}});
+      mapRef.current.addLayer({ id:"route-shadow", type:"line", source:"route", layout:{"line-cap":"round","line-join":"round"}, paint:{"line-color":"#00000066","line-width":7,"line-blur":3}});
+      mapRef.current.addLayer({ id:"route-line", type:"line", source:"route", layout:{"line-cap":"round","line-join":"round"}, paint:{"line-color":["interpolate",["linear"],["line-progress"],0,"#3b82f6",0.33,"#22c55e",0.66,"#f59e0b",1,"#ef4444"],"line-width":4,"line-gradient":true}});
+      // Marcador de início
+      if(route.length > 0){
+        const startEl = document.createElement("div");
+        startEl.style.cssText = "width:14px;height:14px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;box-shadow:0 0 8px #22c55e88";
+        new window.mapboxgl.Marker({element:startEl}).setLngLat([route[0][1],route[0][0]]).addTo(mapRef.current);
+      }
+      // Marcador da posição atual
+      const posEl = document.createElement("div");
+      posEl.style.cssText = "width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #fff;box-shadow:0 0 12px #22d3ee99";
+      markerRef.current = new window.mapboxgl.Marker({element:posEl});
+      if(route.length > 0) markerRef.current.setLngLat([route[route.length-1][1],route[route.length-1][0]]).addTo(mapRef.current);
+    });
+  }, [mbLoaded]);
 
-    // Grid lines
-    ctx.strokeStyle = "#1e245622";
-    ctx.lineWidth = 1;
-    for(let i=0;i<W;i+=20){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
-    for(let i=0;i<H;i+=20){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
+  // Atualiza rota e posição a cada novo ponto GPS
+  useEffect(()=>{
+    if(!mapRef.current || !mapRef.current.isStyleLoaded() || route.length < 2) return;
+    const coords = route.map(p=>[p[1],p[0]]);
+    try { mapRef.current.getSource("route")?.setData({ type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords }}); } catch{}
+    const last = [route[route.length-1][1], route[route.length-1][0]];
+    if(markerRef.current) markerRef.current.setLngLat(last).addTo(mapRef.current);
+    mapRef.current.easeTo({ center: last, duration: 600 });
+  }, [tick, route.length]);
 
-    if(route.length < 2) {
-      // No route yet — show status
-      ctx.fillStyle = gpsStatus==="searching"?"#f59e0b":gpsStatus==="active"?"#22d3ee":"#3a4a78";
-      ctx.font = "bold 11px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText(
-        gpsStatus==="searching"?"Buscando sinal GPS...":
-        gpsStatus==="active"?"Aguardando movimento...":
-        gpsStatus==="error"?"GPS indisponível":"Inicie para ver o mapa",
-        W/2, H/2
-      );
-      return;
-    }
-
-    // Normalize coords to canvas
-    const lats = route.map(p=>p[0]);
-    const lngs = route.map(p=>p[1]);
-    const minLat=Math.min(...lats), maxLat=Math.max(...lats);
-    const minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
-    const pad = 24;
-    const rangeX = maxLng-minLng || 0.0001;
-    const rangeY = maxLat-minLat || 0.0001;
-    const scale = Math.min((W-pad*2)/rangeX, (H-pad*2)/rangeY);
-
-    function toX(lng){ return pad + (lng-minLng)*scale + (W-pad*2-(rangeX*scale))/2; }
-    function toY(lat){ return H - pad - (lat-minLat)*scale - (H-pad*2-(rangeY*scale))/2; }
-
-    // Draw route shadow
-    ctx.beginPath();
-    ctx.moveTo(toX(route[0][1]), toY(route[0][0]));
-    for(let i=1;i<route.length;i++) ctx.lineTo(toX(route[i][1]), toY(route[i][0]));
-    ctx.strokeStyle = "#7c3aed44";
-    ctx.lineWidth = 6;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.stroke();
-
-    // Draw route neon
-    ctx.beginPath();
-    ctx.moveTo(toX(route[0][1]), toY(route[0][0]));
-    for(let i=1;i<route.length;i++) ctx.lineTo(toX(route[i][1]), toY(route[i][0]));
-    ctx.strokeStyle = "#a855f7";
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Start dot (green)
-    const sx = toX(route[0][1]), sy = toY(route[0][0]);
-    ctx.beginPath(); ctx.arc(sx,sy,5,0,Math.PI*2);
-    ctx.fillStyle = "#22c55e"; ctx.fill();
-
-    // Current position dot (pulsing cyan)
-    const last = route[route.length-1];
-    const cx2 = toX(last[1]), cy2 = toY(last[0]);
-    ctx.beginPath(); ctx.arc(cx2,cy2,8,0,Math.PI*2);
-    ctx.fillStyle = "#22d3ee33"; ctx.fill();
-    ctx.beginPath(); ctx.arc(cx2,cy2,4,0,Math.PI*2);
-    ctx.fillStyle = "#22d3ee"; ctx.fill();
-    ctx.beginPath(); ctx.arc(cx2,cy2,4,0,Math.PI*2);
-    ctx.strokeStyle = "#fff"; ctx.lineWidth=1.5; ctx.stroke();
-
-  }, [route, gpsStatus, tick]);
+  // Estado sem rota ainda
+  if(!mbLoaded || (gpsStatus==="off" && route.length===0)) return (
+    <div style={{width:"100%",height:160,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:6}}>
+      <div style={{width:8,height:8,borderRadius:"50%",background:gpsStatus==="searching"?"#f59e0b":"#3a4a78"}}/>
+      <span style={{color:gpsStatus==="searching"?"#f59e0b":"#3a4a78",fontFamily:"monospace",fontSize:10,fontWeight:700}}>
+        {gpsStatus==="searching"?"Buscando GPS...":gpsStatus==="error"?"GPS indisponível":"Inicie para ver o mapa"}
+      </span>
+    </div>
+  );
 
   return (
-    <canvas ref={canvasRef} width={360} height={160}
-      style={{width:"100%",height:160,display:"block",borderRadius:"0 0 10px 10px"}}/>
+    <div style={{position:"relative",width:"100%",height:160,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
+      <div ref={mapContainer} style={{width:"100%",height:"100%"}}/>
+      {/* Badge GPS */}
+      <div style={{position:"absolute",top:8,right:8,background:"#000000aa",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)"}}>
+        <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:9,fontWeight:800}}>
+          {gpsStatus==="active"?`● GPS ±${accuracy||"?"}m`:"● AO VIVO"}
+        </span>
+      </div>
+      {/* Legenda pace */}
+      <div style={{position:"absolute",bottom:8,left:8,background:"#000000aa",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:6}}>
+        <span style={{fontSize:9,color:"#aaa",fontFamily:"monospace"}}>lento</span>
+        <div style={{width:40,height:4,borderRadius:2,background:"linear-gradient(90deg,#3b82f6,#22c55e,#f59e0b,#ef4444)"}}/>
+        <span style={{fontSize:9,color:"#aaa",fontFamily:"monospace"}}>rápido</span>
+      </div>
+    </div>
   );
 }
 
@@ -967,6 +970,7 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 }
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
+const MAPBOX_TOKEN  = "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
