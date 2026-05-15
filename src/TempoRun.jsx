@@ -140,6 +140,7 @@ REGRAS ESPECIAIS GLP-1 (Ozempic/Wegovy/Mounjaro/Saxenda): Se o atleta usa GLP-1,
 - Alerte sobre proteína 1.2-1.6g/kg/dia para preservar músculo (ADA 2025, Frontiers 2025).
 - Se náusea: substituir corrida por run-walk.
 Fontes: STEP trials, PMC 11848261, PMC 12683586, ADA Clinical Diabetes 2025.
+IMPORTANTE: descrições máximo 1 frase curta. resumo_semanal máximo 2 frases. avisos_medicos máximo 3 itens curtos. progressao_segura máximo 1 frase. Seja conciso.
 JSON apenas: {"plano":[{"dia":"","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}],"resumo_semanal":"","avisos_medicos":[],"progressao_segura":"","alerta_glp1":""}`;
 const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro. Máximo 3 parágrafos objetivos.
 
@@ -1839,7 +1840,7 @@ Nível:${planForm.nivel||onboardingData.nivel}${kmRecente>0?`
 Volume últimos 30 dias: ${kmRecente.toFixed(1)}km`:""}
 Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":"+planImport.corridas_total+" corridas":""}`;
     try{
-      const r=await callAI(SYS_PLAN,ctx,[],2500);
+      const r=await callAI(SYS_PLAN,ctx,[],4000);
       const clean=r.replace(/```json|```/g,"").trim();
       const p=JSON.parse(clean);
       setPlanResult(p);setPlanScreen("result");
