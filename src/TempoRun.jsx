@@ -514,6 +514,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
   // Inicializa o mapa
   useEffect(()=>{
     if(!mbLoaded || !mapContainer.current || mapRef.current) return;
+    if(!MB_TOKEN){ setMbError(true); return; }
     try {
       window.mapboxgl.accessToken = MB_TOKEN;
       const center = route.length > 0 ? [route[route.length-1][1], route[route.length-1][0]] : [-6.2603, 53.3498];
@@ -612,7 +613,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
 
   return (
     <div style={{position:"relative",width:"100%",height:160,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
-      <div ref={mapContainer} style={{width:"100%",height:"100%"}}/>
+      <div ref={mapContainer} style={{width:"100%",height:"160px",position:"absolute",top:0,left:0}}/>
       <div style={{position:"absolute",top:8,right:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)"}}>
         <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:9,fontWeight:800}}>
           {gpsStatus==="active"?`● GPS ±${accuracy||"?"}m`:"● AO VIVO"}
@@ -1061,7 +1062,7 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 }
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
-const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN ?? "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
+const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
