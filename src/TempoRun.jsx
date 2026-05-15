@@ -3460,12 +3460,12 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
 
           {/* Mapa — ocupa até a borda inferior */}
-          <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0",flex:1,minHeight:200,position:"relative"}}>
+          <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0 0",flex:1,minHeight:200,position:"relative"}}>
             <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={340}/>
           </div>
 
           {/* Botões */}
-          <div style={{display:"flex",gap:8,paddingBottom:4}}>
+          <div style={{display:"flex",gap:8,paddingTop:8,paddingBottom:4}}>
             {gStatus==="ativo"
               ?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
               :gStatus==="pausado"
