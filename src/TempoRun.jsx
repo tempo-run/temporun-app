@@ -1302,16 +1302,16 @@ export default function TempoRunApp() {
       const params = new URLSearchParams(window.location.search);
       const returnTab = params.get("return");
       window.history.replaceState(null,"","/");
-      try { sessionStorage.setItem("tr_force_pro","1"); } catch {}
+      try { localStorage.setItem("tr_force_pro","1"); } catch {}
       // Restaura tela onde estava
       try {
         const pre = localStorage.getItem("tr_pre_checkout");
         if(pre) {
           const s = JSON.parse(pre);
           localStorage.removeItem("tr_pre_checkout");
-          sessionStorage.setItem("tr_restore", JSON.stringify({...s, tab: returnTab||s.tab}));
+          localStorage.setItem("tr_restore", JSON.stringify({...s, tab: returnTab||s.tab}));
         } else if(returnTab) {
-          sessionStorage.setItem("tr_restore", JSON.stringify({tab: returnTab}));
+          localStorage.setItem("tr_restore", JSON.stringify({tab: returnTab}));
         }
       } catch {}
     }
@@ -1355,12 +1355,12 @@ export default function TempoRunApp() {
   // Restaura tela após retorno do Stripe + força isPro
   useEffect(()=>{
     try {
-      const forcePro = sessionStorage.getItem("tr_force_pro");
-      if(forcePro) { setIsPro(true); sessionStorage.removeItem("tr_force_pro"); }
-      const restore = sessionStorage.getItem("tr_restore");
+      const forcePro = localStorage.getItem("tr_force_pro");
+      if(forcePro) { setIsPro(true); localStorage.removeItem("tr_force_pro"); }
+      const restore = localStorage.getItem("tr_restore");
       if(restore && session?.access_token) {
         const s = JSON.parse(restore);
-        sessionStorage.removeItem("tr_restore");
+        localStorage.removeItem("tr_restore");
         if(s.tab) setTab(s.tab);
         if(s.subScreen) setSubScreen(s.subScreen);
         if(s.planScreen) setPlanScreen(s.planScreen);
@@ -1465,7 +1465,7 @@ export default function TempoRunApp() {
   }
   function checkAiLimit(type) {
     if (isPro) return true;
-    try { if(sessionStorage.getItem("tr_force_pro")) return true; } catch {}
+    try { if(localStorage.getItem("tr_force_pro")) return true; } catch {}
     const usage = getAiUsage();
     return (usage[type] || 0) < AI_LIMITS[type];
   }
