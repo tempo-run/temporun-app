@@ -304,6 +304,34 @@ const GARMIN_MOCK = [
   },
 ];
 
+// ─── CORRIDAS DEMO (sempre visíveis para testes) ─────────────────────────────
+const CORRIDAS_DEMO = [
+  {
+    id:"demo_001", source:"temporun",
+    nome:"Rodagem Leve · Dublin City", tipo:"Rodagem Leve",
+    data:"15 mai. de 26", timestamp:"2026-05-15T07:30:00Z",
+    distancia_km:8.5, duracao_seg:2890, pace_medio:"5:41",
+    cadencia_media:174, calorias:552, dplus:48, xp_ganho:382,
+    polyline:[[-6.2603,53.3498],[-6.2590,53.3505],[-6.2575,53.3512],[-6.2560,53.3508],[-6.2545,53.3515],[-6.2530,53.3522],[-6.2520,53.3530],[-6.2510,53.3525],[-6.2500,53.3518],[-6.2515,53.3510],[-6.2530,53.3502],[-6.2545,53.3495],[-6.2560,53.3490],[-6.2575,53.3485],[-6.2590,53.3490],[-6.2603,53.3498]],
+  },
+  {
+    id:"demo_002", source:"temporun",
+    nome:"Intervalado · Shanganagh Park", tipo:"Intervalado",
+    data:"12 mai. de 26", timestamp:"2026-05-12T18:16:00Z",
+    distancia_km:5.35, duracao_seg:2318, pace_medio:"7:13",
+    cadencia_media:180, calorias:347, dplus:22, xp_ganho:240,
+    polyline:[[-6.1150,53.2580],[-6.1135,53.2590],[-6.1120,53.2585],[-6.1110,53.2595],[-6.1100,53.2600],[-6.1090,53.2590],[-6.1080,53.2580],[-6.1090,53.2570],[-6.1110,53.2565],[-6.1130,53.2572],[-6.1150,53.2580]],
+  },
+  {
+    id:"demo_003", source:"temporun",
+    nome:"Longão Lento · Phoenix Park", tipo:"Longão Lento",
+    data:"10 mai. de 26", timestamp:"2026-05-10T08:00:00Z",
+    distancia_km:18.2, duracao_seg:6552, pace_medio:"6:00",
+    cadencia_media:170, calorias:1183, dplus:112, xp_ganho:819,
+    polyline:[[-6.3270,53.3560],[-6.3250,53.3575],[-6.3230,53.3590],[-6.3210,53.3580],[-6.3190,53.3595],[-6.3170,53.3610],[-6.3150,53.3600],[-6.3170,53.3585],[-6.3190,53.3570],[-6.3210,53.3560],[-6.3230,53.3550],[-6.3250,53.3545],[-6.3270,53.3560]],
+  },
+];
+
 // ─── GOOGLE MAPS STATIC + ALTIMETRIA ─────────────────────────────────────────
 // Chave pública — substitua por sua API Key do Google Cloud (Maps Static API)
 const GMAPS_KEY = "YOUR_GOOGLE_MAPS_API_KEY";
@@ -788,7 +816,7 @@ const lojaItems=[
 const frases=["Cada quilômetro te faz mais forte do que ontem.","O ritmo que importa é o seu.","Subidas constroem quem você vai ser na descida.","Não existe mal tempo. Existe falta de preparo.","Corra pelo processo, não só pelo resultado.","Seu maior adversário é a voz que diz 'para'."];
 
 // ─── RUN DETAIL MODAL ─────────────────────────────────────────────────────────
-new_component = r'''function RunDetailModal({ run, onClose }) {
+function RunDetailModal({ run, onClose }) {
   if(!run) return null;
   const isStrava = run.source==="strava";
   const isGarmin = run.source==="garmin";
@@ -1018,13 +1046,6 @@ new_component = r'''function RunDetailModal({ run, onClose }) {
     </div>
   );
 }
-'''
-
-with open('/home/claude/new_modal.py', 'w') as f:
-    f.write(new_component)
-print("saved")
-print("length:", len(new_component))
-
 
 // ─── GARMIN CONNECT MODAL ─────────────────────────────────────────────────────
 function GarminConnectModal({ open, onClose, onConfirm, connected, onDisconnect }) {
@@ -1961,7 +1982,7 @@ export default function TempoRunApp() {
           window.storage.get("tr5_xp").catch(()=>null),
           window.storage.get("tr5_prova").catch(()=>null),
         ]);
-        if(rc) setCorridas(JSON.parse(rc.value));
+        if(rc){ const saved=JSON.parse(rc.value); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
         if(rp) setRpsDb(JSON.parse(rp.value));
         if(xp) setXpTotal(JSON.parse(xp.value));
         if(pa) setProvaAmb(JSON.parse(pa.value));
