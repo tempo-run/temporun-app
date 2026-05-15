@@ -2522,11 +2522,11 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         <div style={{padding:"48px 22px 32px",display:"flex",flexDirection:"column",gap:28}}>
           <div className="ob-s1" style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:42,height:42,borderRadius:13,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 20px "+C.violet+"55"}}>
+            <div style={{width:42,height:42,borderRadius:13,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 20px "+C.violet+"55",flexShrink:0}}>
               <img src={iconCircle} alt="TempoRun" style={{width:28,height:28,objectFit:"contain"}}/>
             </div>
-            <div>
-              <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:0,letterSpacing:-0.3}}>TempoRun</p>
+            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+              <img src={tempoRunLogo} alt="TempoRun" style={{width:120,height:"auto",objectFit:"contain",display:"block"}}/>
               <p style={{color:C.tm,fontSize:11,margin:0,fontFamily:"monospace",letterSpacing:0.5}}>SEU COACH COM IA</p>
             </div>
           </div>
