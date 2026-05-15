@@ -573,23 +573,26 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
   useEffect(()=>{
     const map = mapRef.current;
     if(!map || !map.isStyleLoaded()) return;
-    if(route.length < 2) return;
-    const coords = route.map(p=>[p[1], p[0]]);
-    try {
-      map.getSource("route")?.setData({
-        type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords }
-      });
-    } catch{}
+    if(route.length === 0) return;
     const last = [route[route.length-1][1], route[route.length-1][0]];
-    // Marcador início — adiciona só uma vez
-    if(!startMarkerRef.current && window.mapboxgl){
-      const el = document.createElement("div");
-      el.style.cssText = "width:14px;height:14px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;box-shadow:0 0 8px #22c55e88";
-      startMarkerRef.current = new window.mapboxgl.Marker({element:el,anchor:"center"})
-        .setLngLat([route[0][1], route[0][0]]).addTo(map);
-    }
+    // Sempre centraliza no último ponto — mesmo com 1 ponto (pré-aquecimento)
+    map.easeTo({ center:last, duration:400 });
     if(markerRef.current) markerRef.current.setLngLat(last).addTo(map);
-    map.easeTo({ center:last, duration:600 });
+    // Rota só quando há 2+ pontos
+    if(route.length >= 2){
+      const coords = route.map(p=>[p[1], p[0]]);
+      try {
+        map.getSource("route")?.setData({
+          type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords }
+        });
+      } catch{}
+      if(!startMarkerRef.current && window.mapboxgl){
+        const el = document.createElement("div");
+        el.style.cssText = "width:14px;height:14px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;box-shadow:0 0 8px #22c55e88";
+        startMarkerRef.current = new window.mapboxgl.Marker({element:el,anchor:"center"})
+          .setLngLat([route[0][1], route[0][0]]).addTo(map);
+      }
+    }
   }, [tick, route.length]);
 
   // Fallback canvas quando Mapbox não disponível
