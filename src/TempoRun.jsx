@@ -1997,6 +1997,33 @@ ${parts.join(" | ")}` : "";
   function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);setGpsStatus("off");setGpsAccuracy(null);setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
+  // Pré-aquecimento GPS ao entrar na tela de gravação
+  useEffect(()=>{
+    if(subScreen==="gravacao" && gStatus==="idle"){
+      // Inicia GPS só para posicionar o mapa — não grava rota
+      if(!navigator.geolocation) return;
+      setGpsStatus("searching");
+      const wid = navigator.geolocation.watchPosition(
+        (pos)=>{
+          const {latitude:lat, longitude:lng, accuracy} = pos.coords;
+          setGpsAccuracy(Math.round(accuracy));
+          setGpsStatus("active");
+          // Atualiza mapa com posição atual mas sem gravar rota
+          if(gStatus==="idle"){
+            routeRef.current = [[lat,lng]];
+            setRouteTick(t=>t+1);
+          }
+        },
+        (err)=>{ console.warn("GPS pré:", err.message); setGpsStatus("error"); },
+        {enableHighAccuracy:true, timeout:15000, maximumAge:5000}
+      );
+      return ()=>{ navigator.geolocation.clearWatch(wid); };
+    }
+    if(subScreen!=="gravacao"){
+      if(gStatus==="idle") setGpsStatus("off");
+    }
+  }, [subScreen, gStatus]);
+
   async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;if(!checkAiLimit("coach")){setUpgradeReason(`Você usou suas ${AI_LIMITS.coach} perguntas ao Coach hoje. `);setShowUpgradeModal(true);return;}setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);incAiUsage("coach");try{const r=await callAI(SYS_COACH+buildPerfilCtx(),msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
   async function sendSaber(q){const msg=q||saberIn.trim();if(!msg||saberLoad)return;if(!checkAiLimit("saber")){setUpgradeReason(`Você usou suas ${AI_LIMITS.saber} perguntas ao Saber hoje. `);setShowUpgradeModal(true);return;}setSaberIn("");setSaberTab("perguntar");const nxt=[...saberMsgs,{from:"user",text:msg}];setSaberMsgs(nxt);setSaberLoad(true);incAiUsage("saber");try{const r=await callAI(SYS_SABER+buildPerfilCtx(),msg,saberMsgs);setSaberMsgs([...nxt,{from:"ai",text:r}]);}catch{setSaberMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setSaberLoad(false);}
 
