@@ -3245,17 +3245,91 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </button>
         </div>
 
-        {/* Ver Plano */}
+        {/* Ver Plano Completo */}
         <div onClick={()=>setSubScreen("verPlano")} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.violet+"33",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
           <div style={{width:42,height:42,borderRadius:12,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
             <Ic n="report" z={20} c="#fff"/>
           </div>
           <div style={{flex:1}}>
-            <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano</p>
-            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.plano?"Plano IA personalizado":"Crie um plano com IA"}</p>
+            <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano Completo</p>
+            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.plano?"Plano IA personalizado · "+savedPlan.plano.length+" dias":"Crie um plano com IA"}</p>
           </div>
           <Ic n="chevron-right" z={18} c={C.td}/>
         </div>
+
+        {/* Treino do dia */}
+        {(()=>{
+          const hoje = new Date();
+          const diasSemana = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+          const diaHoje = diasSemana[hoje.getDay()];
+          const abrev = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][hoje.getDay()];
+          const dataStr = hoje.toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+          const treino = savedPlan?.plano?.find(d=>
+            d.dia?.toLowerCase().includes(abrev.toLowerCase()) ||
+            d.dia?.toLowerCase().includes(diaHoje.toLowerCase().slice(0,3))
+          );
+          const isDescanso = !treino || treino.distancia_km===0 || treino.tipo?.toLowerCase().includes("descanso");
+          const tipoColor = isDescanso?C.td:
+            treino?.tipo?.toLowerCase().includes("interval")||treino?.tipo?.toLowerCase().includes("tiro")?C.coral:
+            treino?.tipo?.toLowerCase().includes("longo")||treino?.tipo?.toLowerCase().includes("long")?C.amber:
+            treino?.tipo?.toLowerCase().includes("tempo")?C.violetL:C.cyanB;
+
+          return (
+            <div style={{background:C.s1,borderRadius:14,marginBottom:10,overflow:"hidden",border:"1px solid "+C.border}}>
+              {/* Header */}
+              <div style={{padding:"10px 14px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:0}}>Treino de hoje</p>
+                <p style={{color:C.td,fontSize:11,margin:0}}>{dataStr.charAt(0).toUpperCase()+dataStr.slice(1)}</p>
+              </div>
+
+              {isDescanso?(
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px 14px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:4,height:44,borderRadius:2,background:C.td,flexShrink:0}}/>
+                    <div>
+                      <p style={{color:C.tm,fontWeight:700,fontSize:16,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>😴 Descanso</p>
+                      <p style={{color:C.td,fontSize:12,margin:0}}>Recuperação ativa ou repouso total</p>
+                    </div>
+                  </div>
+                  <button onClick={()=>{
+                    const idx = savedPlan?.plano?.findIndex(d=>
+                      d.dia?.toLowerCase().includes(abrev.toLowerCase())||
+                      d.dia?.toLowerCase().includes(diaHoje.toLowerCase().slice(0,3))
+                    );
+                    setAddTreinoDia(idx>=0?idx:0);
+                    setAddStep("tipo");setAddTipo(null);setAddSubtipo(null);
+                    setShowAddTreino(true);
+                  }} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"7px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                    <Ic n="plus" z={13} c={C.tm}/>
+                    <span style={{color:C.tm,fontSize:12,fontWeight:600}}>Adicionar</span>
+                  </button>
+                </div>
+              ):(
+                <div style={{padding:"0 14px 14px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:10}}>
+                    <div style={{width:4,borderRadius:2,background:tipoColor,flexShrink:0,alignSelf:"stretch",minHeight:44}}/>
+                    <div style={{flex:1}}>
+                      <p style={{color:C.tp,fontWeight:800,fontSize:18,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{treino.tipo}</p>
+                      <p style={{color:C.tm,fontSize:12,margin:"0 0 7px"}}>{treino.descricao||""}</p>
+                      <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                        {treino.distancia_km>0&&(
+                          <span style={{background:tipoColor+"22",color:tipoColor,border:"1px solid "+tipoColor+"44",borderRadius:8,padding:"3px 9px",fontSize:12,fontWeight:700}}>{treino.distancia_km}km</span>
+                        )}
+                        {treino.pace_alvo&&treino.pace_alvo!=="—"&&(
+                          <span style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:8,padding:"3px 9px",fontSize:12,fontWeight:600}}>{treino.pace_alvo}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{width:22,height:22,borderRadius:6,border:"1.5px solid "+C.border,flexShrink:0,marginTop:2}}/>
+                  </div>
+                  <button onClick={()=>setSubScreen("gravacao")} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"12px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 16px "+C.violet+"44"}}>
+                    ▶ Iniciar este treino
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Coach Tempo */}
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
