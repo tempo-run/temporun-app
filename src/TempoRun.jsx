@@ -142,6 +142,16 @@ REGRAS ESPECIAIS GLP-1 (Ozempic/Wegovy/Mounjaro/Saxenda): Se o atleta usa GLP-1,
 Fontes: STEP trials, PMC 11848261, PMC 12683586, ADA Clinical Diabetes 2025.
 IMPORTANTE: descrições máximo 1 frase curta. resumo_semanal máximo 2 frases. avisos_medicos máximo 3 itens curtos. progressao_segura máximo 1 frase. Seja conciso.
 JSON apenas: {"plano":[{"dia":"","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}],"resumo_semanal":"","avisos_medicos":[],"progressao_segura":"","alerta_glp1":""}`;
+
+const SYS_PLAN_MACRO=`Você é TEMPO, coach IA do TempoRun. Gere estrutura MACRO de plano de treino.
+REGRAS: progressão segura (regra 10%/semana), fases lógicas, descanso adequado.
+Responda APENAS JSON:
+{"titulo":"","semanas":N,"fases":[{"nome":"","semanas_inicio":1,"semanas_fim":N,"foco":"","volume_semanal_km":0,"intensidade":"leve|moderado|forte"}],"semanas":[{"semana":1,"foco":"","volume_km":0,"treinos_chave":[""],"descansos":2,"resumo":""}],"objetivo":"","avisos":[]}`
+
+const SYS_PLAN_WEEK=`Você é TEMPO, coach IA do TempoRun. Expanda UMA semana do plano em dias detalhados.
+REGRAS: nunca volume >10%/semana; mínimo 1-2 descansos; descrições curtas (1 frase).
+Responda APENAS JSON — array de 7 dias:
+[{"dia":"Seg","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}]`
 const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro. Máximo 3 parágrafos objetivos.
 
 BASE DE CONHECIMENTO:
@@ -1550,6 +1560,11 @@ export default function TempoRunApp() {
   const [treinosVinculados, setTreinosVinculados] = useState({}); // key: "S1-Seg" → run id
   const [vinculandoKey, setVinculandoKey] = useState(null); // qual treino está sendo vinculado
   const [planScreen, setPlanScreen] = useState("form");
+  const [planTipo, setPlanTipo] = useState(null); // null | "prova" | "objetivo"
+  const [planProva, setPlanProva] = useState({distancia:"10k", data_prova:""});
+  const [planObjetivo, setPlanObjetivo] = useState({objetivo:"vo2max", semanas:8});
+  const [expandedWeeks, setExpandedWeeks] = useState({}); // {weekIdx: {dias:[...]}}
+  const [expandingWeek, setExpandingWeek] = useState(null); // loading state
   const [savedPlan, setSavedPlan] = useState(()=>{
     try{ const p=localStorage.getItem("tr_saved_plan"); return p?JSON.parse(p):null; }catch{return null;}
   });
@@ -1829,6 +1844,76 @@ ${parts.join(" | ")}` : "";
     try{const r=await callAI(SYS_COACH,ctx,treinoChatMsgs);setTreinoChatMsgs([...nxt,{from:"ai",text:r}]);}
     catch{setTreinoChatMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}
     setTreinoChatLoad(false);
+  }
+
+  async function gerarPlanoMacro() {
+    if(!checkAiLimit("plano")){setUpgradeReason(`Você já gerou seu plano gratuito deste mês. `);setShowUpgradeModal(true);return;}
+    incAiUsage("plano");
+    setPlanScreen("loading");setPlanResult(null);
+
+    const idade=dadosForm.dataNasc?Math.floor((Date.now()-new Date(dadosForm.dataNasc))/(1000*60*60*24*365)):null;
+    const nomeAtleta=dadosForm.nome?dadosForm.nome.split(" ")[0]:"Atleta";
+    const kmRecente=corridas.filter(r=>new Date(r.timestamp)>new Date(Date.now()-30*24*60*60*1000)).reduce((a,c)=>a+c.distancia_km,0);
+    const glp1str=planForm.glp1==="sim"?`\nGLP-1: SIM — aplicar regras especiais`:"\nGLP-1: NÃO";
+
+    let durCtx="";
+    if(planTipo==="prova"){
+      const hoje=new Date();
+      const dataProva=new Date(planProva.data_prova);
+      const semanas=Math.max(4,Math.round((dataProva-hoje)/(7*24*60*60*1000)));
+      durCtx=`Tipo: PARA PROVA\nDistância da prova: ${planProva.distancia}\nData da prova: ${planProva.data_prova}\nSemanas disponíveis: ${semanas}`;
+    } else {
+      const objLabels={vo2max:"Melhorar VO2max (8 semanas)",base:"Base aeróbica (6 semanas)",perda:"Perda de peso (12 semanas)",consistencia:"Consistência (4 semanas)",meia:"Preparação meia maratona (16 semanas)",maratona:"Preparação maratona (20 semanas)"};
+      durCtx=`Tipo: POR OBJETIVO\nObjetivo: ${objLabels[planObjetivo.objetivo]||planObjetivo.objetivo}\nSemanas: ${planObjetivo.semanas}`;
+    }
+
+    const ctx=`ATLETA: ${nomeAtleta}${idade?` | ${idade} anos`:""}${dadosForm.peso?` | ${dadosForm.peso}kg`:""}\nNível: ${planForm.nivel||onboardingData.nivel}\nPace atual: ${planForm.pace_atual||"5:30"}/km\nDias disponíveis/semana: ${planForm.dias_disponiveis||4}\nVolume recente: ${kmRecente.toFixed(0)}km/mês\nHistórico lesões: ${planForm.historico_lesoes||"Nenhuma"}${glp1str}\n${durCtx}`;
+
+    try{
+      const r=await callAI(SYS_PLAN_MACRO,ctx,[],2000);
+      const clean=r.replace(/```json|```/g,"").trim();
+      const macro=JSON.parse(clean);
+      // Salva o macro como plano (semanas expandidas vazias)
+      const planData={
+        tipo:"macro",
+        macro,
+        plano:[], // será preenchido por semana expandida
+        semanas_macro: macro.semanas||[],
+        titulo: macro.titulo||"Meu Plano",
+        resumo_semanal: macro.objetivo||"",
+        avisos_medicos: macro.avisos||[],
+      };
+      setSavedPlan(planData);
+      setExpandedWeeks({});
+      try{localStorage.setItem("tr_saved_plan",JSON.stringify(planData));localStorage.removeItem("tr_completed_workouts");}catch{}
+      setCompletedWorkouts({});
+      setPlanScreen("form");
+      setTab("treino");
+      setTimeout(()=>setSubScreen("verPlano"),50);
+    }catch(e){
+      console.error(e);
+      setPlanResult({plano:[{dia:"—",tipo:"Erro",distancia_km:0,pace_alvo:"",descricao:"Tente novamente.",alerta_lesao:""}],resumo_semanal:"Erro ao gerar plano.",avisos_medicos:[],progressao_segura:"",alerta_glp1:""});
+      setPlanScreen("result");
+    }
+  }
+
+  async function expandirSemana(semanaIdx) {
+    if(expandedWeeks[semanaIdx]) return; // já expandida
+    setExpandingWeek(semanaIdx);
+    const semMacro = savedPlan?.semanas_macro?.[semanaIdx];
+    if(!semMacro) return;
+
+    const ctx=`Semana ${semanaIdx+1} do plano: "${semMacro.foco}"\nVolume alvo: ${semMacro.volume_km}km\nTreinos chave: ${semMacro.treinos_chave?.join(", ")||""}\nDias descanso: ${semMacro.descansos||2}\nNível atleta: ${planForm.nivel||"intermediario"}\nPace base: ${planForm.pace_atual||"5:30"}/km\nGLP-1: ${planForm.glp1==="sim"?"SIM":"NÃO"}`;
+
+    try{
+      const r=await callAI(SYS_PLAN_WEEK,ctx,[],2500);
+      const clean=r.replace(/```json|```/g,"").trim();
+      const dias=JSON.parse(clean);
+      const updated={...expandedWeeks,[semanaIdx]:dias};
+      setExpandedWeeks(updated);
+      try{localStorage.setItem("tr_expanded_weeks_"+savedPlan?.macro?.titulo,JSON.stringify(updated));}catch{}
+    }catch(e){console.error(e);}
+    setExpandingWeek(null);
   }
 
   async function gerarPlano(){
@@ -2914,48 +2999,138 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div>
             <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
               <Ic n="ai" z={26} c={C.cyanB}/>
-              <div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Coach TEMPO</p><p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>Preencha para um plano seguro com regra dos 10%, histórico de lesões e progressão gradual.</p></div>
-            </div>
-            {[{label:"Objetivo",k:"objetivo",ph:"Ex: correr 10K em 50 min"},{label:"Distância semanal (km)",k:"dist_semana",ph:"Ex: 25"},{label:"Pace atual (min:seg/km)",k:"pace_atual",ph:"Ex: 5:30"},{label:"Dias disponíveis/semana",k:"dias_disponiveis",ph:"Ex: 4"},{label:"Semanas de inatividade",k:"inatividade_semanas",ph:"0 se está treinando"},{label:"Histórico de lesões",k:"historico_lesoes",ph:"Ex: tendinite joelho há 3 meses"}].map((f,i)=>(
-              <div key={i} style={{marginBottom:11}}>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.3}}>{f.label}</p>
-                <input value={planForm[f.k]} onChange={e=>setPlanForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
-              </div>
-            ))}
-            <div style={{marginBottom:13}}>
-              <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>Nível</p>
-              <div style={{display:"flex",gap:7}}>{["iniciante","intermediario","avancado"].map(n=><button key={n} onClick={()=>setPlanForm(p=>({...p,nivel:n}))} style={{flex:1,background:planForm.nivel===n?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planForm.nivel===n?"#fff":C.tm,border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{n}</button>)}</div>
+              <div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Coach TEMPO</p><p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>Vamos montar um plano completo e personalizado para você.</p></div>
             </div>
 
-            <div style={{background:"linear-gradient(135deg,#1a0e00,#221500)",border:"1px solid "+C.amber+"55",borderRadius:14,padding:14,marginBottom:13}}>
-              <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:11}}>
-                <div style={{width:32,height:32,borderRadius:10,background:C.amber+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="warning" z={17} c={C.amber}/></div>
-                <div>
-                  <p style={{color:C.amber,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>Usa caneta emagrecedora?</p>
-                  <p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>Ozempic · Wegovy · Mounjaro · Saxenda · similares GLP-1</p>
+            {/* Tipo de plano */}
+            {!planTipo&&(
+              <div>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 12px",textTransform:"uppercase",letterSpacing:0.5}}>Qual é o seu objetivo?</p>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  <button onClick={()=>setPlanTipo("prova")} style={{background:C.s1,border:"1px solid "+C.border,borderRadius:14,padding:"16px 14px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,"+C.coral+"33,"+C.amber+"22)",border:"1px solid "+C.coral+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:22}}>🏁</span>
+                    </div>
+                    <div>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>Preparar para uma prova</p>
+                      <p style={{color:C.tm,fontSize:12,margin:0}}>5k, 10k, meia maratona, maratona · com data definida</p>
+                    </div>
+                  </button>
+                  <button onClick={()=>setPlanTipo("objetivo")} style={{background:C.s1,border:"1px solid "+C.border,borderRadius:14,padding:"16px 14px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)",border:"1px solid "+C.violet+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:22}}>🎯</span>
+                    </div>
+                    <div>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>Melhorar por objetivo</p>
+                      <p style={{color:C.tm,fontSize:12,margin:0}}>VO2max, base aeróbica, consistência · sem data fixa</p>
+                    </div>
+                  </button>
                 </div>
               </div>
-              <div style={{display:"flex",gap:8,marginBottom:planForm.glp1==="sim"?12:0}}>
-                {["nao","sim"].map(v=>(
-                  <button key={v} onClick={()=>setPlanForm(p=>({...p,glp1:v}))} style={{flex:1,background:planForm.glp1===v?(v==="sim"?"linear-gradient(135deg,"+C.amber+","+C.coral+")":"linear-gradient(135deg,"+C.violet+","+C.cyan+")"):"linear-gradient(135deg,"+C.s2+","+C.s3+")",color:planForm.glp1===v?"#fff":C.tm,border:"1px solid "+(planForm.glp1===v?(v==="sim"?C.amber:C.violet):C.border),borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                    {v==="sim"?"✓ Sim, uso":"✗ Não uso"}
-                  </button>
-                ))}
+            )}
+
+            {/* Formulário Prova */}
+            {planTipo==="prova"&&(
+              <div>
+                <button onClick={()=>setPlanTipo(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:12,marginBottom:14,display:"flex",alignItems:"center",gap:5,padding:0,fontFamily:"inherit"}}>
+                  <Ic n="back" z={12} c={C.tm}/> Voltar
+                </button>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Distância da prova</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+                  {[{id:"5k",l:"5km"},{id:"10k",l:"10km"},{id:"meia",l:"Meia (21km)"},{id:"maratona",l:"Maratona (42km)"}].map(d=>(
+                    <button key={d.id} onClick={()=>setPlanProva(p=>({...p,distancia:d.id}))} style={{background:planProva.distancia===d.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planProva.distancia===d.id?"#fff":C.tm,border:"1px solid "+(planProva.distancia===d.id?C.violet:C.border),borderRadius:11,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>{d.l}</button>
+                  ))}
+                </div>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.5}}>Data da prova</p>
+                <input type="date" value={planProva.data_prova} onChange={e=>setPlanProva(p=>({...p,data_prova:e.target.value}))} min={new Date().toISOString().split("T")[0]} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:14}}/>
+                {planProva.data_prova&&(()=>{
+                  const semanas=Math.max(4,Math.round((new Date(planProva.data_prova)-new Date())/(7*24*60*60*1000)));
+                  return <div style={{background:C.violet+"11",border:"1px solid "+C.violet+"33",borderRadius:10,padding:"8px 12px",marginBottom:14,display:"flex",alignItems:"center",gap:8}}>
+                    <Ic n="calendar" z={14} c={C.violetL}/>
+                    <p style={{color:C.violetL,fontSize:12,margin:0,fontWeight:600}}>{semanas} semanas de preparação</p>
+                  </div>;
+                })()}
               </div>
-              {planForm.glp1==="sim"&&(
-                <div>
-                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.3}}>Náusea ativa hoje?</p>
-                  <div style={{display:"flex",gap:8}}>
+            )}
+
+            {/* Formulário Objetivo */}
+            {planTipo==="objetivo"&&(
+              <div>
+                <button onClick={()=>setPlanTipo(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:12,marginBottom:14,display:"flex",alignItems:"center",gap:5,padding:0,fontFamily:"inherit"}}>
+                  <Ic n="back" z={12} c={C.tm}/> Voltar
+                </button>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Objetivo</p>
+                <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
+                  {[
+                    {id:"vo2max",   l:"🫁 Melhorar VO2max",        s:"8 semanas · melhora de 5-15%"},
+                    {id:"base",     l:"🏃 Construir base aeróbica", s:"6 semanas · Z2 e volume"},
+                    {id:"perda",    l:"⚖️ Perda de peso",           s:"12 semanas · volume moderado"},
+                    {id:"consistencia",l:"📅 Consistência",          s:"4 semanas · hábito de correr"},
+                    {id:"meia",     l:"🥈 Preparar meia maratona",  s:"16 semanas · progressão completa"},
+                    {id:"maratona", l:"🏅 Preparar maratona",       s:"20 semanas · periodização completa"},
+                  ].map(o=>{
+                    const semMap={vo2max:8,base:6,perda:12,consistencia:4,meia:16,maratona:20};
+                    const selected=planObjetivo.objetivo===o.id;
+                    return (
+                      <button key={o.id} onClick={()=>setPlanObjetivo({objetivo:o.id,semanas:semMap[o.id]})} style={{background:selected?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"1.5px solid "+(selected?C.violet:C.border),borderRadius:12,padding:"11px 14px",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <p style={{color:selected?C.tp:C.tm,fontWeight:700,fontSize:13,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>{o.l}</p>
+                          <p style={{color:C.td,fontSize:11,margin:0}}>{o.s}</p>
+                        </div>
+                        {selected&&<Ic n="check" z={16} c={C.violetL}/>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Campos comuns */}
+            {planTipo&&(
+              <div>
+                {[{label:"Pace atual (min:seg/km)",k:"pace_atual",ph:"Ex: 5:30"},{label:"Dias disponíveis/semana",k:"dias_disponiveis",ph:"Ex: 4"},{label:"Distância semanal atual (km)",k:"dist_semana",ph:"Ex: 25"},{label:"Histórico de lesões",k:"historico_lesoes",ph:"Nenhuma ou ex: tendinite joelho"}].map((f,i)=>(
+                  <div key={i} style={{marginBottom:11}}>
+                    <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.3}}>{f.label}</p>
+                    <input value={planForm[f.k]} onChange={e=>setPlanForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                  </div>
+                ))}
+                <div style={{marginBottom:13}}>
+                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>Nível</p>
+                  <div style={{display:"flex",gap:7}}>{["iniciante","intermediario","avancado"].map(n=><button key={n} onClick={()=>setPlanForm(p=>({...p,nivel:n}))} style={{flex:1,background:planForm.nivel===n?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planForm.nivel===n?"#fff":C.tm,border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{n}</button>)}</div>
+                </div>
+                <div style={{background:"linear-gradient(135deg,#1a0e00,#221500)",border:"1px solid "+C.amber+"55",borderRadius:14,padding:14,marginBottom:13}}>
+                  <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:11}}>
+                    <div style={{width:32,height:32,borderRadius:10,background:C.amber+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="warning" z={17} c={C.amber}/></div>
+                    <div>
+                      <p style={{color:C.amber,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>Usa caneta emagrecedora?</p>
+                      <p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>Ozempic · Wegovy · Mounjaro · Saxenda</p>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginBottom:planForm.glp1==="sim"?12:0}}>
                     {["nao","sim"].map(v=>(
-                      <button key={v} onClick={()=>setPlanForm(p=>({...p,glp1_nausea:v}))} style={{flex:1,background:planForm.glp1_nausea===v?(v==="sim"?C.coral+"33":C.green+"22"):C.s3,color:planForm.glp1_nausea===v?(v==="sim"?C.coral:C.green):C.tm,border:"1px solid "+(planForm.glp1_nausea===v?(v==="sim"?C.coral+"55":C.green+"55"):C.border),borderRadius:9,padding:"8px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                        {v==="sim"?"Com náusea":"Sem náusea"}
+                      <button key={v} onClick={()=>setPlanForm(p=>({...p,glp1:v}))} style={{flex:1,background:planForm.glp1===v?(v==="sim"?"linear-gradient(135deg,"+C.amber+","+C.coral+")":"linear-gradient(135deg,"+C.violet+","+C.cyan+")"):"linear-gradient(135deg,"+C.s2+","+C.s3+")",color:planForm.glp1===v?"#fff":C.tm,border:"1px solid "+(planForm.glp1===v?(v==="sim"?C.amber:C.violet):C.border),borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
+                        {v==="sim"?"✓ Sim, uso":"✗ Não uso"}
                       </button>
                     ))}
                   </div>
+                  {planForm.glp1==="sim"&&(
+                    <div>
+                      <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.3}}>Náusea ativa hoje?</p>
+                      <div style={{display:"flex",gap:8}}>
+                        {["nao","sim"].map(v=>(
+                          <button key={v} onClick={()=>setPlanForm(p=>({...p,glp1_nausea:v}))} style={{flex:1,background:planForm.glp1_nausea===v?(v==="sim"?C.coral+"33":C.green+"22"):C.s3,color:planForm.glp1_nausea===v?(v==="sim"?C.coral:C.green):C.tm,border:"1px solid "+(planForm.glp1_nausea===v?(v==="sim"?C.coral+"55":C.green+"55"):C.border),borderRadius:9,padding:"8px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                            {v==="sim"?"Com náusea":"Sem náusea"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <button onClick={gerarPlano} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"14px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}><Ic n="ai" z={18} c="#fff"/>GERAR MEU PLANO</button>
+                <button onClick={gerarPlanoMacro} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"14px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}>
+                  <Ic n="ai" z={18} c="#fff"/>GERAR MEU PLANO
+                </button>
+              </div>
+            )}
           </div>
         )}
         {planScreen==="loading"&&(
@@ -3102,15 +3277,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           return C.cyanB;
         };
 
-        // Dividir em semanas (7 dias cada)
-        const plano = savedPlan.plano;
-        const totalDias = plano.length;
-        const semanas = [];
-        for(let i=0;i<totalDias;i+=7) semanas.push(plano.slice(i,i+7));
-        const totalTreinos = plano.filter(d=>d.distancia_km>0||!d.tipo?.toLowerCase().includes("descanso")).length;
+        const isMacro = savedPlan.tipo==="macro" && savedPlan.semanas_macro?.length>0;
+        const semanas_macro = savedPlan.semanas_macro||[];
+        const totalSemanas = isMacro ? semanas_macro.length : Math.ceil((savedPlan.plano?.length||7)/7);
         const totalFeitos = Object.values(completedWorkouts).filter(Boolean).length;
-        const progPct = totalTreinos>0?Math.min(100,Math.round(totalFeitos/totalTreinos*100)):0;
 
+        // For legacy 7-day plans
+        const plano = savedPlan.plano||[];
+        const semanas_legacy = [];
+        for(let i=0;i<plano.length;i+=7) semanas_legacy.push(plano.slice(i,i+7));
+        const totalTreinos = isMacro
+          ? semanas_macro.reduce((a,s)=>a+(s.treinos_chave?.length||0),0)
+          : plano.filter(d=>d.distancia_km>0||!d.tipo?.toLowerCase().includes("descanso")).length;
+        const progPct = totalTreinos>0?Math.min(100,Math.round(totalFeitos/totalTreinos*100)):0;
         const focos = ["Base aeróbica","Progressão de volume","Velocidade de limiar","Semana de recuperação"];
 
         return (
@@ -3167,68 +3346,149 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             )}
 
             {/* Semanas */}
-            {semanas.map((semana,si)=>{
-              const foco = focos[si]||("Semana "+(si+1));
-              return (
-                <div key={si} style={{marginBottom:16}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <span style={{color:"#fff",fontWeight:800,fontSize:11,fontFamily:"monospace"}}>S{si+1}</span>
-                    </div>
-                    <div style={{flex:1,height:1,background:C.border}}/>
-                    <span style={{color:C.td,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>{foco}</span>
-                  </div>
-
-                  {semana.map((d,di)=>{
-                    const globalIdx = si*7+di;
-                    const isDone = !!completedWorkouts[String(globalIdx)];
-                    const isDescanso = d.distancia_km===0||d.tipo?.toLowerCase().includes("descanso");
-                    const cor = intCor2(d.tipo);
-
-                    if(isDescanso) return (
-                      <div key={di} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 2px",borderBottom:"1px solid "+C.border+"44"}}>
-                        <div style={{width:24,height:24,borderRadius:6,border:"1.5px solid "+C.border,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",background:isDone?"#22c55e22":"transparent"}} onClick={()=>toggleWorkout(globalIdx)}>
-                          {isDone&&<Ic n="check" z={12} c="#22c55e"/>}
-                        </div>
-                        <span style={{color:C.ts,fontFamily:"monospace",fontSize:11,fontWeight:700,textTransform:"uppercase",minWidth:30}}>{d.dia?.slice(0,3)}</span>
-                        <div style={{width:6,height:6,borderRadius:3,background:C.tg}}/>
-                        <span style={{color:C.td,fontSize:13,fontStyle:"italic"}}>{d.tipo||"Descanso completo"}</span>
+            {isMacro ? (
+              // Macro plan — semanas com expansão sob demanda
+              semanas_macro.map((sem,si)=>{
+                const isExpanded = !!expandedWeeks[si];
+                const isExpanding = expandingWeek===si;
+                const dias = expandedWeeks[si]||[];
+                const intensCor = sem.intensidade==="forte"?C.coral:sem.intensidade==="moderado"?C.amber:C.cyanB;
+                return (
+                  <div key={si} style={{marginBottom:12,border:"1px solid "+C.border,borderRadius:14,overflow:"hidden"}}>
+                    {/* Cabeçalho da semana */}
+                    <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,cursor:isExpanded?"default":"pointer"}} onClick={()=>!isExpanded&&!isExpanding&&expandirSemana(si)}>
+                      <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{color:"#fff",fontWeight:800,fontSize:11,fontFamily:"monospace"}}>S{si+1}</span>
                       </div>
-                    );
+                      <div style={{flex:1}}>
+                        <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>{sem.foco}</p>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          <span style={{background:intensCor+"22",color:intensCor,border:"1px solid "+intensCor+"44",borderRadius:6,padding:"1px 7px",fontSize:10,fontWeight:700}}>{sem.volume_km}km</span>
+                          <span style={{color:C.td,fontSize:11}}>{sem.resumo}</span>
+                        </div>
+                      </div>
+                      {!isExpanded&&!isExpanding&&<div style={{background:C.violet+"22",borderRadius:8,padding:"5px 10px"}}><span style={{color:C.violetL,fontSize:11,fontWeight:700}}>Ver dias</span></div>}
+                      {isExpanding&&<div style={{width:16,height:16,borderRadius:"50%",border:"2px solid "+C.violet,borderTopColor:"transparent",animation:"spin 0.8s linear infinite"}}/>}
+                    </div>
 
-                    return (
-                      <div key={di} style={{borderRadius:12,marginBottom:6,border:"1px solid "+(isDone?"#22c55e33":d.alerta_lesao?C.amber+"33":C.border),overflow:"hidden",background:isDone?"#22c55e08":C.s1}}>
-                        <div style={{display:"flex",alignItems:"stretch",gap:0}}>
-                          <div style={{width:4,background:isDone?"#22c55e":cor,flexShrink:0}}/>
-                          <div style={{flex:1,padding:"10px 12px"}}>
-                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:d.descricao?5:0}}>
-                              <div style={{flex:1}}>
-                                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
-                                  <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase"}}>{d.dia?.slice(0,3)}</span>
-                                  <span style={{color:isDone?C.td:C.tp,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',sans-serif",textDecoration:isDone?"line-through":"none"}}>{d.tipo}</span>
+                    {/* Treinos chave resumidos (antes de expandir) */}
+                    {!isExpanded&&!isExpanding&&(
+                      <div style={{padding:"8px 14px 12px",display:"flex",gap:6,flexWrap:"wrap"}}>
+                        {sem.treinos_chave?.map((t,ti)=>(
+                          <span key={ti} style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:7,padding:"3px 8px",fontSize:11}}>{t}</span>
+                        ))}
+                        <span style={{background:C.s2,color:C.td,border:"1px solid "+C.border,borderRadius:7,padding:"3px 8px",fontSize:11}}>{sem.descansos||2} descansos</span>
+                      </div>
+                    )}
+
+                    {/* Dias expandidos */}
+                    {isExpanded&&dias.map((d,di)=>{
+                      const globalIdx=si*7+di;
+                      const isDone=!!completedWorkouts[String(globalIdx)];
+                      const isDescanso=d.distancia_km===0||d.tipo?.toLowerCase().includes("descanso");
+                      const cor=intCor2(d.tipo);
+                      if(isDescanso) return (
+                        <div key={di} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",borderTop:"1px solid "+C.border+"44"}}>
+                          <div onClick={()=>toggleWorkout(globalIdx)} style={{width:22,height:22,borderRadius:6,border:"1.5px solid "+C.border,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",background:isDone?"#22c55e22":"transparent"}}>
+                            {isDone&&<Ic n="check" z={11} c="#22c55e"/>}
+                          </div>
+                          <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",minWidth:28}}>{d.dia?.slice(0,3)}</span>
+                          <div style={{width:6,height:6,borderRadius:3,background:C.tg,flexShrink:0}}/>
+                          <span style={{color:C.td,fontSize:12,fontStyle:"italic"}}>{d.tipo||"Descanso"}</span>
+                        </div>
+                      );
+                      return (
+                        <div key={di} style={{borderTop:"1px solid "+C.border+"44",background:isDone?"#22c55e06":"transparent"}}>
+                          <div style={{display:"flex",alignItems:"stretch"}}>
+                            <div style={{width:3,background:isDone?"#22c55e":cor,flexShrink:0}}/>
+                            <div style={{flex:1,padding:"9px 12px"}}>
+                              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                                <div style={{flex:1}}>
+                                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
+                                    <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase"}}>{d.dia?.slice(0,3)}</span>
+                                    <span style={{color:isDone?C.td:C.tp,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',sans-serif",textDecoration:isDone?"line-through":"none"}}>{d.tipo}</span>
+                                  </div>
+                                  <div style={{display:"flex",gap:5}}>
+                                    {d.distancia_km>0&&<span style={{background:cor+"22",color:cor,border:"1px solid "+cor+"44",borderRadius:6,padding:"2px 7px",fontSize:11,fontWeight:700}}>{d.distancia_km}km</span>}
+                                    {d.pace_alvo&&d.pace_alvo!=="—"&&<span style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:6,padding:"2px 7px",fontSize:11}}>{d.pace_alvo}</span>}
+                                  </div>
                                 </div>
-                                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                                  {d.distancia_km>0&&<span style={{background:cor+"22",color:cor,border:"1px solid "+cor+"44",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>{d.distancia_km}km</span>}
-                                  {d.pace_alvo&&d.pace_alvo!=="—"&&<span style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:6,padding:"2px 8px",fontSize:11}}>{d.pace_alvo}</span>}
+                                <div onClick={()=>toggleWorkout(globalIdx)} style={{width:22,height:22,borderRadius:6,border:"1.5px solid "+(isDone?"#22c55e":C.border),display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:isDone?"#22c55e":"transparent",flexShrink:0,marginLeft:8}}>
+                                  {isDone&&<Ic n="check" z={11} c="#fff"/>}
                                 </div>
                               </div>
-                              <div onClick={()=>toggleWorkout(globalIdx)} style={{width:24,height:24,borderRadius:6,border:"1.5px solid "+(isDone?"#22c55e":C.border),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",background:isDone?"#22c55e":"transparent",marginLeft:8}}>
-                                {isDone&&<Ic n="check" z={12} c="#fff"/>}
-                              </div>
+                              {d.descricao&&<p style={{color:C.tm,fontSize:11,margin:"4px 0 0",lineHeight:1.4}}>{d.descricao}</p>}
+                              {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&<p style={{color:C.amber,fontSize:11,margin:"4px 0 0"}}>⚠️ {d.alerta_lesao}</p>}
                             </div>
-                            {d.descricao&&<p style={{color:C.tm,fontSize:11,margin:"5px 0 0",lineHeight:1.4}}>{d.descricao}</p>}
-                            {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&d.alerta_lesao!=="Nenhum"&&(
-                              <p style={{color:C.amber,fontSize:11,margin:"5px 0 0",lineHeight:1.4}}>⚠️ {d.alerta_lesao}</p>
-                            )}
-                            <p style={{color:C.td,fontSize:10,margin:"3px 0 0",fontFamily:"monospace"}}>Nenhuma corrida recente</p>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            ) : (
+              // Legacy 7-day plan
+              semanas_legacy.map((semana,si)=>{
+                const foco = focos[si]||("Semana "+(si+1));
+                return (
+                  <div key={si} style={{marginBottom:16}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                      <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{color:"#fff",fontWeight:800,fontSize:11,fontFamily:"monospace"}}>S{si+1}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                      <div style={{flex:1,height:1,background:C.border}}/>
+                      <span style={{color:C.td,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>{foco}</span>
+                    </div>
+                    {semana.map((d,di)=>{
+                      const globalIdx=si*7+di;
+                      const isDone=!!completedWorkouts[String(globalIdx)];
+                      const isDescanso=d.distancia_km===0||d.tipo?.toLowerCase().includes("descanso");
+                      const cor=intCor2(d.tipo);
+                      if(isDescanso) return (
+                        <div key={di} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 2px",borderBottom:"1px solid "+C.border+"44"}}>
+                          <div style={{width:24,height:24,borderRadius:6,border:"1.5px solid "+C.border,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",background:isDone?"#22c55e22":"transparent"}} onClick={()=>toggleWorkout(globalIdx)}>
+                            {isDone&&<Ic n="check" z={12} c="#22c55e"/>}
+                          </div>
+                          <span style={{color:C.ts,fontFamily:"monospace",fontSize:11,fontWeight:700,textTransform:"uppercase",minWidth:30}}>{d.dia?.slice(0,3)}</span>
+                          <div style={{width:6,height:6,borderRadius:3,background:C.tg}}/>
+                          <span style={{color:C.td,fontSize:13,fontStyle:"italic"}}>{d.tipo||"Descanso completo"}</span>
+                        </div>
+                      );
+                      return (
+                        <div key={di} style={{borderRadius:12,marginBottom:6,border:"1px solid "+(isDone?"#22c55e33":d.alerta_lesao?C.amber+"33":C.border),overflow:"hidden",background:isDone?"#22c55e08":C.s1}}>
+                          <div style={{display:"flex",alignItems:"stretch",gap:0}}>
+                            <div style={{width:4,background:isDone?"#22c55e":cor,flexShrink:0}}/>
+                            <div style={{flex:1,padding:"10px 12px"}}>
+                              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:d.descricao?5:0}}>
+                                <div style={{flex:1}}>
+                                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
+                                    <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase"}}>{d.dia?.slice(0,3)}</span>
+                                    <span style={{color:isDone?C.td:C.tp,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',sans-serif",textDecoration:isDone?"line-through":"none"}}>{d.tipo}</span>
+                                  </div>
+                                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                                    {d.distancia_km>0&&<span style={{background:cor+"22",color:cor,border:"1px solid "+cor+"44",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>{d.distancia_km}km</span>}
+                                    {d.pace_alvo&&d.pace_alvo!=="—"&&<span style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:6,padding:"2px 8px",fontSize:11}}>{d.pace_alvo}</span>}
+                                  </div>
+                                </div>
+                                <div onClick={()=>toggleWorkout(globalIdx)} style={{width:24,height:24,borderRadius:6,border:"1.5px solid "+(isDone?"#22c55e":C.border),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",background:isDone?"#22c55e":"transparent",marginLeft:8}}>
+                                  {isDone&&<Ic n="check" z={12} c="#fff"/>}
+                                </div>
+                              </div>
+                              {d.descricao&&<p style={{color:C.tm,fontSize:11,margin:"5px 0 0",lineHeight:1.4}}>{d.descricao}</p>}
+                              {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&d.alerta_lesao!=="Nenhum"&&(
+                                <p style={{color:C.amber,fontSize:11,margin:"5px 0 0",lineHeight:1.4}}>⚠️ {d.alerta_lesao}</p>
+                              )}
+                              <p style={{color:C.td,fontSize:10,margin:"3px 0 0",fontFamily:"monospace"}}>Nenhuma corrida recente</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            )}
           </div>
         );
       }
