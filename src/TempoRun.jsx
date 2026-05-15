@@ -1560,7 +1560,8 @@ export default function TempoRunApp() {
   const [treinosVinculados, setTreinosVinculados] = useState({}); // key: "S1-Seg" → run id
   const [vinculandoKey, setVinculandoKey] = useState(null); // qual treino está sendo vinculado
   const [planScreen, setPlanScreen] = useState("form");
-  const [planTipo, setPlanTipo] = useState(null); // null | "prova" | "objetivo"
+  const [planTipo, setPlanTipo] = useState(null);
+  const [paceRef, setPaceRef] = useState({dist:"5k", tempo:""}); // pace de referência por distância // null | "prova" | "objetivo"
   const [planProva, setPlanProva] = useState({distancia:"10k", data_prova:""});
   const [planObjetivo, setPlanObjetivo] = useState({objetivo:"vo2max", semanas:8});
   const [expandedWeeks, setExpandedWeeks] = useState({}); // {weekIdx: {dias:[...]}}
@@ -3036,9 +3037,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                   <Ic n="back" z={12} c={C.tm}/> Voltar
                 </button>
                 <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Distância da prova</p>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-                  {[{id:"5k",l:"5km"},{id:"10k",l:"10km"},{id:"meia",l:"Meia (21km)"},{id:"maratona",l:"Maratona (42km)"}].map(d=>(
-                    <button key={d.id} onClick={()=>setPlanProva(p=>({...p,distancia:d.id}))} style={{background:planProva.distancia===d.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planProva.distancia===d.id?"#fff":C.tm,border:"1px solid "+(planProva.distancia===d.id?C.violet:C.border),borderRadius:11,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>{d.l}</button>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+                  {[
+                    {id:"5k",    l:"5km"},
+                    {id:"8k",    l:"8km"},
+                    {id:"10k",   l:"10km"},
+                    {id:"10miles",l:"10 milhas"},
+                    {id:"15k",   l:"15km"},
+                    {id:"meia",  l:"21km"},
+                    {id:"30k",   l:"30km"},
+                    {id:"maratona",l:"42km"},
+                    {id:"ultra", l:"Ultra"},
+                  ].map(d=>(
+                    <button key={d.id} onClick={()=>setPlanProva(p=>({...p,distancia:d.id}))} style={{background:planProva.distancia===d.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planProva.distancia===d.id?"#fff":C.tm,border:"1px solid "+(planProva.distancia===d.id?C.violet:C.border),borderRadius:11,padding:"10px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>{d.l}</button>
                   ))}
                 </div>
                 <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.5}}>Data da prova</p>
@@ -3088,12 +3099,26 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             {/* Campos comuns */}
             {planTipo&&(
               <div>
-                {[{label:"Pace atual (min:seg/km)",k:"pace_atual",ph:"Ex: 5:30"},{label:"Dias disponíveis/semana",k:"dias_disponiveis",ph:"Ex: 4"},{label:"Distância semanal atual (km)",k:"dist_semana",ph:"Ex: 25"},{label:"Histórico de lesões",k:"historico_lesoes",ph:"Nenhuma ou ex: tendinite joelho"}].map((f,i)=>(
+                {[{label:"Dias disponíveis/semana",k:"dias_disponiveis",ph:"Ex: 4"},{label:"Distância semanal atual (km)",k:"dist_semana",ph:"Ex: 25"},{label:"Histórico de lesões",k:"historico_lesoes",ph:"Nenhuma ou ex: tendinite joelho"}].map((f,i)=>(
                   <div key={i} style={{marginBottom:11}}>
                     <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.3}}>{f.label}</p>
                     <input value={planForm[f.k]} onChange={e=>setPlanForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
                   </div>
                 ))}
+
+                {/* Tempo de referência (RP) */}
+                <div style={{marginBottom:13}}>
+                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>Tempo de referência (Record Pessoal)</p>
+                  <div style={{display:"flex",gap:6,marginBottom:10}}>
+                    {[{id:"5k",l:"5km"},{id:"10k",l:"10km"},{id:"21k",l:"Meia"},{id:"42k",l:"Maratona"}].map(d=>(
+                      <button key={d.id} onClick={()=>setPaceRef(p=>({...p,dist:d.id}))} style={{flex:1,background:paceRef.dist===d.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:paceRef.dist===d.id?"#fff":C.tm,border:"1px solid "+(paceRef.dist===d.id?C.violet:C.border),borderRadius:9,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{d.l}</button>
+                    ))}
+                  </div>
+                  <input value={paceRef.tempo} onChange={e=>setPaceRef(p=>({...p,tempo:e.target.value}))}
+                    placeholder={paceRef.dist==="5k"?"Ex: 25:30":paceRef.dist==="10k"?"Ex: 52:00":paceRef.dist==="21k"?"Ex: 1:55:00":"Ex: 4:10:00"}
+                    style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                  <p style={{color:C.td,fontSize:10,margin:"5px 0 0"}}>Tempo total da prova · usado para calcular paces de treino</p>
+                </div>
                 <div style={{marginBottom:13}}>
                   <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>Nível</p>
                   <div style={{display:"flex",gap:7}}>{["iniciante","intermediario","avancado"].map(n=><button key={n} onClick={()=>setPlanForm(p=>({...p,nivel:n}))} style={{flex:1,background:planForm.nivel===n?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planForm.nivel===n?"#fff":C.tm,border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{n}</button>)}</div>
@@ -3300,7 +3325,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:18,margin:0}}>{savedPlan.titulo||"Meu Plano IA"}</h1>
                 <p style={{color:C.tm,fontSize:12,margin:"2px 0 0"}}>{isMacro?semanas_macro.length+" semanas":totalSemanas+" semanas"} · personalizado</p>
               </div>
-              <button onClick={()=>{setPlanScreen("form");setSubScreen(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",fontSize:11,color:C.tm,fontFamily:"inherit"}}>Novo plano</button>
+              <button onClick={()=>{setPlanScreen("form");setPlanTipo(null);setSubScreen("plano");}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",fontSize:11,color:C.tm,fontFamily:"inherit"}}>Novo plano</button>
               <button onClick={()=>{if(window.confirm("Excluir plano?")){{setSavedPlan(null);try{localStorage.removeItem("tr_saved_plan");localStorage.removeItem("tr_completed_workouts");}catch{}setCompletedWorkouts({});setSubScreen(null);}}} } style={{background:C.coral+"11",border:"1px solid "+C.coral+"33",borderRadius:9,padding:"6px 8px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <Ic n="trash" z={14} c={C.coral}/>
               </button>
@@ -3506,7 +3531,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </div>
             <p style={{color:C.tp,fontWeight:800,fontSize:20,margin:"0 0 10px",fontFamily:"'Space Grotesk',sans-serif"}}>Que tal criarmos um plano personalizado?</p>
             <p style={{color:C.tm,fontSize:14,margin:"0 0 28px",lineHeight:1.6,maxWidth:280}}>A IA vai montar uma semana de treinos baseada no seu perfil, objetivo e histórico de corridas.</p>
-            <button onClick={()=>{setPlanScreen("form");setSubScreen(null);setTab("treino");}}
+            <button onClick={()=>{setPlanScreen("form");setPlanTipo(null);setSubScreen("plano");}}
               style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:14,padding:"15px 28px",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 6px 24px "+C.violet+"55"}}>
               ✨ Criar meu plano com IA
             </button>
