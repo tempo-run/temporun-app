@@ -1529,7 +1529,7 @@ export default function TempoRunApp() {
     try { return !localStorage.getItem("tr_onboarding_done"); } catch { return true; }
   });
   const [onboardingStep, setOnboardingStep] = useState(0);
-  const [onboardingData, setOnboardingData] = useState({ objetivo:"", nivel:"" });
+  const [onboardingData, setOnboardingData] = useState({ objetivos:[], nivel:"" });
   const [selectedPlan, setSelectedPlan]     = useState("yearly");
   const [isPro, setIsPro]                   = useState(false);
 
@@ -1796,7 +1796,7 @@ export default function TempoRunApp() {
     if(dadosForm.sexo) parts.push(`Sexo: ${dadosForm.sexo}`);
     if(dadosForm.peso) parts.push(`Peso: ${dadosForm.peso}kg`);
     if(dadosForm.altura) parts.push(`Altura: ${dadosForm.altura}cm`);
-    if(onboardingData.objetivo) parts.push(`Objetivo: ${onboardingData.objetivo}`);
+    if(onboardingData.objetivos?.length) parts.push(`Objetivos: ${onboardingData.objetivos.join(", ")}`);
     if(onboardingData.nivel||planForm.nivel) parts.push(`Nível: ${onboardingData.nivel||planForm.nivel}`);
     if(planForm.pace_atual) parts.push(`Pace atual: ${planForm.pace_atual}/km`);
     if(paceRecente) parts.push(`Pace recente: ${paceRecente}/km`);
@@ -1897,11 +1897,11 @@ ${parts.join(" | ")}` : "";
     const nivel = planForm.nivel||onboardingData.nivel||"iniciante";
     const distProva = planTipo==="prova" ? planProva.distancia : (planObjetivo.objetivo==="maratona"?"maratona":planObjetivo.objetivo==="meia"?"meia_maratona":"outro");
     const volumeFloors = {
-      maratona:      {iniciante:"pico mínimo 55km/semana",intermediario:"pico mínimo 65km/semana",avancado:"pico mínimo 80km/semana"},
-      "42k":         {iniciante:"pico mínimo 55km/semana",intermediario:"pico mínimo 65km/semana",avancado:"pico mínimo 80km/semana"},
-      meia_maratona: {iniciante:"pico mínimo 45km/semana",intermediario:"pico mínimo 55km/semana",avancado:"pico mínimo 70km/semana"},
-      "21k":         {iniciante:"pico mínimo 45km/semana",intermediario:"pico mínimo 55km/semana",avancado:"pico mínimo 70km/semana"},
-      "10k":         {iniciante:"pico mínimo 35km/semana",intermediario:"pico mínimo 50km/semana",avancado:"pico mínimo 60km/semana"},
+      maratona:{iniciante:"pico mínimo 55km/semana",intermediario:"pico mínimo 65km/semana",avancado:"pico mínimo 80km/semana"},
+      "42k":{iniciante:"pico mínimo 55km/semana",intermediario:"pico mínimo 65km/semana",avancado:"pico mínimo 80km/semana"},
+      meia_maratona:{iniciante:"pico mínimo 45km/semana",intermediario:"pico mínimo 55km/semana",avancado:"pico mínimo 70km/semana"},
+      "21k":{iniciante:"pico mínimo 45km/semana",intermediario:"pico mínimo 55km/semana",avancado:"pico mínimo 70km/semana"},
+      "10k":{iniciante:"pico mínimo 35km/semana",intermediario:"pico mínimo 50km/semana",avancado:"pico mínimo 60km/semana"},
     };
     const floorKey = ["maratona","42k","42 km","42km"].some(k=>distProva?.toLowerCase()===k) ? "maratona"
                    : ["meia_maratona","21k","21 km","21km","meia maratona"].some(k=>distProva?.toLowerCase()===k) ? "meia_maratona"
@@ -1978,7 +1978,7 @@ ${parts.join(" | ")}` : "";
     const nomeAtleta=dadosForm.nome?dadosForm.nome.split(" ")[0]:"Atleta";
     const kmRecente=corridas.filter(r=>new Date(r.timestamp)>new Date(Date.now()-30*24*60*60*1000)).reduce((a,c)=>a+c.distancia_km,0);
     const ctx=`ATLETA: ${nomeAtleta}${idade?` | ${idade} anos`:""}${dadosForm.sexo?` | ${dadosForm.sexo}`:""}${dadosForm.peso?` | ${dadosForm.peso}kg`:""}${dadosForm.altura?` | ${dadosForm.altura}cm`:""}
-Objetivo:${planForm.objetivo||onboardingData.objetivo}
+Objetivo:${planForm.objetivo||onboardingData.objetivos?.join(", ")||""}
 Distância:${planForm.dist_semana}km/sem
 Pace:${planForm.pace_atual}/km
 Dias:${planForm.dias_disponiveis}
@@ -2464,9 +2464,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
   // ── ONBOARDING ────────────────────────────────────────────────────────────────
   function renderOnboarding() {
-    const nome = dadosForm.nome || session?.email?.split("@")[0] || "corredor";
-    const primeiroNome = nome.split(" ")[0];
-
     const objetivos = [
       { id:"5k",      emoji:"🏃", label:"Correr 5km",        desc:"Começar ou retomar" },
       { id:"10k",     emoji:"🎯", label:"Correr 10km",       desc:"Evoluir a distância" },
@@ -2475,138 +2472,138 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       { id:"saude",   emoji:"❤️", label:"Saúde e bem-estar", desc:"Correr para viver melhor" },
       { id:"perda",   emoji:"🔥", label:"Perda de peso",     desc:"Correr para emagrecer" },
     ];
-
     const niveis = [
       { id:"iniciante",    emoji:"🌱", label:"Iniciante",     desc:"Nunca corri ou voltando do zero" },
-      { id:"intermediario",emoji:"💪", label:"Intermediário", desc:"Corro há algum tempo" },
-      { id:"avancado",     emoji:"🚀", label:"Avançado",      desc:"Corro com consistência" },
+      { id:"intermediario",emoji:"💪", label:"Intermediário", desc:"Corro há algum tempo, regularmente" },
+      { id:"avancado",     emoji:"🚀", label:"Avançado",      desc:"Corro com consistência e volume" },
     ];
+
+    const nomeVal = onboardingData.nome !== undefined ? onboardingData.nome : (dadosForm.nome || "");
+    const podeContinuar = nomeVal.trim().length >= 2 && onboardingData.objetivos?.length > 0 && !!onboardingData.nivel;
+
+    function toggleObjetivo(id) {
+      setOnboardingData(p => {
+        const atual = p.objetivos || [];
+        const jatem = atual.includes(id);
+        return {...p, objetivos: jatem ? atual.filter(x=>x!==id) : [...atual, id]};
+      });
+    }
 
     function finish() {
       try { localStorage.setItem("tr_onboarding_done","1"); } catch {}
-      // Save to dadosForm
-      setDadosForm(p=>({...p, objetivo: onboardingData.objetivo, nivel: onboardingData.nivel}));
+      setDadosForm(p=>({...p,
+        nome: nomeVal.trim() || p.nome,
+        objetivo: onboardingData.objetivos?.[0] || p.objetivo,
+        nivel: onboardingData.nivel || p.nivel,
+      }));
       setShowOnboarding(false);
     }
 
     return (
-      <div style={{position:"fixed",inset:0,zIndex:400,background:C.bg,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",overflow:"hidden"}}>
+      <div style={{position:"fixed",inset:0,zIndex:400,background:C.bg,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",overflowY:"auto",animation:"obFadeIn 0.5s ease both"}}>
+        <style>{`
+          @keyframes obFadeIn { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes obSlideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+          .ob-s1{animation:obSlideUp 0.4s ease 0.05s both}
+          .ob-s2{animation:obSlideUp 0.4s ease 0.12s both}
+          .ob-s3{animation:obSlideUp 0.4s ease 0.2s both}
+          .ob-s4{animation:obSlideUp 0.4s ease 0.28s both}
+          .ob-s5{animation:obSlideUp 0.4s ease 0.36s both}
+        `}</style>
 
-        {/* Step 0 — Boas-vindas */}
-        {onboardingStep === 0 && (
-          <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 28px",textAlign:"center"}}>
-            {/* Animated glow ring */}
-            <div style={{position:"relative",marginBottom:32}}>
-              <div style={{width:130,height:130,borderRadius:65,overflow:"hidden",boxShadow:"0 0 50px "+C.violet+"66, 0 0 100px "+C.cyan+"33"}}>
-                <img src={iconCircle} alt="TempoRun" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-              </div>
-              {/* Pulse rings */}
-              <div style={{position:"absolute",inset:-10,borderRadius:75,border:"2px solid "+C.violet+"33"}}/>
-              <div style={{position:"absolute",inset:-22,borderRadius:87,border:"1px solid "+C.violet+"22"}}/>
+        <div style={{padding:"48px 22px 32px",display:"flex",flexDirection:"column",gap:28}}>
+
+          {/* Logo */}
+          <div className="ob-s1" style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:42,height:42,borderRadius:13,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 20px "+C.violet+"55"}}>
+              <img src={iconCircle} alt="TempoRun" style={{width:28,height:28,objectFit:"contain"}}/>
             </div>
+            <div>
+              <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:0,letterSpacing:-0.3}}>TempoRun</p>
+              <p style={{color:C.tm,fontSize:11,margin:0,fontFamily:"monospace",letterSpacing:0.5}}>SEU COACH COM IA</p>
+            </div>
+          </div>
 
-            <p style={{color:C.ts,fontSize:12,fontWeight:700,letterSpacing:2,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 14px"}}>Bem-vindo ao</p>
-            <img src={tempoRunLogo} alt="TempoRun" style={{width:180,height:"auto",objectFit:"contain",marginBottom:16}}/>
-            <p style={{color:C.tp,fontSize:22,fontWeight:700,margin:"0 0 10px",fontFamily:"'Space Grotesk',sans-serif"}}>
-              Olá, {primeiroNome}! {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}
-            </p>
-            <p style={{color:C.tm,fontSize:15,margin:"0 0 48px",lineHeight:1.6}}>
-              Seu coach de corrida com IA.<br/>Vamos personalizar sua experiência em 2 passos rápidos.
-            </p>
+          {/* Título */}
+          <div className="ob-s2">
+            <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:26,fontWeight:800,margin:"0 0 6px",letterSpacing:-0.5,lineHeight:1.2}}>
+              Vamos configurar<br/>seu perfil 👋
+            </h1>
+            <p style={{color:C.tm,fontSize:14,margin:0,lineHeight:1.6}}>Leva menos de 1 minuto.</p>
+          </div>
 
-            <button onClick={()=>setOnboardingStep(1)}
-              style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:16,padding:"17px 0",fontWeight:800,fontSize:16,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 8px 32px "+C.violet+"55",letterSpacing:0.3}}>
-              Vamos começar →
+          {/* Campo nome */}
+          <div className="ob-s3">
+            <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 8px"}}>Como quer ser chamado?</p>
+            <input
+              value={nomeVal}
+              onChange={e=>setOnboardingData(p=>({...p,nome:e.target.value}))}
+              placeholder="Seu primeiro nome"
+              autoFocus
+              style={{width:"100%",background:C.s2,border:"1.5px solid "+(nomeVal.trim().length>=2?C.violet:C.border),borderRadius:13,padding:"13px 15px",color:C.tp,fontSize:16,outline:"none",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,transition:"border-color 0.2s",boxSizing:"border-box"}}
+            />
+          </div>
+
+          {/* Objetivos */}
+          <div className="ob-s4">
+            <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 10px"}}>
+              Seus objetivos
+              <span style={{color:C.td,fontWeight:500,textTransform:"none",fontSize:11,letterSpacing:0,marginLeft:8}}>pode escolher mais de um</span>
+            </p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+              {objetivos.map(o=>{
+                const sel = onboardingData.objetivos?.includes(o.id);
+                return (
+                  <button key={o.id} onClick={()=>toggleObjetivo(o.id)}
+                    style={{background:sel?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"2px solid "+(sel?C.violet:C.border),borderRadius:13,padding:"13px 10px",cursor:"pointer",textAlign:"left",transition:"all 0.15s",position:"relative"}}>
+                    {sel&&<div style={{position:"absolute",top:8,right:8,width:16,height:16,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <Ic n="check" z={9} c="#fff"/>
+                    </div>}
+                    <span style={{fontSize:22,display:"block",marginBottom:5}}>{o.emoji}</span>
+                    <p style={{color:sel?C.tp:C.ts,fontWeight:700,fontSize:12,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.3}}>{o.label}</p>
+                    <p style={{color:C.td,fontSize:10,margin:0,lineHeight:1.3}}>{o.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Nível */}
+          <div className="ob-s5">
+            <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 10px"}}>Nível atual</p>
+            <div style={{display:"flex",flexDirection:"column",gap:9}}>
+              {niveis.map(n=>{
+                const sel = onboardingData.nivel===n.id;
+                return (
+                  <button key={n.id} onClick={()=>setOnboardingData(p=>({...p,nivel:n.id}))}
+                    style={{background:sel?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"2px solid "+(sel?C.violet:C.border),borderRadius:14,padding:"14px 15px",cursor:"pointer",display:"flex",alignItems:"center",gap:13,textAlign:"left",transition:"all 0.15s"}}>
+                    <span style={{fontSize:28,flexShrink:0}}>{n.emoji}</span>
+                    <div style={{flex:1}}>
+                      <p style={{color:sel?C.tp:C.ts,fontWeight:700,fontSize:14,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>{n.label}</p>
+                      <p style={{color:C.tm,fontSize:12,margin:0}}>{n.desc}</p>
+                    </div>
+                    {sel&&<div style={{width:20,height:20,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="check" z={11} c="#fff"/></div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Botão */}
+          <div style={{paddingBottom:16}}>
+            <button
+              onClick={()=>{ if(podeContinuar) finish(); }}
+              disabled={!podeContinuar}
+              style={{width:"100%",background:podeContinuar?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"#1e2456",color:"#fff",border:"none",borderRadius:15,padding:"17px 0",fontWeight:800,fontSize:16,cursor:podeContinuar?"pointer":"default",fontFamily:"'Space Grotesk',sans-serif",opacity:podeContinuar?1:0.45,transition:"all 0.25s",boxShadow:podeContinuar?"0 8px 28px "+C.violet+"55":"none",letterSpacing:0.3}}>
+              🚀 Começar a treinar
             </button>
-            <button onClick={finish} style={{background:"none",border:"none",color:C.td,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginTop:16,padding:"8px 0"}}>
+            <button onClick={()=>{try{localStorage.setItem("tr_onboarding_done","1");}catch{}setShowOnboarding(false);}}
+              style={{background:"none",border:"none",color:C.td,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginTop:12,padding:"8px 0",width:"100%"}}>
               Pular por agora
             </button>
           </div>
-        )}
 
-        {/* Step 1 — Objetivo */}
-        {onboardingStep === 1 && (
-          <div style={{flex:1,display:"flex",flexDirection:"column",padding:"32px 20px 24px",overflowY:"auto"}}>
-            <div style={{marginBottom:28}}>
-              <div style={{display:"flex",gap:6,marginBottom:20}}>
-                {[0,1,2].map(i=>(
-                  <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<=0?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border}}/>
-                ))}
-              </div>
-              <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 8px"}}>Passo 1 de 2</p>
-              <h2 style={{color:C.tp,fontSize:24,fontWeight:800,margin:"0 0 6px",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>
-                Qual é o seu objetivo?
-              </h2>
-              <p style={{color:C.tm,fontSize:14,margin:0}}>Vamos montar seu plano ideal.</p>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,flex:1}}>
-              {objetivos.map(o=>(
-                <button key={o.id} onClick={()=>{setOnboardingData(p=>({...p,objetivo:o.id}));}}
-                  style={{background:onboardingData.objetivo===o.id?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"2px solid "+(onboardingData.objetivo===o.id?C.violet:C.border),borderRadius:14,padding:"14px 10px",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
-                  <span style={{fontSize:24,display:"block",marginBottom:6}}>{o.emoji}</span>
-                  <p style={{color:onboardingData.objetivo===o.id?C.tp:C.ts,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{o.label}</p>
-                  <p style={{color:C.td,fontSize:11,margin:0,lineHeight:1.3}}>{o.desc}</p>
-                  {onboardingData.objetivo===o.id&&(
-                    <div style={{marginTop:6,display:"flex",alignItems:"center",gap:4}}>
-                      <div style={{width:6,height:6,borderRadius:3,background:C.violet}}/>
-                      <span style={{color:C.violetB,fontSize:10,fontWeight:700}}>Selecionado</span>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <button onClick={()=>{if(onboardingData.objetivo) setOnboardingStep(2);}}
-              disabled={!onboardingData.objetivo}
-              style={{width:"100%",background:onboardingData.objetivo?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"#1e2456",color:"#fff",border:"none",borderRadius:14,padding:"16px 0",fontWeight:800,fontSize:15,cursor:onboardingData.objetivo?"pointer":"default",fontFamily:"'Space Grotesk',sans-serif",marginTop:16,opacity:onboardingData.objetivo?1:0.5,transition:"all 0.2s"}}>
-              Continuar →
-            </button>
-          </div>
-        )}
-
-        {/* Step 2 — Nível */}
-        {onboardingStep === 2 && (
-          <div style={{flex:1,display:"flex",flexDirection:"column",padding:"32px 20px 24px"}}>
-            <div style={{marginBottom:28}}>
-              <div style={{display:"flex",gap:6,marginBottom:20}}>
-                {[0,1,2].map(i=>(
-                  <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<=1?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border}}/>
-                ))}
-              </div>
-              <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 8px"}}>Passo 2 de 2</p>
-              <h2 style={{color:C.tp,fontSize:24,fontWeight:800,margin:"0 0 6px",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>
-                Você já corre?
-              </h2>
-              <p style={{color:C.tm,fontSize:14,margin:0}}>Isso ajuda a calibrar sua intensidade.</p>
-            </div>
-
-            <div style={{display:"flex",flexDirection:"column",gap:12,flex:1}}>
-              {niveis.map(n=>(
-                <button key={n.id} onClick={()=>setOnboardingData(p=>({...p,nivel:n.id}))}
-                  style={{background:onboardingData.nivel===n.id?"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)":C.s1,border:"2px solid "+(onboardingData.nivel===n.id?C.violet:C.border),borderRadius:16,padding:"18px 16px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",transition:"all 0.15s"}}>
-                  <span style={{fontSize:32,flexShrink:0}}>{n.emoji}</span>
-                  <div style={{flex:1}}>
-                    <p style={{color:onboardingData.nivel===n.id?C.tp:C.ts,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{n.label}</p>
-                    <p style={{color:C.tm,fontSize:12,margin:0}}>{n.desc}</p>
-                  </div>
-                  {onboardingData.nivel===n.id&&(
-                    <div style={{width:22,height:22,borderRadius:11,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <Ic n="check" z={12} c="#fff"/>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <button onClick={()=>{if(onboardingData.nivel) finish();}}
-              disabled={!onboardingData.nivel}
-              style={{width:"100%",background:onboardingData.nivel?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"#1e2456",color:"#fff",border:"none",borderRadius:14,padding:"16px 0",fontWeight:800,fontSize:15,cursor:onboardingData.nivel?"pointer":"default",fontFamily:"'Space Grotesk',sans-serif",marginTop:16,opacity:onboardingData.nivel?1:0.5,transition:"all 0.2s"}}>
-              🚀 Começar a treinar
-            </button>
-          </div>
-        )}
-
+        </div>
       </div>
     );
   }
