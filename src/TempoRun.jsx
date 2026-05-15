@@ -1796,7 +1796,7 @@ export default function TempoRunApp() {
   const [gSeg, setGSeg]       = useState(0);
   const [gKm, setGKm]         = useState(0);
   const [gCad, setGCad]       = useState(0);
-  const timerRef=useRef(null); const gSR=useRef(0); const gKR=useRef(0); const gBR=useRef(0); const gCR=useRef(0);
+  const timerRef=useRef(null); const gSR=useRef(0); const gKR=useRef(0); const gBR=useRef(0); const gCR=useRef(0); const isRunningRef=useRef(false);
   const watchRef=useRef(null);        // GPS watchPosition ID
   const lastPosRef=useRef(null);      // última posição GPS {lat,lng,ts}
   const routeRef=useRef([]);          // array de pontos [[lat,lng],...]
@@ -1959,7 +1959,7 @@ ${parts.join(" | ")}` : "";
         setGpsAccuracy(Math.round(accuracy));
         setGpsStatus("active");
         const last=lastPosRef.current;
-        if(last && gSR.current>0){ // só grava distância se a corrida já iniciou
+        if(last && isRunningRef.current){ // só grava distância se a corrida já iniciou
           const dist=haversine(last.lat,last.lng,lat,lng);
           const dt=(Date.now()-last.ts)/1000;
           const speed=dt>0?dist/dt:0;
@@ -1981,7 +1981,7 @@ ${parts.join(" | ")}` : "";
           }
         }
         // Atualiza posição sempre (para o mapa)
-        if(gSR.current>0) routeRef.current.push([lat,lng]); // só grava rota se corrida ativa
+        if(isRunningRef.current) routeRef.current.push([lat,lng]); // só grava rota se corrida ativa
         lastPosRef.current={lat,lng,ts:Date.now()};
         // Centraliza mapa na posição atual sempre
         if(routeRef.current.length===0) routeRef.current=[[lat,lng]]; // pré-aquecimento: só posição
@@ -1994,11 +1994,11 @@ ${parts.join(" | ")}` : "";
 
   function stopGPS(){if(watchRef.current!==null){navigator.geolocation.clearWatch(watchRef.current);watchRef.current=null;}setGpsStatus("off");}
 
-  function iniciar(){gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);setGStatus("ativo");setGSeg(0);setGKm(0);setGCad(0);setSavedRun(null);startTimer();startGPS();}
-  function pausar(){clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
-  function retomar(){setGStatus("ativo");startTimer();startGPS();}
+  function iniciar(){isRunningRef.current=true;gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);setGStatus("ativo");setGSeg(0);setGKm(0);setGCad(0);setSavedRun(null);startTimer();startGPS();}
+  function pausar(){isRunningRef.current=false;clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
+  function retomar(){isRunningRef.current=true;setGStatus("ativo");startTimer();startGPS();}
   async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gCR.current,p,routeRef.current);}
-  function resetGrav(keepGPS=false){clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
+  function resetGrav(keepGPS=false){isRunningRef.current=false;clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
   // Pré-aquecimento GPS ao entrar na tela de gravação
