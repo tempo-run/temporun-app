@@ -539,7 +539,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
         // Sombra da rota
         map.addLayer({ id:"route-shadow", type:"line", source:"route",
           layout:{"line-cap":"round","line-join":"round"},
-          paint:{"line-color":"#00000088","line-width":8,"line-blur":4}
+          paint:{"line-color":"rgba(0,0,0,0.53)","line-width":8,"line-blur":4}
         });
         // Rota com gradiente de pace
         map.addLayer({ id:"route-line", type:"line", source:"route",
