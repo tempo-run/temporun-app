@@ -438,15 +438,18 @@ function RunMap({ polyline, color=C.cyanB, dplus=0 }) {
 // SVG fallback (quando não há API key ou falha de rede)
 function RunMapSvgFallback({ polyline, color=C.cyanB }) {
   const W=300, H=130, pad=18;
-  const lats=polyline.map(p=>p[0]), lngs=polyline.map(p=>p[1]);
+  const safePolyline=polyline.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined);
+  if(safePolyline.length<2) return null;
+  const lats=safePolyline.map(p=>p[0]), lngs=safePolyline.map(p=>p[1]);
   const minLat=Math.min(...lats), maxLat=Math.max(...lats);
   const minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
   const rLat=maxLat-minLat||0.001, rLng=maxLng-minLng||0.001;
   const scale=Math.min((W-pad*2)/rLng,(H-pad*2)/rLat);
   const tx=lng=>pad+(lng-minLng)*scale;
   const ty=lat=>H-pad-(lat-minLat)*scale;
-  const pts=polyline.map(p=>`${tx(p[1]).toFixed(1)},${ty(p[0]).toFixed(1)}`).join(" ");
-  const last=polyline[polyline.length-1];
+  const validPts=safePolyline;
+  const pts=validPts.map(p=>`${tx(p[1]).toFixed(1)},${ty(p[0]).toFixed(1)}`).join(" ");
+  const last=validPts[validPts.length-1]||polyline[0]||[0,0];
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",background:"#080c20",height:130}}>
       <defs>
@@ -457,8 +460,8 @@ function RunMapSvgFallback({ polyline, color=C.cyanB }) {
       </defs>
       {[0.25,0.5,0.75].map((f,i)=><line key={i} x1={pad} y1={pad+f*(H-pad*2)} x2={W-pad} y2={pad+f*(H-pad*2)} stroke="#1a2050" strokeWidth="0.5"/>)}
       <polyline points={pts} fill="none" stroke="url(#pgr2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" filter="url(#pglow2)"/>
-      <circle cx={tx(polyline[0][1])} cy={ty(polyline[0][0])} r={5} fill={C.cyanB}/><circle cx={tx(polyline[0][1])} cy={ty(polyline[0][0])} r={9} fill={C.cyanB} opacity="0.2"/>
-      <circle cx={tx(last[1])} cy={ty(last[0])} r={5} fill={C.coral}/><circle cx={tx(last[1])} cy={ty(last[0])} r={9} fill={C.coral} opacity="0.2"/>
+      {validPts.length>0&&<><circle cx={tx(validPts[0][1])} cy={ty(validPts[0][0])} r={5} fill={C.cyanB}/><circle cx={tx(validPts[0][1])} cy={ty(validPts[0][0])} r={9} fill={C.cyanB} opacity="0.2"/></>}
+      {last&&<><circle cx={tx(last[1])} cy={ty(last[0])} r={5} fill={C.coral}/><circle cx={tx(last[1])} cy={ty(last[0])} r={9} fill={C.coral} opacity="0.2"/></>}
       <rect x={2} y={H-14} width={72} height={12} rx={3} fill="#06071a" opacity="0.9"/>
       <text x={38} y={H-5} textAnchor="middle" fill={C.td} fontSize="7" fontWeight="700" fontFamily="monospace">sem API key</text>
     </svg>
