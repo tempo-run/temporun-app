@@ -144,9 +144,9 @@ IMPORTANTE: descrições máximo 1 frase curta. resumo_semanal máximo 2 frases.
 JSON apenas: {"plano":[{"dia":"","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}],"resumo_semanal":"","avisos_medicos":[],"progressao_segura":"","alerta_glp1":""}`;
 
 const SYS_PLAN_MACRO=`Você é TEMPO, coach IA do TempoRun. Gere estrutura MACRO de plano de treino.
-REGRAS: progressão segura (regra 10%/semana), fases lógicas, descanso adequado.
-Responda APENAS JSON:
-{"titulo":"","semanas":N,"fases":[{"nome":"","semanas_inicio":1,"semanas_fim":N,"foco":"","volume_semanal_km":0,"intensidade":"leve|moderado|forte"}],"semanas":[{"semana":1,"foco":"","volume_km":0,"treinos_chave":[""],"descansos":2,"resumo":""}],"objetivo":"","avisos":[]}`
+REGRAS: progressão segura (regra 10%/semana), fases lógicas, descanso adequado. Seja CONCISO: resumo e treinos_chave curtos (máx 3 palavras cada). Máximo 3 avisos.
+Responda APENAS JSON (sem markdown):
+{"titulo":"","objetivo":"","semanas":[{"semana":1,"foco":"","volume_km":0,"treinos_chave":[""],"descansos":2,"resumo":"","intensidade":"leve"}],"avisos":[]}`
 
 const SYS_PLAN_WEEK=`Você é TEMPO, coach IA do TempoRun. Expanda UMA semana do plano em dias detalhados.
 REGRAS: nunca volume >10%/semana; mínimo 1-2 descansos; descrições curtas (1 frase).
@@ -1871,7 +1871,7 @@ ${parts.join(" | ")}` : "";
     const ctx=`ATLETA: ${nomeAtleta}${idade?` | ${idade} anos`:""}${dadosForm.peso?` | ${dadosForm.peso}kg`:""}\nNível: ${planForm.nivel||onboardingData.nivel}\nPace atual: ${planForm.pace_atual||"5:30"}/km\nDias disponíveis/semana: ${planForm.dias_disponiveis||4}\nVolume recente: ${kmRecente.toFixed(0)}km/mês\nHistórico lesões: ${planForm.historico_lesoes||"Nenhuma"}${glp1str}\n${durCtx}`;
 
     try{
-      const r=await callAI(SYS_PLAN_MACRO,ctx,[],2000);
+      const r=await callAI(SYS_PLAN_MACRO,ctx,[],4000);
       const clean=r.replace(/```json|```/g,"").trim();
       const macro=JSON.parse(clean);
       // Salva o macro como plano (semanas expandidas vazias)
@@ -2993,7 +2993,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     if(subScreen==="plano") return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={()=>setSubScreen(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
+          <button onClick={()=>{if(planTipo){setPlanTipo(null);}else{setSubScreen(null);}}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
           <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>Plano IA personalizado</h1>
         </div>
         {planScreen==="form"&&(
