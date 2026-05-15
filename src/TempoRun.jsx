@@ -3122,6 +3122,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <p style={{color:C.tm,fontSize:12,margin:"2px 0 0"}}>{totalDias} dias · personalizado</p>
               </div>
               <button onClick={()=>{setPlanScreen("form");setSubScreen(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",fontSize:11,color:C.tm,fontFamily:"inherit"}}>Novo plano</button>
+              <button onClick={()=>{if(window.confirm("Excluir plano?")){{setSavedPlan(null);try{localStorage.removeItem("tr_saved_plan");localStorage.removeItem("tr_completed_workouts");}catch{}setCompletedWorkouts({});setSubScreen(null);}}} } style={{background:C.coral+"11",border:"1px solid "+C.coral+"33",borderRadius:9,padding:"6px 8px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Ic n="trash" z={14} c={C.coral}/>
+              </button>
             </div>
 
             {/* Resumo */}
