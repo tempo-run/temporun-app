@@ -1795,7 +1795,7 @@ export default function TempoRunApp() {
   const [gStatus, setGStatus] = useState("idle");
   const [gSeg, setGSeg]       = useState(0);
   const [gKm, setGKm]         = useState(0);
-  const [gBpm, setGBpm]       = useState(158);
+  const [gCad, setGBpm]       = useState(158);
   const timerRef=useRef(null); const gSR=useRef(0); const gKR=useRef(0); const gBR=useRef(158);
   const watchRef=useRef(null);        // GPS watchPosition ID
   const lastPosRef=useRef(null);      // última posição GPS {lat,lng,ts}
@@ -1889,7 +1889,7 @@ export default function TempoRunApp() {
       duracao_seg:seg,
       distancia_km:parseFloat(km.toFixed(2)),
       pace_medio:pace,
-      bpm_medio:bpm,
+      bpm_medio:0, cadencia_media:gCR.current||174,
       cadencia_media:174,
       forca_w:null,
       dplus:Math.round(km*32),
@@ -1947,7 +1947,7 @@ ${parts.join(" | ")}` : "";
   // Haversine — distância entre dois pontos GPS em km
   function haversine(lat1,lon1,lat2,lon2){const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 
-  function startTimer(){timerRef.current=setInterval(()=>{gSR.current+=1;gBR.current=Math.min(185,Math.max(140,gBR.current+(Math.random()>0.5?1:-1)));setGSeg(gSR.current);setGBpm(gBR.current);},1000);}
+  function startTimer(){timerRef.current=setInterval(()=>{gSR.current+=1;setGSeg(gSR.current);},1000);}
 
   function startGPS(){
     if(!navigator.geolocation){setGpsStatus("error");return;}
@@ -1967,6 +1967,18 @@ ${parts.join(" | ")}` : "";
             setGKm(gKR.current);
           }
         }
+        // Estimar cadência pela velocidade GPS
+        if(last){
+          const dt2=(Date.now()-last.ts)/1000;
+          const sp2=dt2>0?(haversine(last.lat,last.lng,lat,lng)/dt2):0; // m/s
+          if(sp2>0.5){ // mínimo 1.8km/h para calcular
+            const paceMin=sp2>0?1000/(sp2*60):0; // min/km
+            const cadEst=Math.round(Math.min(200,Math.max(140, 155+(6.0-Math.min(paceMin,8.0))*8)));
+            // Suavizar com média móvel
+            gCR.current=gCR.current>0?Math.round(gCR.current*0.7+cadEst*0.3):cadEst;
+            setGCad(gCR.current);
+          }
+        }
         lastPosRef.current={lat,lng,ts:Date.now()};
         routeRef.current.push([lat,lng]);
         if(routeRef.current.length%3===0) setRouteTick(t=>t+1); // actualiza mapa cada 3 pontos
@@ -1978,11 +1990,11 @@ ${parts.join(" | ")}` : "";
 
   function stopGPS(){if(watchRef.current!==null){navigator.geolocation.clearWatch(watchRef.current);watchRef.current=null;}setGpsStatus("off");}
 
-  function iniciar(){gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);setGStatus("ativo");setGSeg(0);setGKm(0);setGBpm(158);setSavedRun(null);startTimer();startGPS();}
+  function iniciar(){gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);setGStatus("ativo");setGSeg(0);setGKm(0);setGCad(0);setSavedRun(null);startTimer();startGPS();}
   function pausar(){clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
   function retomar(){setGStatus("ativo");startTimer();startGPS();}
-  async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gBR.current,p,routeRef.current);}
-  function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGBpm(158);setGpsStatus("off");setGpsAccuracy(null);setSavedRun(null);gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
+  async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gCR.current,p,routeRef.current);}
+  function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);setGpsStatus("off");setGpsAccuracy(null);setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
   async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;if(!checkAiLimit("coach")){setUpgradeReason(`Você usou suas ${AI_LIMITS.coach} perguntas ao Coach hoje. `);setShowUpgradeModal(true);return;}setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);incAiUsage("coach");try{const r=await callAI(SYS_COACH+buildPerfilCtx(),msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
@@ -2196,9 +2208,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
   const pace=calcPace(gKm,gSeg);
   const intDone=Math.min(6,Math.floor(gKm/0.8));
-  const zC=gBpm<140?C.cyanB:gBpm<155?C.cyan:gBpm<168?C.amber:gBpm<178?C.coral:"#ef4444";
-  const zL=gBpm<140?"Fácil":gBpm<155?"Aeróbico":gBpm<168?"Limiar":gBpm<178?"Alta Int.":"Máximo";
-  const zK=gBpm<140?"Z1":gBpm<155?"Z2":gBpm<168?"Z3":gBpm<178?"Z4":"Z5";
+  const zC=C.cyanB; const zL=""; const zK="";
   function colorStatus(s){if(s==="green") return C.green;if(s==="amber") return C.amber;if(s==="coral") return C.coral;return C.cyanB;}
 
   function VCard({ children, extra={} }) {
@@ -3419,7 +3429,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"44",borderRadius:17,padding:16,marginBottom:12}}>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 11px"}}>resumo</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:13}}>
-              {[{v:gKm.toFixed(2)+" km",l:"distância",c:C.cyanB},{v:fmtT(gSeg),l:"tempo",c:C.cyan},{v:pace+"/km",l:"pace médio",c:C.cyanL},{v:gBpm+" bpm",l:"freq. card.",c:C.amber}].map((s,i)=>(
+              {[{v:gKm.toFixed(2)+" km",l:"distância",c:C.cyanB},{v:fmtT(gSeg),l:"tempo",c:C.cyan},{v:pace+"/km",l:"pace médio",c:C.cyanL},{v:gCad>0?gCad+" spm":"-- spm",l:"cadência",c:C.cyanB}].map((s,i)=>(
                 <div key={i} style={{background:C.s3,borderRadius:11,padding:"11px 12px",border:"1px solid "+s.c+"22"}}><p style={{color:s.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1.2,margin:"0 0 4px",opacity:0.8}}>{s.l}</p><p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:20,margin:0,letterSpacing:-0.5}}>{s.v}</p></div>
               ))}
             </div>
@@ -3450,7 +3460,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
           {/* Métricas — sem card, só texto */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",paddingBottom:10,borderBottom:"1px solid "+C.border}}>
-            {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:""+gBpm,u:"bpm",c:zC,l:"fc"}].map((m,i)=>(
+            {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:gCad>0?""+gCad:"--",u:"spm",c:C.cyanB,l:"cadência"}].map((m,i)=>(
               <div key={i} style={{textAlign:"center",padding:"6px 4px"}}>
                 <p style={{color:C.td,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1,margin:"0 0 3px"}}>{m.l}</p>
                 <p style={{color:m.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:22,margin:0,letterSpacing:-0.5,lineHeight:1}}>{m.v}</p>
@@ -3744,7 +3754,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"44",borderRadius:17,padding:16,marginBottom:12}}>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 11px"}}>resumo</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:13}}>
-              {[{v:gKm.toFixed(2)+" km",l:"distância",c:C.cyanB},{v:fmtT(gSeg),l:"tempo",c:C.cyan},{v:pace+"/km",l:"pace médio",c:C.cyanL},{v:gBpm+" bpm",l:"freq. card.",c:C.amber}].map((s,i)=>(
+              {[{v:gKm.toFixed(2)+" km",l:"distância",c:C.cyanB},{v:fmtT(gSeg),l:"tempo",c:C.cyan},{v:pace+"/km",l:"pace médio",c:C.cyanL},{v:gCad>0?gCad+" spm":"-- spm",l:"cadência",c:C.cyanB}].map((s,i)=>(
                 <div key={i} style={{background:C.s3,borderRadius:11,padding:"11px 12px",border:"1px solid "+s.c+"22"}}><p style={{color:s.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1.2,margin:"0 0 4px",opacity:0.8}}>{s.l}</p><p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:20,margin:0,letterSpacing:-0.5}}>{s.v}</p></div>
               ))}
             </div>
@@ -3765,7 +3775,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
                 <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
               </div>
-              <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span><span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gBpm}</span></div>
+              <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span><span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gCad}</span></div>
             </div>
           </div>
           <div style={{background:"linear-gradient(160deg,#06071a,#0c0830)",borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
@@ -3774,7 +3784,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>{gStatus==="ativo"?"Em andamento":gStatus==="pausado"?"Pausado":"Pronto"}</p>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
-            {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:""+gBpm,u:"bpm",c:zC,l:"fc"}].map((m,i)=>(
+            {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:gCad>0?""+gCad:"--",u:"spm",c:C.cyanB,l:"cadência"}].map((m,i)=>(
               <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"10px 8px",textAlign:"center",border:"1px solid "+m.c+"22"}}>
                 <p style={{color:m.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1.1,margin:"0 0 4px",opacity:0.8}}>{m.l}</p>
                 <p style={{color:m.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:"0 0 1px",letterSpacing:-0.5}}>{m.v}</p>
