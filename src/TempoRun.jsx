@@ -1062,7 +1062,7 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 }
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
-const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
+const MAPBOX_TOKEN  = "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
