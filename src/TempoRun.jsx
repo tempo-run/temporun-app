@@ -1018,8 +1018,8 @@ function RunDetailModal({ run, onClose }) {
                     <circle key={i} cx={x} cy={ys[i]} r="3" fill={C.bg} stroke={C.violetL} strokeWidth="2"/>
                   ))}
                   {/* Linha média */}
-                  {(((=>{const avgY=Math.round((1-(cadBase-cMin)/(cMax-cMin))*(CH-16)+8);return <line x1="10" y1={avgY} x2={CW-10} y2={avgY} stroke={C.violetL} strokeWidth="1" strokeDasharray="4,4" opacity="0.4"/>;}())}
-                  {xs.map((x,i)=>()
+                  {[Math.round((1-(cadBase-cMin)/(cMax-cMin))*(CH-16)+8)].map(avgY=><line key="avg" x1="10" y1={avgY} x2={CW-10} y2={avgY} stroke={C.violetL} strokeWidth="1" strokeDasharray="4,4" opacity="0.4"/>)}
+                  {xs.map((x,i)=>(
                     <text key={i} x={x} y={CH+2} textAnchor="middle" fill={C.td} fontSize="8" fontFamily="monospace">{splits[i]?.km}</text>
                   ))}
                 </>;
