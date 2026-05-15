@@ -1995,19 +1995,21 @@ ${parts.join(" | ")}` : "";
   function stopGPS(){if(watchRef.current!==null){navigator.geolocation.clearWatch(watchRef.current);watchRef.current=null;}setGpsStatus("off");}
 
   function iniciar(){
+    // Reseta só os contadores — NÃO para o GPS (já está ativo do pré-aquecimento)
     isRunningRef.current=true;
     gSR.current=0;gKR.current=0;gCR.current=0;
-    // Preserva última posição GPS conhecida para não perder o fix
     const lastPos=lastPosRef.current;
     routeRef.current=lastPos?[[lastPos.lat,lastPos.lng]]:[];
-    setRouteTick(0);
+    clearInterval(timerRef.current);
     setGStatus("ativo");setGSeg(0);setGKm(0);setGCad(0);setSavedRun(null);
-    startTimer();startGPS();
+    startTimer();
+    // GPS: só liga se não estiver já ativo
+    if(watchRef.current===null) startGPS();
   }
   function pausar(){isRunningRef.current=false;clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
   function retomar(){isRunningRef.current=true;setGStatus("ativo");startTimer();startGPS();}
   async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gCR.current,p,routeRef.current);}
-  function resetGrav(keepGPS=false){isRunningRef.current=false;clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
+  function resetGrav(keepGPS=false){isRunningRef.current=false;clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];if(!keepGPS)lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
   // Pré-aquecimento GPS ao entrar na tela de gravação
@@ -3504,7 +3506,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               ?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
               :gStatus==="pausado"
                 ?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-              :(<button onClick={()=>{resetGrav(true);iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+              :(<button onClick={()=>iniciar()} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
 
         </div>
@@ -3825,7 +3827,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{display:"flex",gap:8,marginTop:"auto"}}>
             {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
             :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-            :(<button onClick={()=>{resetGrav(true);iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+            :(<button onClick={()=>iniciar()} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
         </div>
       );
