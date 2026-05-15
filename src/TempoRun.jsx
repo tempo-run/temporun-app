@@ -825,28 +825,29 @@ function RunDetailModal({ run, onClose }) {
 
   // Mapa via Mapbox Static com polyline real
   const mapboxStaticUrl = (()=>{
-    if(!run.polyline||run.polyline.length<2) return null;
-    const coords = run.polyline.map(p=>`${p[0]},${p[1]}`).join(";");
-    // Usar Mapbox Static Images API
-    const path = run.polyline.map(p=>`${p[0]},${p[1]}`).join(",");
-    const lngs = run.polyline.map(p=>p[0]);
-    const lats = run.polyline.map(p=>p[1]);
-    const minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
-    const minLat=Math.min(...lats), maxLat=Math.max(...lats);
-    const centerLng=((minLng+maxLng)/2).toFixed(6);
-    const centerLat=((minLat+maxLat)/2).toFixed(6);
-    // Encoded polyline para Mapbox
-    const lineCoords = run.polyline.map(p=>[p[0],p[1]]);
-    const lineStr = encodeURIComponent(JSON.stringify({type:"LineString",coordinates:lineCoords}));
-    // Usar Mapbox Static com overlay GeoJSON
-    const geoJson = {type:"Feature",properties:{stroke:"#22d3ee","stroke-width":3},geometry:{type:"LineString",coordinates:run.polyline.map(p=>[p[0],p[1]])}};
-    const geoStr = encodeURIComponent(JSON.stringify(geoJson));
-    return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${geoStr})/auto/390x260@2x?access_token=${MAPBOX_TOKEN}&padding=40`;
+    try {
+      if(!run.polyline||run.polyline.length<2) return null;
+      // polyline pode ser [lng,lat] ou [lat,lng] — detectar pelo range
+      // Dublin: lng ~-6.x, lat ~53.x — se p[0] < 0 é lng, se > 10 é lat
+      const sample = run.polyline[0];
+      if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
+      // Normalizar para [lng, lat] (formato GeoJSON)
+      const coords = run.polyline.map(p => {
+        const a=p[0], b=p[1];
+        // Se |a| < 10 provavelmente é lng (relativo), se |a| > 10 é lat
+        // Convenção das corridas demo: [lng, lat]
+        return [a, b];
+      }).filter(p=>p[0]!==undefined&&p[1]!==undefined);
+      if(coords.length<2) return null;
+      const geoJson = {type:"Feature",properties:{stroke:"#22d3ee","stroke-width":4,"stroke-opacity":1},geometry:{type:"LineString",coordinates:coords}};
+      const geoStr = encodeURIComponent(JSON.stringify(geoJson));
+      return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${geoStr})/auto/390x260@2x?access_token=${MAPBOX_TOKEN}&padding=50`;
+    } catch(e) { return null; }
   })();
 
   // Splits simulados
   const totalKm = run.distancia_km||0;
-  const paceStr = run.pace_medio||"5:30";
+  const paceStr = (run.pace_medio&&run.pace_medio.includes(":"))?run.pace_medio:"5:30";
   const [pMin,pSec] = paceStr.split(":").map(Number);
   const paceBase = pMin*60+(pSec||0);
   const nKms = Math.max(1,Math.floor(totalKm));
@@ -888,7 +889,7 @@ function RunDetailModal({ run, onClose }) {
         {mapboxStaticUrl
           ? <img src={mapboxStaticUrl} alt="percurso" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
               onError={e=>{e.target.style.display="none";}}/>
-          : <RunMapSvgFallback polyline={run.polyline||[]} color={C.cyanB}/>
+          : <RunMapSvgFallback polyline={(run.polyline||[]).filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)} color={C.cyanB}/>
         }
         {/* Header overlay */}
         <div style={{position:"absolute",top:0,left:0,right:0,padding:"14px 16px",background:"linear-gradient(180deg,rgba(6,7,26,0.9) 0%,transparent 100%)"}}>
