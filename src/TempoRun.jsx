@@ -788,132 +788,243 @@ const lojaItems=[
 const frases=["Cada quilômetro te faz mais forte do que ontem.","O ritmo que importa é o seu.","Subidas constroem quem você vai ser na descida.","Não existe mal tempo. Existe falta de preparo.","Corra pelo processo, não só pelo resultado.","Seu maior adversário é a voz que diz 'para'."];
 
 // ─── RUN DETAIL MODAL ─────────────────────────────────────────────────────────
-function RunDetailModal({ run, onClose }) {
+new_component = r'''function RunDetailModal({ run, onClose }) {
   if(!run) return null;
   const isStrava = run.source==="strava";
   const isGarmin = run.source==="garmin";
   const sourceColor = isStrava?C.strava:isGarmin?C.garmin:C.cyanB;
   const sourceLabel = isStrava?"STRAVA":isGarmin?"GARMIN":null;
-  const zC = run.bpm_medio<140?C.cyanB:run.bpm_medio<155?C.cyan:run.bpm_medio<168?C.amber:run.bpm_medio<178?C.coral:"#ef4444";
-  const zL = run.bpm_medio<140?"Fácil":run.bpm_medio<155?"Aeróbico":run.bpm_medio<168?"Limiar":run.bpm_medio<178?"Alta Int.":"Máximo";
+
+  // Calcular splits simulados com base na distância e pace
+  const totalKm = run.distancia_km||0;
+  const paceStr = run.pace_medio||"5:30";
+  const [pMin,pSec] = paceStr.split(":").map(Number);
+  const paceBase = pMin*60+(pSec||0);
+  const nKms = Math.floor(totalKm);
+  const splits = Array.from({length:nKms||1},(_,i)=>{
+    const variation = (Math.random()-0.5)*20;
+    const elev = Math.round((Math.random()-0.3)*15);
+    const p = Math.max(240,Math.round(paceBase+variation));
+    return {km:i+1, pace:Math.floor(p/60)+":"+(p%60<10?"0":"")+p%60, elev};
+  });
+
+  // Pace zones baseadas no pace médio da corrida
+  const pZones = [
+    {z:"Z1",label:"Fácil",      color:C.cyanB,  pct: paceBase>390?30:15},
+    {z:"Z2",label:"Aeróbico",   color:C.cyan,   pct: paceBase>330?40:30},
+    {z:"Z3",label:"Limiar",     color:"#a3e635", pct: paceBase>300?20:30},
+    {z:"Z4",label:"Anaeróbico", color:C.amber,  pct: paceBase>270?8:18},
+    {z:"Z5",label:"VO2max",     color:C.coral,  pct: paceBase>240?2:7},
+  ];
+  const totalPct = pZones.reduce((a,z)=>a+z.pct,0);
+  pZones.forEach(z=>z.pct=Math.round(z.pct/totalPct*100));
+
+  // Dados de cadência por km (simulados)
+  const cadBase = run.cadencia_media||174;
+  const cadSeries = splits.map((_,i)=>Math.round(cadBase+(Math.random()-0.5)*12));
+
+  // Pace por km para o gráfico de linha
+  const paceSeries = splits.map(s=>{
+    const [m,sc]=s.pace.split(":").map(Number);
+    return m*60+(sc||0);
+  });
+  const paceMin2=Math.min(...paceSeries)-10, paceMax2=Math.max(...paceSeries)+10;
+
+  const calorias = run.calorias||Math.round(run.distancia_km*65);
+
+  const W=340, PH=120, SW=60, SPH=80, CW=340, CH=80;
+
   return (
-    <div style={{position:"absolute",inset:0,background:C.bg2,zIndex:200,display:"flex",flexDirection:"column",overflowY:"auto",borderRadius:30}}>
-      <div style={{padding:"14px 17px 24px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:9}}>
-            <button onClick={onClose} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={14} c={C.ts}/></button>
-            <div>
-              <div style={{display:"flex",alignItems:"center",gap:7}}>
-                <p style={{color:C.tp,fontWeight:800,fontSize:15,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{run.nome||"Corrida"}</p>
-                {sourceLabel&&<span style={{background:sourceColor+"22",color:sourceColor,border:"1px solid "+sourceColor+"44",borderRadius:5,padding:"1px 7px",fontSize:10,fontWeight:800}}>{sourceLabel}</span>}
+    <div style={{position:"absolute",inset:0,background:C.bg,zIndex:200,display:"flex",flexDirection:"column",borderRadius:30,overflow:"hidden"}}>
+
+      {/* MAPA — metade superior */}
+      <div style={{position:"relative",height:"45%",flexShrink:0,background:C.s1}}>
+        {run.polyline
+          ? <RunMap polyline={run.polyline} color={C.cyanB} dplus={run.dplus||0}/>
+          : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,"+C.s1+","+C.s2+")"}}><LiveMapCanvas route={[]} gpsStatus="off"/></div>
+        }
+        {/* Header overlay sobre o mapa */}
+        <div style={{position:"absolute",top:0,left:0,right:0,padding:"14px 16px",background:"linear-gradient(180deg,rgba(6,7,26,0.85) 0%,transparent 100%)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              <button onClick={onClose} style={{background:"rgba(13,15,46,0.8)",border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",backdropFilter:"blur(8px)"}}><Ic n="back" z={14} c={C.tp}/></button>
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:7}}>
+                  <p style={{color:"#fff",fontWeight:800,fontSize:15,margin:0,fontFamily:"'Space Grotesk',sans-serif",textShadow:"0 1px 8px #000"}}>{run.nome||"Corrida"}</p>
+                  {sourceLabel&&<span style={{background:sourceColor+"33",color:sourceColor,border:"1px solid "+sourceColor+"55",borderRadius:5,padding:"1px 7px",fontSize:10,fontWeight:800}}>{sourceLabel}</span>}
+                </div>
+                <p style={{color:"rgba(255,255,255,0.7)",fontSize:11,margin:"2px 0 0",fontFamily:"monospace"}}>{run.data}</p>
               </div>
-              <p style={{color:C.td,fontSize:11,margin:"2px 0 0",fontFamily:"monospace"}}>{run.data}{isGarmin&&run.dispositivo?" · "+run.dispositivo:""}</p>
             </div>
-          </div>
-          <button style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="share" z={14} c={C.ts}/></button>
-        </div>
-
-        <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:16,padding:14,marginBottom:11,border:"1px solid "+C.violet+"33"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:10}}>
-            {[
-              {v:run.distancia_km+" km",l:"Distância",c:C.cyanB},
-              {v:fmtT(run.duracao_seg),l:"Tempo total",c:C.cyan},
-              {v:run.pace_medio+"/km",l:"Pace médio",c:C.cyanL},
-              {v:(run.dplus||0)+" m",l:"D+ altimetria",c:C.amber},
-            ].map((s,i)=>(
-              <div key={i} style={{background:C.s3,borderRadius:11,padding:"10px 12px",border:"1px solid "+s.c+"22"}}>
-                <p style={{color:s.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1,margin:"0 0 4px",opacity:0.8}}>{s.l}</p>
-                <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:20,margin:0,letterSpacing:-0.5}}>{s.v}</p>
-              </div>
-            ))}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
-            <div style={{background:C.s3,borderRadius:9,padding:"8px 10px",border:"1px solid "+zC+"22"}}>
-              <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}><Ic n="heart" z={12} c={zC}/><p style={{color:C.ts,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:0}}>FC MÉD</p></div>
-              <p style={{color:zC,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:17,margin:"0 0 1px"}}>{run.bpm_medio}</p>
-              <p style={{color:C.tg,fontSize:9,fontFamily:"monospace",margin:0}}>{zL}</p>
-            </div>
-            <div style={{background:C.s3,borderRadius:9,padding:"8px 10px",border:"1px solid "+C.violetL+"22"}}>
-              <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}><Ic n="cadence" z={12} c={C.violetL}/><p style={{color:C.ts,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:0}}>CADÊNCIA</p></div>
-              <p style={{color:C.violetL,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:17,margin:"0 0 1px"}}>{run.cadencia_media||"—"}</p>
-              <p style={{color:C.tg,fontSize:9,fontFamily:"monospace",margin:0}}>spm</p>
-            </div>
-            <div style={{background:C.s3,borderRadius:9,padding:"8px 10px",border:"1px solid "+C.green+"22"}}>
-              <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}><Ic n="bolt" z={12} c={C.green}/><p style={{color:C.ts,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:0}}>XP</p></div>
-              <p style={{color:C.green,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:17,margin:"0 0 1px"}}>+{run.xp_ganho||Math.round(run.distancia_km*45)}</p>
-              <p style={{color:C.tg,fontSize:9,fontFamily:"monospace",margin:0}}>pontos</p>
-            </div>
+            <button style={{background:"rgba(13,15,46,0.8)",border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",backdropFilter:"blur(8px)"}}><Ic n="share" z={14} c={C.tp}/></button>
           </div>
         </div>
+      </div>
 
-        <div style={{background:C.s1,borderRadius:14,overflow:"hidden",marginBottom:11,border:"1px solid "+C.border}}>
-          <div style={{padding:"9px 12px 7px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}><Ic n="map" z={13} c={C.cyanB}/><p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>Percurso + Altimetria</p></div>
-            {sourceLabel&&<Badge text={"via "+(isStrava?"Strava":"Garmin")} color={sourceColor}/>}
-          </div>
-          {run.polyline
-            ? <RunMap polyline={run.polyline} color={C.cyanB} dplus={run.dplus||0}/>
-            : <><StreetMap km={run.distancia_km}/><AltimetriaChart polyline={[[0,0],[1,0.5],[2,1],[3,0.8],[4,0.3]]} dplus={run.dplus||0}/></>}
-        </div>
+      {/* CONTEÚDO SCROLLÁVEL */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 16px 32px"}}>
 
-        <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:13,marginBottom:11,border:"1px solid "+C.border}}>
-          <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 10px"}}>Zonas de frequência cardíaca</p>
+        {/* MÉTRICAS 2x2 */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>
           {[
-            {z:"Z1 · Fácil",    bpm:"< 140",   pct:15,                                               c:C.cyanB},
-            {z:"Z2 · Aeróbico", bpm:"140–154",  pct:run.bpm_medio<155?55:25,                         c:C.cyan},
-            {z:"Z3 · Limiar",   bpm:"155–167",  pct:run.bpm_medio>=155&&run.bpm_medio<168?50:20,     c:C.amber},
-            {z:"Z4 · Alta Int.",bpm:"168–177",  pct:run.bpm_medio>=168?40:8,                         c:C.coral},
-          ].map((z,i)=>(
-            <div key={i} style={{marginBottom:7}}>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:z.c}}/>
-                  <span style={{color:C.ts,fontSize:11,fontWeight:600}}>{z.z}</span>
-                </div>
-                <div style={{display:"flex",gap:8}}>
-                  <span style={{color:C.tg,fontSize:10,fontFamily:"monospace"}}>{z.bpm} bpm</span>
-                  <span style={{color:z.c,fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{z.pct}%</span>
-                </div>
-              </div>
-              <div style={{background:C.s3,borderRadius:99,height:5,overflow:"hidden"}}>
-                <div style={{width:z.pct+"%",height:"100%",background:z.c,borderRadius:99}}/>
-              </div>
+            {v:run.distancia_km+" km", l:"Distância",   c:C.cyanB},
+            {v:run.pace_medio+"/km",   l:"Pace médio",  c:C.cyan},
+            {v:calorias+" kcal",       l:"Calorias",    c:C.amber},
+            {v:(run.cadencia_media||"—")+" spm", l:"Cadência", c:C.violetL},
+          ].map((s,i)=>(
+            <div key={i} style={{background:C.s1,borderRadius:13,padding:"12px 14px",border:"1px solid "+s.c+"22"}}>
+              <p style={{color:C.td,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1,margin:"0 0 5px"}}>{s.l}</p>
+              <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:22,margin:0,letterSpacing:-0.5,lineHeight:1}}>{s.v}</p>
             </div>
           ))}
         </div>
 
+        {/* SPLITS — barras horizontais */}
+        {splits.length>0&&(
+          <div style={{background:C.s1,borderRadius:14,padding:"12px 14px",marginBottom:12,border:"1px solid "+C.border}}>
+            <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 10px"}}>Splits por km</p>
+            {/* Header */}
+            <div style={{display:"grid",gridTemplateColumns:"28px 1fr 48px 36px",gap:6,marginBottom:6}}>
+              {["km","pace","","m"].map((h,i)=><span key={i} style={{color:C.td,fontSize:9,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",textAlign:i>1?"right":"left"}}>{h}</span>)}
+            </div>
+            {splits.map((s,i)=>{
+              const [m,sc]=s.pace.split(":").map(Number);
+              const pSecs=m*60+(sc||0);
+              const fastest=Math.min(...splits.map(x=>{const[a,b]=x.pace.split(":").map(Number);return a*60+(b||0);}));
+              const slowest=Math.max(...splits.map(x=>{const[a,b]=x.pace.split(":").map(Number);return a*60+(b||0);}));
+              const barPct=slowest>fastest?100-Math.round((pSecs-fastest)/(slowest-fastest)*100):80;
+              const barColor=barPct>80?C.cyanB:barPct>60?C.cyan:barPct>40?C.amber:C.coral;
+              return (
+                <div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 48px 36px",gap:6,alignItems:"center",marginBottom:5}}>
+                  <span style={{color:C.td,fontSize:10,fontFamily:"monospace",fontWeight:700}}>{s.km}</span>
+                  <div style={{background:C.s3,borderRadius:3,height:6,overflow:"hidden"}}>
+                    <div style={{width:barPct+"%",height:"100%",background:"linear-gradient(90deg,"+barColor+","+barColor+"88)",borderRadius:3,transition:"width 0.4s"}}/>
+                  </div>
+                  <span style={{color:C.tp,fontSize:11,fontFamily:"monospace",fontWeight:700,textAlign:"right"}}>{s.pace}</span>
+                  <span style={{color:s.elev>0?C.amber:C.cyanB,fontSize:10,fontFamily:"monospace",textAlign:"right"}}>{s.elev>0?"+":""}{s.elev}m</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* GRÁFICO PACE — linha com preenchimento */}
+        {paceSeries.length>1&&(
+          <div style={{background:C.s1,borderRadius:14,padding:"12px 14px",marginBottom:12,border:"1px solid "+C.border}}>
+            <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 10px"}}>Pace por km</p>
+            <svg width="100%" height={PH} viewBox={"0 0 "+W+" "+PH} style={{overflow:"visible"}}>
+              <defs>
+                <linearGradient id="pgFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={C.cyanB} stopOpacity="0.35"/>
+                  <stop offset="100%" stopColor={C.cyanB} stopOpacity="0.02"/>
+                </linearGradient>
+              </defs>
+              {(()=>{
+                const n=paceSeries.length;
+                const xs=paceSeries.map((_,i)=>Math.round(i/(n-1)*(W-20)+10));
+                const ys=paceSeries.map(v=>Math.round((1-(v-paceMin2)/(paceMax2-paceMin2))*(PH-20)+10));
+                const lineD="M "+xs.map((x,i)=>x+","+ys[i]).join(" L ");
+                const fillD=lineD+" L "+xs[xs.length-1]+","+(PH)+" L "+xs[0]+","+(PH)+" Z";
+                return <>
+                  <path d={fillD} fill="url(#pgFill)"/>
+                  <path d={lineD} fill="none" stroke={C.cyanB} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  {xs.map((x,i)=>(
+                    <circle key={i} cx={x} cy={ys[i]} r="3.5" fill={C.bg} stroke={C.cyanB} strokeWidth="2"/>
+                  ))}
+                  {/* Labels */}
+                  {xs.map((x,i)=>(
+                    <text key={i} x={x} y={PH} textAnchor="middle" fill={C.td} fontSize="8" fontFamily="monospace">{splits[i]?.km}</text>
+                  ))}
+                </>;
+              })()}
+            </svg>
+          </div>
+        )}
+
+        {/* PACE ZONES — barras verticais */}
+        <div style={{background:C.s1,borderRadius:14,padding:"12px 14px",marginBottom:12,border:"1px solid "+C.border}}>
+          <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 10px"}}>Pace Zones</p>
+          <svg width="100%" height={SPH+24} viewBox={"0 0 "+(SW*pZones.length+20)+" "+(SPH+24)} style={{overflow:"visible"}}>
+            {pZones.map((z,i)=>{
+              const x=i*(SW+2)+10;
+              const barH=Math.round(z.pct/100*SPH);
+              const y=SPH-barH;
+              return (
+                <g key={i}>
+                  <rect x={x+4} y={y} width={SW-8} height={barH} rx="4" fill={z.color} opacity="0.85"/>
+                  <rect x={x+4} y={y} width={SW-8} height={Math.min(barH,4)} rx="4" fill={z.color}/>
+                  <text x={x+SW/2} y={y-4} textAnchor="middle" fill={z.color} fontSize="9" fontWeight="700" fontFamily="monospace">{z.pct}%</text>
+                  <text x={x+SW/2} y={SPH+12} textAnchor="middle" fill={C.td} fontSize="8" fontFamily="monospace">{z.z}</text>
+                  <text x={x+SW/2} y={SPH+22} textAnchor="middle" fill={C.tg} fontSize="7" fontFamily="monospace">{z.label}</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* CADÊNCIA — gráfico de linha */}
+        {cadSeries.length>1&&(
+          <div style={{background:C.s1,borderRadius:14,padding:"12px 14px",marginBottom:12,border:"1px solid "+C.border}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:0}}>Cadência</p>
+              <span style={{color:C.violetL,fontSize:11,fontWeight:700,fontFamily:"monospace"}}>{cadBase} spm avg</span>
+            </div>
+            <svg width="100%" height={CH} viewBox={"0 0 "+CW+" "+CH} style={{overflow:"visible"}}>
+              <defs>
+                <linearGradient id="cadFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={C.violetL} stopOpacity="0.3"/>
+                  <stop offset="100%" stopColor={C.violetL} stopOpacity="0.02"/>
+                </linearGradient>
+              </defs>
+              {(()=>{
+                const n=cadSeries.length;
+                const cMin=Math.min(...cadSeries)-5, cMax=Math.max(...cadSeries)+5;
+                const xs=cadSeries.map((_,i)=>Math.round(i/(n-1)*(CW-20)+10));
+                const ys=cadSeries.map(v=>Math.round((1-(v-cMin)/(cMax-cMin))*(CH-16)+8));
+                const lineD="M "+xs.map((x,i)=>x+","+ys[i]).join(" L ");
+                const fillD=lineD+" L "+xs[xs.length-1]+","+CH+" L "+xs[0]+","+CH+" Z";
+                return <>
+                  <path d={fillD} fill="url(#cadFill)"/>
+                  <path d={lineD} fill="none" stroke={C.violetL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  {xs.map((x,i)=>(
+                    <circle key={i} cx={x} cy={ys[i]} r="3" fill={C.bg} stroke={C.violetL} strokeWidth="2"/>
+                  ))}
+                  {/* Linha média */}
+                  {(()=>{const avgY=Math.round((1-(cadBase-cMin)/(cMax-cMin))*(CH-16)+8);return <line x1="10" y1={avgY} x2={CW-10} y2={avgY} stroke={C.violetL} strokeWidth="1" strokeDasharray="4,4" opacity="0.4"/>;}())}
+                  {xs.map((x,i)=>(
+                    <text key={i} x={x} y={CH+2} textAnchor="middle" fill={C.td} fontSize="8" fontFamily="monospace">{splits[i]?.km}</text>
+                  ))}
+                </>;
+              })()}
+            </svg>
+          </div>
+        )}
+
+        {/* Strava/Garmin badge */}
         {isStrava&&(
           <div style={{background:"linear-gradient(135deg,#1a0a00,#200d00)",border:"1px solid "+C.strava+"44",borderRadius:12,padding:"11px 13px",display:"flex",gap:9,alignItems:"flex-start"}}>
-            <div style={{width:28,height:28,borderRadius:8,background:C.strava+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <span style={{color:C.strava,fontWeight:900,fontSize:14,fontFamily:"monospace"}}>S</span>
-            </div>
-            <div>
-              <p style={{color:C.strava,fontWeight:700,fontSize:12,margin:"0 0 2px"}}>Importado do Strava</p>
-              <p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>Dados sincronizados automaticamente. Abra no Strava para mais detalhes.</p>
-            </div>
+            <span style={{color:C.strava,fontWeight:900,fontSize:18,fontFamily:"monospace",marginTop:1}}>S</span>
+            <div><p style={{color:C.strava,fontWeight:700,fontSize:12,margin:"0 0 2px"}}>Importado do Strava</p><p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>Dados sincronizados automaticamente.</p></div>
           </div>
         )}
         {isGarmin&&(
           <div style={{background:"linear-gradient(135deg,#001120,#001930)",border:"1px solid "+C.garmin+"44",borderRadius:12,padding:"11px 13px",display:"flex",gap:9,alignItems:"flex-start"}}>
-            <div style={{width:28,height:28,borderRadius:8,background:C.garmin+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <Ic n="watch" z={16} c={C.garmin}/>
-            </div>
-            <div style={{flex:1}}>
-              <p style={{color:C.garmin,fontWeight:700,fontSize:12,margin:"0 0 2px"}}>Sincronizado com Garmin Connect</p>
-              <p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>{run.dispositivo?"Dados do "+run.dispositivo+". ":""}Inclui power, cadência e dynamics avançados do relógio.</p>
-              {run.forca_w&&(
-                <div style={{display:"flex",gap:6,marginTop:7}}>
-                  <span style={{background:C.garmin+"22",color:C.garmin,border:"1px solid "+C.garmin+"44",borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,fontFamily:"monospace"}}>⚡ {run.forca_w} W</span>
-                  <span style={{background:C.s3,color:C.ts,border:"1px solid "+C.border,borderRadius:5,padding:"2px 8px",fontSize:10,fontWeight:700,fontFamily:"monospace"}}>Power médio</span>
-                </div>
-              )}
-            </div>
+            <Ic n="watch" z={20} c={C.garmin}/>
+            <div><p style={{color:C.garmin,fontWeight:700,fontSize:12,margin:"0 0 2px"}}>Sincronizado com Garmin Connect</p><p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>{run.dispositivo?"Dados do "+run.dispositivo+".":""}</p></div>
           </div>
         )}
+
       </div>
     </div>
   );
 }
+'''
+
+with open('/home/claude/new_modal.py', 'w') as f:
+    f.write(new_component)
+print("saved")
+print("length:", len(new_component))
+
 
 // ─── GARMIN CONNECT MODAL ─────────────────────────────────────────────────────
 function GarminConnectModal({ open, onClose, onConfirm, connected, onDisconnect }) {
