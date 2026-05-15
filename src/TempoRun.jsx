@@ -485,7 +485,7 @@ function LiveMapCanvas({ route=[], gpsStatus="off" }) {
   return <canvas ref={canvasRef} width={360} height={160} style={{width:"100%",height:160,display:"block",borderRadius:"0 0 10px 10px"}}/>;
 }
 
-function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
+function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160 }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -597,7 +597,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
 
   // GPS desligado e sem rota — estado inicial
   if(!mbLoaded && gpsStatus==="off" && route.length===0) return (
-    <div style={{width:"100%",height:160,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:6}}>
+    <div style={{width:"100%",height:height,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:6}}>
       <div style={{width:8,height:8,borderRadius:"50%",background:"#3a4a78"}}/>
       <span style={{color:"#3a4a78",fontFamily:"monospace",fontSize:10,fontWeight:700}}>Inicie para ver o mapa</span>
     </div>
@@ -605,15 +605,15 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
 
   // Mapbox carregando
   if(!mbLoaded) return (
-    <div style={{width:"100%",height:160,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+    <div style={{width:"100%",height:height,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
       <div style={{width:10,height:10,borderRadius:"50%",border:"2px solid #22d3ee",borderTopColor:"transparent",animation:"spin 0.8s linear infinite"}}/>
       <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:10,fontWeight:700}}>Carregando mapa...</span>
     </div>
   );
 
   return (
-    <div style={{position:"relative",width:"100%",height:160,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
-      <div ref={mapContainer} style={{width:"100%",height:"160px",position:"absolute",top:0,left:0}}/>
+    <div style={{position:"relative",width:"100%",height:height,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
+      <div ref={mapContainer} style={{width:"100%",height:height+"px",position:"absolute",top:0,left:0}}/>
       <div style={{position:"absolute",top:8,right:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)"}}>
         <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:9,fontWeight:800}}>
           {gpsStatus==="active"?`● GPS ±${accuracy||"?"}m`:"● AO VIVO"}
@@ -3432,42 +3432,57 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </div>
       );
       return (
-        <div style={{display:"flex",flexDirection:"column",minHeight:565}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:6}}>
-            <div><p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p><p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p></div>
+        <div style={{display:"flex",flexDirection:"column",minHeight:565,gap:0}}>
+
+          {/* Header — status + badges */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:8}}>
+            <div>
+              <p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p>
+              <p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p>
+            </div>
             <div style={{display:"flex",gap:6}}>
               <div style={{background:gpsStatus==="active"?C.cyanB+"22":gpsStatus==="searching"?C.amber+"22":C.coral+"22",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":gpsStatus==="searching"?C.amber+"44":C.coral+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
                 <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
                 <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
               </div>
-              <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span><span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gBpm}</span></div>
+              <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span>
+                <span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gBpm}</span>
+              </div>
             </div>
           </div>
-          <div style={{background:"linear-gradient(160deg,#06071a,#0c0830)",borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
-            <p style={{color:C.tm,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,margin:"0 0 5px",position:"relative"}}>tempo de corrida</p>
-            <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:50,fontWeight:800,margin:"0 0 3px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{fmtT(gSeg)}</p>
-            <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>{gStatus==="ativo"?"Em andamento":gStatus==="pausado"?"Pausado":"Pronto"}</p>
+
+          {/* Tempo — sem card, direto */}
+          <div style={{textAlign:"center",paddingBottom:6}}>
+            <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:54,fontWeight:800,margin:0,letterSpacing:-2,lineHeight:1}}>{fmtT(gSeg)}</p>
+            <p style={{color:C.cyanB,fontSize:11,fontWeight:600,margin:"3px 0 0",fontFamily:"monospace",letterSpacing:1,textTransform:"uppercase"}}>{gStatus==="ativo"?"em andamento":gStatus==="pausado"?"pausado":"pronto"}</p>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+
+          {/* Métricas — sem card, só texto */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",paddingBottom:10,borderBottom:"1px solid "+C.border}}>
             {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:""+gBpm,u:"bpm",c:zC,l:"fc"}].map((m,i)=>(
-              <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"10px 8px",textAlign:"center",border:"1px solid "+m.c+"22"}}>
-                <p style={{color:m.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1.1,margin:"0 0 4px",opacity:0.8}}>{m.l}</p>
-                <p style={{color:m.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:"0 0 1px",letterSpacing:-0.5}}>{m.v}</p>
-                <p style={{color:C.td,fontSize:9,fontWeight:600,textTransform:"uppercase",letterSpacing:0.4,margin:0,fontFamily:"monospace"}}>{m.u}</p>
+              <div key={i} style={{textAlign:"center",padding:"6px 4px"}}>
+                <p style={{color:C.td,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1,margin:"0 0 3px"}}>{m.l}</p>
+                <p style={{color:m.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:22,margin:0,letterSpacing:-0.5,lineHeight:1}}>{m.v}</p>
+                <p style={{color:C.td,fontSize:9,fontWeight:600,textTransform:"uppercase",letterSpacing:0.4,margin:"2px 0 0",fontFamily:"monospace"}}>{m.u}</p>
               </div>
             ))}
           </div>
-          <div style={{background:C.s1,borderRadius:15,overflow:"hidden",marginBottom:10,border:"1px solid "+C.violet+"33"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 11px 6px"}}>
-              <p style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.2,margin:0}}>{gpsStatus==="active"?`GPS · ±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"GPS · buscando sinal...":gpsStatus==="error"?"GPS · sem sinal":"GPS · mapa ao vivo"}</p>
-            </div>
-            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick}/>
+
+          {/* Mapa — maior, ocupa o espaço disponível */}
+          <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0",border:"1px solid "+C.violet+"33",flex:1,minHeight:220,position:"relative"}}>
+            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={220}/>
           </div>
-          <div style={{display:"flex",gap:8,marginTop:"auto"}}>
-            {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
-            :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-            :(<button onClick={()=>{resetGrav();iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+
+          {/* Botões */}
+          <div style={{display:"flex",gap:8,paddingBottom:4}}>
+            {gStatus==="ativo"
+              ?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
+              :gStatus==="pausado"
+                ?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
+              :(<button onClick={()=>{resetGrav();iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
+
         </div>
       );
     }
