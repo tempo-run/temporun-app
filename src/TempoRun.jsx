@@ -485,7 +485,7 @@ function LiveMapCanvas({ route=[], gpsStatus="off" }) {
   return <canvas ref={canvasRef} width={360} height={160} style={{width:"100%",height:160,display:"block",borderRadius:"0 0 10px 10px"}}/>;
 }
 
-function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160 }) {
+function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160, fillContainer=false }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -597,7 +597,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160 
 
   // GPS desligado e sem rota — estado inicial
   if(!mbLoaded && gpsStatus==="off" && route.length===0) return (
-    <div style={{width:"100%",height:height,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:6}}>
+    <div style={{width:"100%",height:fillContainer?"100%":height,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:6}}>
       <div style={{width:8,height:8,borderRadius:"50%",background:"#3a4a78"}}/>
       <span style={{color:"#3a4a78",fontFamily:"monospace",fontSize:10,fontWeight:700}}>Inicie para ver o mapa</span>
     </div>
@@ -605,15 +605,15 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160 
 
   // Mapbox carregando
   if(!mbLoaded) return (
-    <div style={{width:"100%",height:height,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+    <div style={{width:"100%",height:fillContainer?"100%":height,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
       <div style={{width:10,height:10,borderRadius:"50%",border:"2px solid #22d3ee",borderTopColor:"transparent",animation:"spin 0.8s linear infinite"}}/>
       <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:10,fontWeight:700}}>Carregando mapa...</span>
     </div>
   );
 
   return (
-    <div style={{position:"relative",width:"100%",height:height,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
-      <div ref={mapContainer} style={{width:"100%",height:height+"px",position:"absolute",top:0,left:0}}/>
+    <div style={{position:"relative",width:"100%",height:fillContainer?"100%":height,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
+      <div ref={mapContainer} style={{width:"100%",height:fillContainer?"100%":height+"px",position:"absolute",top:0,left:0}}/>
       <div style={{position:"absolute",top:8,right:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)"}}>
         <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:9,fontWeight:800}}>
           {gpsStatus==="active"?`● GPS ±${accuracy||"?"}m`:"● AO VIVO"}
@@ -3461,7 +3461,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
           {/* Mapa — ocupa até a borda inferior */}
           <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0 0",flex:1,minHeight:200,position:"relative"}}>
-            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={340}/>
+            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={999} fillContainer/>
           </div>
 
           {/* Botões */}
