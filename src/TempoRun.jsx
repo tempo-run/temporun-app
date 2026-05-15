@@ -116,13 +116,13 @@ function parsePace(str) {
   if(isNaN(m)||isNaN(s)) return null;
   return m*60+s;
 }
-async function callAI(system,msg,history=[]) {
+async function callAI(system,msg,history=[],maxTokens=1400) {
   const msgs=history.map(m=>({role:m.from==="user"?"user":"assistant",content:m.text}));
   msgs.push({role:"user",content:msg});
   const res=await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`,{
     method:"POST",
     headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON},
-    body:JSON.stringify({system,messages:msgs,max_tokens:1400,model:"claude-haiku-4-5-20251001"})
+    body:JSON.stringify({system,messages:msgs,max_tokens:maxTokens,model:"claude-haiku-4-5-20251001"})
   });
   const d=await res.json();
   return (d.content&&d.content[0]&&d.content[0].text)||"Erro.";
@@ -1838,7 +1838,12 @@ Lesões:${planForm.historico_lesoes||"Nenhuma"}
 Nível:${planForm.nivel||onboardingData.nivel}${kmRecente>0?`
 Volume últimos 30 dias: ${kmRecente.toFixed(1)}km`:""}
 Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":"+planImport.corridas_total+" corridas":""}`;
-    try{const r=await callAI(SYS_PLAN,ctx,[]);const p=JSON.parse(r.replace(/```json|```/g,"").trim());setPlanResult(p);setPlanScreen("result");}
+    try{
+      const r=await callAI(SYS_PLAN,ctx,[],2500);
+      const clean=r.replace(/```json|```/g,"").trim();
+      const p=JSON.parse(clean);
+      setPlanResult(p);setPlanScreen("result");
+    }
     catch{setPlanResult({plano:[{dia:"—",tipo:"Erro",distancia_km:0,pace_alvo:"",descricao:"Tente novamente.",alerta_lesao:""}],resumo_semanal:"Erro.",avisos_medicos:[],progressao_segura:"",alerta_glp1:""});setPlanScreen("result");}
   }
   function handlePaceCustom(v){setPaceCustom(v);if(!v){setPaceAlerta(null);return;}setPaceAlerta(avaliarPace(v,planForm.pace_atual||"5:30"));}

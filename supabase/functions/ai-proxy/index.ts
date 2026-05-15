@@ -17,6 +17,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Cap at 4000 to avoid abuse
+    const tokens = Math.min(max_tokens, 4000);
+
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -24,7 +27,7 @@ Deno.serve(async (req) => {
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({ model, max_tokens, system, messages }),
+      body: JSON.stringify({ model, max_tokens: tokens, system, messages }),
     });
 
     const data = await res.json();
