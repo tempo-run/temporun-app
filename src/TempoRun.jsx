@@ -445,6 +445,46 @@ function RunMapSvgFallback({ polyline, color=C.cyanB }) {
 // ─── STREET MAP GPS (ao vivo — usa Google Maps Static centrado na posição atual) ─
 
 // ─── LIVE MAP (canvas ao vivo durante gravação) ───────────────────────────────
+// Canvas fallback quando Mapbox não disponível
+function LiveMapCanvas({ route=[], gpsStatus="off" }) {
+  const canvasRef = useRef(null);
+  useEffect(()=>{
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = "#080a24"; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = "#1e245622"; ctx.lineWidth = 1;
+    for(let i=0;i<W;i+=20){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
+    for(let i=0;i<H;i+=20){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
+    if(route.length < 2){
+      ctx.fillStyle = gpsStatus==="searching"?"#f59e0b":gpsStatus==="active"?"#22d3ee":"#3a4a78";
+      ctx.font = "bold 11px monospace"; ctx.textAlign = "center";
+      ctx.fillText(gpsStatus==="searching"?"Buscando GPS...":gpsStatus==="active"?"Aguardando movimento...":gpsStatus==="error"?"GPS indisponível":"Inicie para ver o mapa", W/2, H/2);
+      return;
+    }
+    const lats=route.map(p=>p[0]),lngs=route.map(p=>p[1]);
+    const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+    const pad=24,rangeX=maxLng-minLng||0.0001,rangeY=maxLat-minLat||0.0001;
+    const scale=Math.min((W-pad*2)/rangeX,(H-pad*2)/rangeY);
+    const toX=lng=>pad+(lng-minLng)*scale+(W-pad*2-rangeX*scale)/2;
+    const toY=lat=>H-pad-(lat-minLat)*scale-(H-pad*2-rangeY*scale)/2;
+    ctx.beginPath(); ctx.moveTo(toX(route[0][1]),toY(route[0][0]));
+    for(let i=1;i<route.length;i++) ctx.lineTo(toX(route[i][1]),toY(route[i][0]));
+    ctx.strokeStyle="#7c3aed44"; ctx.lineWidth=6; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(toX(route[0][1]),toY(route[0][0]));
+    for(let i=1;i<route.length;i++) ctx.lineTo(toX(route[i][1]),toY(route[i][0]));
+    ctx.strokeStyle="#a855f7"; ctx.lineWidth=3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(toX(route[0][1]),toY(route[0][0]),5,0,Math.PI*2); ctx.fillStyle="#22c55e"; ctx.fill();
+    const last=route[route.length-1];
+    ctx.beginPath(); ctx.arc(toX(last[1]),toY(last[0]),8,0,Math.PI*2); ctx.fillStyle="#22d3ee33"; ctx.fill();
+    ctx.beginPath(); ctx.arc(toX(last[1]),toY(last[0]),4,0,Math.PI*2); ctx.fillStyle="#22d3ee"; ctx.fill();
+    ctx.beginPath(); ctx.arc(toX(last[1]),toY(last[0]),4,0,Math.PI*2); ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+  },[route,gpsStatus]);
+  return <canvas ref={canvasRef} width={360} height={160} style={{width:"100%",height:160,display:"block",borderRadius:"0 0 10px 10px"}}/>;
+}
+
 function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
@@ -455,23 +495,19 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
 
   const MB_TOKEN = MAPBOX_TOKEN;
 
-  // Carrega Mapbox GL JS e CSS dinamicamente
+  // Mapbox carregado via index.html — só verifica disponibilidade
   useEffect(()=>{
-    if(window.mapboxgl){ setMbLoaded(true); return; }
-    // CSS
-    if(!document.querySelector('link[href*="mapbox-gl"]')){
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css";
-      document.head.appendChild(link);
-    }
-    // JS
-    if(!document.querySelector('script[src*="mapbox-gl"]')){
-      const script = document.createElement("script");
-      script.src = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js";
-      script.onload = () => { setMbLoaded(true); };
-      script.onerror = () => setMbError(true);
-      document.head.appendChild(script);
+    if(window.mapboxgl){
+      setMbLoaded(true);
+    } else {
+      // Aguarda até 5s caso o script ainda esteja carregando
+      let tries = 0;
+      const interval = setInterval(()=>{
+        tries++;
+        if(window.mapboxgl){ setMbLoaded(true); clearInterval(interval); }
+        else if(tries >= 50){ setMbError(true); clearInterval(interval); }
+      }, 100);
+      return ()=>clearInterval(interval);
     }
   }, []);
 
@@ -555,17 +591,18 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
     map.easeTo({ center:last, duration:600 });
   }, [tick, route.length]);
 
-  // Fallback se Mapbox falhar ou GPS desligado
-  if(mbError || (!mbLoaded && gpsStatus==="off" && route.length===0)) return (
+  // Fallback canvas quando Mapbox não disponível
+  if(mbError) return <LiveMapCanvas route={route} gpsStatus={gpsStatus}/>;
+
+  // GPS desligado e sem rota — estado inicial
+  if(!mbLoaded && gpsStatus==="off" && route.length===0) return (
     <div style={{width:"100%",height:160,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:6}}>
-      <div style={{width:8,height:8,borderRadius:"50%",background:gpsStatus==="searching"?"#f59e0b":"#3a4a78"}}/>
-      <span style={{color:gpsStatus==="searching"?"#f59e0b":"#3a4a78",fontFamily:"monospace",fontSize:10,fontWeight:700}}>
-        {mbError?"Mapa indisponível":gpsStatus==="searching"?"Buscando GPS...":gpsStatus==="error"?"GPS indisponível":"Inicie para ver o mapa"}
-      </span>
+      <div style={{width:8,height:8,borderRadius:"50%",background:"#3a4a78"}}/>
+      <span style={{color:"#3a4a78",fontFamily:"monospace",fontSize:10,fontWeight:700}}>Inicie para ver o mapa</span>
     </div>
   );
 
-  // Enquanto Mapbox carrega mas GPS já iniciou — mostra loading
+  // Mapbox carregando
   if(!mbLoaded) return (
     <div style={{width:"100%",height:160,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
       <div style={{width:10,height:10,borderRadius:"50%",border:"2px solid #22d3ee",borderTopColor:"transparent",animation:"spin 0.8s linear infinite"}}/>
