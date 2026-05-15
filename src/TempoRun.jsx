@@ -1466,6 +1466,58 @@ export default function TempoRunApp() {
   const [treinosVinculados, setTreinosVinculados] = useState({}); // key: "S1-Seg" → run id
   const [vinculandoKey, setVinculandoKey] = useState(null); // qual treino está sendo vinculado
   const [planScreen, setPlanScreen] = useState("form");
+  const [showAddTreino, setShowAddTreino] = useState(false);
+  const [addTreinoDia, setAddTreinoDia] = useState(null); // index do dia no plano
+  const [addStep, setAddStep] = useState("tipo"); // tipo | subtipo | config
+  const [addTipo, setAddTipo] = useState(null);
+  const [addSubtipo, setAddSubtipo] = useState(null);
+  const [addDistancia, setAddDistancia] = useState(5);
+  const [addDuracao, setAddDuracao] = useState(30);
+  const [addModo, setAddModo] = useState("dist"); // dist | duracao
+
+  const TIPOS_TREINO = [
+    {id:"rodagem",  label:"Rodagem",     emoji:"🏃", color:"#22c55e", desc:"Ritmo confortável, base aeróbica"},
+    {id:"intervalado", label:"Intervalado", emoji:"⚡", color:"#f59e0b", desc:"Tiros rápidos com recuperação"},
+    {id:"tempo",    label:"Tempo Run",   emoji:"🎯", color:"#3b82f6", desc:"Ritmo de limiar, sustentado"},
+    {id:"longao",   label:"Longão",      emoji:"🛣️", color:"#8b5cf6", desc:"Corrida longa, resistência"},
+    {id:"subidas",  label:"Subidas",     emoji:"⛰️", color:"#ef4444", desc:"Tiros em aclive, força"},
+    {id:"descanso", label:"Descanso",    emoji:"😴", color:"#6b7db3", desc:"Recuperação ativa ou total"},
+  ];
+
+  const SUBTREINOS = {
+    rodagem:[
+      {id:"leve",    label:"Rodagem Leve",     desc:"65-70% FCmax · conversação fácil"},
+      {id:"moderada",label:"Rodagem Moderada", desc:"70-75% FCmax · confortável"},
+      {id:"progressiva",label:"Progressiva",   desc:"Começa leve e acelera gradualmente"},
+    ],
+    intervalado:[
+      {id:"400m",    label:"Tiros 400m",        desc:"6-10×400m · ritmo de prova 5k"},
+      {id:"800m",    label:"Tiros 800m",        desc:"4-6×800m · ritmo de prova 10k"},
+      {id:"1km",     label:"Tiros 1km",         desc:"4-5×1km · ritmo de prova 10k"},
+      {id:"fartlek", label:"Fartlek",           desc:"Variações livres de ritmo"},
+      {id:"piramide",label:"Pirâmide",          desc:"400-800-1200-800-400m"},
+    ],
+    tempo:[
+      {id:"continuo",  label:"Tempo Contínuo", desc:"20-40min no limiar"},
+      {id:"cruise",    label:"Cruise Intervals",desc:"3×8min no limiar com 90s recuperação"},
+      {id:"race_pace", label:"Race Pace",       desc:"Segmentos no ritmo objetivo de prova"},
+    ],
+    longao:[
+      {id:"lento",   label:"Longão Lento",     desc:"60-65% FCmax · máximo km da semana"},
+      {id:"negativo",label:"Split Negativo",   desc:"Segunda metade mais rápida"},
+      {id:"maratona",label:"Ritmo Maratona",   desc:"Últimos 30% no pace objetivo"},
+    ],
+    subidas:[
+      {id:"curtas",  label:"Subidas Curtas",   desc:"8-12×30s em aclive forte"},
+      {id:"longas",  label:"Subidas Longas",   desc:"4-6×90s em aclive moderado"},
+      {id:"ondulado",label:"Percurso Ondulado",desc:"Rota com subidas naturais"},
+    ],
+    descanso:[
+      {id:"total",   label:"Descanso Total",   desc:"Sem atividade física"},
+      {id:"ativo",   label:"Descanso Ativo",   desc:"Caminhada leve ou yoga"},
+      {id:"natacao", label:"Natação",          desc:"Treino cruzado de baixo impacto"},
+    ],
+  };
   const [planForm, setPlanForm]     = useState({objetivo:"",dist_semana:"",pace_atual:"5:30",dias_disponiveis:"4",historico_lesoes:"",inatividade_semanas:"0",nivel:"intermediario",glp1:"nao",glp1_nausea:"nao"});
   const [planImport, setPlanImport] = useState(null);
   const [planResult, setPlanResult] = useState(null);
@@ -2371,6 +2423,159 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     );
   }
 
+
+  // ── ADD TREINO MODAL ─────────────────────────────────────────────────────────
+  function renderAddTreinoModal() {
+    const tipo = TIPOS_TREINO.find(t=>t.id===addTipo);
+    const subs = addTipo ? SUBTREINOS[addTipo]||[] : [];
+
+    function confirmar() {
+      if(!planResult||addTreinoDia===null) return;
+      const sub = subs.find(s=>s.id===addSubtipo);
+      const novosPlano = [...planResult.plano];
+      novosPlano[addTreinoDia] = {
+        ...novosPlano[addTreinoDia],
+        tipo: sub ? sub.label : (tipo?.label||"Treino"),
+        distancia_km: addModo==="dist" ? addDistancia : 0,
+        duracao_min: addModo==="duracao" ? addDuracao : null,
+        pace_alvo: "",
+        descricao: sub ? sub.desc : "",
+        alerta_lesao: "",
+        customizado: true,
+      };
+      setPlanResult({...planResult, plano:novosPlano});
+      setShowAddTreino(false);
+      setAddStep("tipo"); setAddTipo(null); setAddSubtipo(null);
+    }
+
+    return (
+      <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center",maxWidth:430,margin:"0 auto"}} onClick={()=>{setShowAddTreino(false);setAddStep("tipo");setAddTipo(null);}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,borderRadius:"20px 20px 0 0",border:"1px solid "+C.border,width:"100%",maxHeight:"85vh",overflowY:"auto",paddingBottom:24}}>
+          {/* Handle */}
+          <div style={{display:"flex",justifyContent:"center",padding:"12px 0 4px"}}>
+            <div style={{width:36,height:4,borderRadius:2,background:C.border}}/>
+          </div>
+
+          {/* Step 1 — Escolher tipo */}
+          {addStep==="tipo"&&(
+            <div style={{padding:"0 16px"}}>
+              <p style={{color:C.tp,fontWeight:800,fontSize:17,margin:"4px 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Escolher treino</p>
+              <p style={{color:C.tm,fontSize:12,margin:"0 0 16px"}}>
+                {addTreinoDia!==null&&planResult?.plano[addTreinoDia]?.dia ? planResult.plano[addTreinoDia].dia : ""}
+              </p>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {TIPOS_TREINO.map(t=>(
+                  <button key={t.id} onClick={()=>{setAddTipo(t.id);setAddStep(t.id==="descanso"?"config":"subtipo");setAddSubtipo(null);}}
+                    style={{background:C.s1,border:"2px solid "+C.border,borderRadius:14,padding:"14px 12px",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                    <span style={{fontSize:26,display:"block",marginBottom:6}}>{t.emoji}</span>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{t.label}</p>
+                    <p style={{color:C.td,fontSize:11,margin:0,lineHeight:1.3}}>{t.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 2 — Escolher subtipo */}
+          {addStep==="subtipo"&&tipo&&(
+            <div style={{padding:"0 16px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                <button onClick={()=>{setAddStep("tipo");setAddTipo(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                  <Ic n="back" z={12} c={C.ts}/>
+                </button>
+                <div>
+                  <p style={{color:C.tp,fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{tipo.emoji} {tipo.label}</p>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {subs.map(s=>(
+                  <button key={s.id} onClick={()=>{setAddSubtipo(s.id);setAddStep("config");}}
+                    style={{background:addSubtipo===s.id?C.violet+"22":C.s1,border:"1.5px solid "+(addSubtipo===s.id?C.violet:C.border),borderRadius:13,padding:"13px 14px",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{s.label}</p>
+                      <p style={{color:C.tm,fontSize:12,margin:0}}>{s.desc}</p>
+                    </div>
+                    <Ic n="chevron-right" z={16} c={C.td}/>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3 — Config distância/duração */}
+          {addStep==="config"&&(
+            <div style={{padding:"0 16px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                <button onClick={()=>setAddStep(addTipo==="descanso"?"tipo":"subtipo")} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                  <Ic n="back" z={12} c={C.ts}/>
+                </button>
+                <p style={{color:C.tp,fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>
+                  {tipo?.emoji} {subs.find(s=>s.id===addSubtipo)?.label || tipo?.label}
+                </p>
+              </div>
+
+              {addTipo!=="descanso"&&(
+                <>
+                  {/* Toggle dist/duração */}
+                  <div style={{display:"flex",background:C.s2,borderRadius:10,padding:3,marginBottom:16}}>
+                    {[{id:"dist",l:"Distância"},{id:"duracao",l:"Duração"}].map(m=>(
+                      <button key={m.id} onClick={()=>setAddModo(m.id)} style={{flex:1,background:addModo===m.id?"linear-gradient(135deg,"+C.violet+"55,"+C.cyan+"22)":"transparent",color:addModo===m.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{m.l}</button>
+                    ))}
+                  </div>
+
+                  {addModo==="dist"&&(
+                    <div style={{marginBottom:16}}>
+                      <p style={{color:C.tm,fontSize:12,margin:"0 0 8px"}}>Distância</p>
+                      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                        <button onClick={()=>setAddDistancia(d=>Math.max(1,d-1))} style={{width:36,height:36,borderRadius:18,background:C.s2,border:"1px solid "+C.border,color:C.tp,fontSize:20,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                        <p style={{color:C.tp,fontWeight:800,fontSize:32,margin:0,fontFamily:"'Space Grotesk',sans-serif",flex:1,textAlign:"center"}}>{addDistancia}<span style={{fontSize:16,color:C.tm}}> km</span></p>
+                        <button onClick={()=>setAddDistancia(d=>Math.min(42,d+1))} style={{width:36,height:36,borderRadius:18,background:C.s2,border:"1px solid "+C.border,color:C.tp,fontSize:20,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        {[3,5,8,10,15,21].map(d=>(
+                          <button key={d} onClick={()=>setAddDistancia(d)} style={{flex:1,background:addDistancia===d?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:addDistancia===d?"#fff":C.tm,border:"1px solid "+(addDistancia===d?C.violet:C.border),borderRadius:8,padding:"6px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{d}k</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {addModo==="duracao"&&(
+                    <div style={{marginBottom:16}}>
+                      <p style={{color:C.tm,fontSize:12,margin:"0 0 8px"}}>Duração</p>
+                      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                        <button onClick={()=>setAddDuracao(d=>Math.max(10,d-5))} style={{width:36,height:36,borderRadius:18,background:C.s2,border:"1px solid "+C.border,color:C.tp,fontSize:20,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                        <p style={{color:C.tp,fontWeight:800,fontSize:32,margin:0,fontFamily:"'Space Grotesk',sans-serif",flex:1,textAlign:"center"}}>{addDuracao}<span style={{fontSize:16,color:C.tm}}> min</span></p>
+                        <button onClick={()=>setAddDuracao(d=>Math.min(180,d+5))} style={{width:36,height:36,borderRadius:18,background:C.s2,border:"1px solid "+C.border,color:C.tp,fontSize:20,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        {[20,30,45,60,90].map(d=>(
+                          <button key={d} onClick={()=>setAddDuracao(d)} style={{flex:1,background:addDuracao===d?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:addDuracao===d?"#fff":C.tm,border:"1px solid "+(addDuracao===d?C.violet:C.border),borderRadius:8,padding:"6px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{d}'</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {addTipo==="descanso"&&(
+                <div style={{background:C.s2,borderRadius:12,padding:"14px 16px",marginBottom:16,textAlign:"center"}}>
+                  <span style={{fontSize:40}}>😴</span>
+                  <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"8px 0 4px"}}>Dia de descanso</p>
+                  <p style={{color:C.tm,fontSize:13,margin:0}}>{subs.find(s=>s.id===addSubtipo)?.desc||"Recuperação total"}</p>
+                </div>
+              )}
+
+              <button onClick={confirmar}
+                style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:14,padding:"15px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 6px 20px "+C.violet+"44"}}>
+                ✓ Adicionar ao plano
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // ── HOME ─────────────────────────────────────────────────────────────────────
   function renderHome() {
     return (
@@ -2453,8 +2658,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
                 {!saberMsgs.length&&(
                   <div style={{textAlign:"center",padding:"20px 0 14px"}}>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 4px"}}>Pergunte qualquer coisa</p>
-                    <p style={{color:C.td,fontSize:12,margin:"0 0 12px"}}>Biomecânica, nutrição, mitos...</p>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 4px"}}>Pergunte sobre sua corrida</p>
+                    <p style={{color:C.td,fontSize:12,margin:"0 0 10px"}}>Biomecânica, nutrição, recuperação, lesões...</p>
+                    {(dadosForm.peso||dadosForm.nome||corridas.length>0)&&(
+                      <div style={{display:"inline-flex",alignItems:"center",gap:6,background:C.s2,border:"1px solid "+C.violet+"33",borderRadius:20,padding:"5px 12px",marginBottom:4}}>
+                        <div style={{width:6,height:6,borderRadius:3,background:C.violetL,flexShrink:0}}/>
+                        <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.4}}>
+                          Respostas baseadas no seu perfil
+                          {dadosForm.peso?` · ${dadosForm.peso}kg`:""}
+                          {corridas.length>0?` · ${corridas.length} corridas`:""}
+                          {corridas.length>0&&corridas[0]?.pace_medio?` · pace ${corridas[0].pace_medio}`:""}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div style={{flex:1,overflowY:"auto",marginBottom:8}}>{saberMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{saberLoad&&<Dots color={C.cyan}/>}</div>
@@ -2640,19 +2856,47 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         )}
         {planScreen==="result"&&planResult&&(
           <div>
-            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:15,padding:13,marginBottom:13,display:"flex",gap:9,alignItems:"flex-start"}}><Ic n="ai" z={22} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 5px",fontFamily:"'Space Grotesk',sans-serif"}}>Plano gerado</p><p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{planResult.resumo_semanal}</p></div></div>
-            {planResult.plano?.map((d,i)=>(
-              <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:12,marginBottom:8,border:"1px solid "+(d.alerta_lesao?C.amber+"44":C.border)}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:d.descricao?5:0}}>
-                  <div>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>{d.dia}</p>
-                    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{d.tipo&&<Badge text={d.tipo} color={d.tipo==="Descanso"?C.td:C.cyanB}/>}{d.distancia_km>0&&<Badge text={d.distancia_km+"km"} color={C.cyan}/>}{d.pace_alvo&&<Badge text={d.pace_alvo+"/km"} color={C.cyanL}/>}</div>
-                  </div>
-                  {d.tipo!=="Descanso"&&<Ic n="run" z={19} c={C.cyanB}/>}
-                </div>
-                {d.descricao&&<p style={{color:C.tm,fontSize:12,margin:"7px 0 0",lineHeight:1.5}}>{d.descricao}</p>}
+            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:15,padding:13,marginBottom:13,display:"flex",gap:9,alignItems:"flex-start"}}>
+              <Ic n="ai" z={22} c={C.cyanB}/>
+              <div>
+                <p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 5px",fontFamily:"'Space Grotesk',sans-serif"}}>Plano gerado</p>
+                <p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{planResult.resumo_semanal}</p>
               </div>
-            ))}
+            </div>
+            {planResult.plano?.map((d,i)=>{
+              const isDescanso = d.tipo==="Descanso"||d.tipo==="Descanso Total"||d.tipo==="Descanso Ativo";
+              const tipoInfo = TIPOS_TREINO.find(t=>d.tipo?.toLowerCase().includes(t.id)||d.tipo?.toLowerCase().includes(t.label?.toLowerCase()));
+              const dotColor = isDescanso?C.td:tipoInfo?.color||C.cyanB;
+              return (
+                <div key={i} style={{borderRadius:13,marginBottom:7,overflow:"hidden",border:"1px solid "+(d.alerta_lesao?C.amber+"44":d.customizado?C.violet+"44":C.border)}}>
+                  {/* Day header */}
+                  <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",padding:"11px 13px"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:d.descricao?6:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{width:4,height:36,borderRadius:2,background:dotColor,flexShrink:0}}/>
+                        <div>
+                          <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 3px"}}>{d.dia}</p>
+                          <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+                            {d.tipo&&<span style={{color:isDescanso?C.td:C.tp,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',sans-serif"}}>{d.tipo}</span>}
+                            {d.distancia_km>0&&<Badge text={d.distancia_km+"km"} color={C.cyan}/>}
+                            {d.duracao_min>0&&<Badge text={d.duracao_min+"min"} color={C.cyanL}/>}
+                            {d.pace_alvo&&<Badge text={d.pace_alvo+"/km"} color={C.cyanL}/>}
+                            {d.customizado&&<Badge text="editado" color={C.violet}/>}
+                          </div>
+                        </div>
+                      </div>
+                      <button onClick={()=>{setAddTreinoDia(i);setAddStep("tipo");setAddTipo(null);setAddSubtipo(null);setShowAddTreino(true);}}
+                        style={{background:C.s3,border:"1px solid "+C.border,borderRadius:9,padding:"5px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                        <Ic n="edit" z={12} c={C.ts}/>
+                        <span style={{color:C.tm,fontSize:11,fontWeight:600}}>Editar</span>
+                      </button>
+                    </div>
+                    {d.descricao&&<p style={{color:C.tm,fontSize:12,margin:"4px 0 0 14px",lineHeight:1.5,paddingLeft:4}}>{d.descricao}</p>}
+                    {d.alerta_lesao&&<p style={{color:C.amber,fontSize:11,margin:"6px 0 0",display:"flex",alignItems:"center",gap:5}}>⚠️ {d.alerta_lesao}</p>}
+                  </div>
+                </div>
+              );
+            })}
             <div style={{display:"flex",gap:8,marginTop:13}}>
               <button onClick={()=>setPlanScreen("form")} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Refazer</button>
               <button style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>Usar este plano</button>
@@ -4254,6 +4498,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               {loggedIn && showConfigModal && renderConfigModal()}
               {loggedIn && showProModal && renderProModal()}
               {loggedIn && showUpgradeModal && renderUpgradeModal()}
+              {loggedIn && showAddTreino && renderAddTreinoModal()}
               {loggedIn && tab==="home"     && renderHome()}
               {loggedIn && tab==="explorar" && renderExplorar()}
               {loggedIn && tab==="treino"   && renderTreino()}
