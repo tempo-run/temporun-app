@@ -144,12 +144,38 @@ IMPORTANTE: descrições máximo 1 frase curta. resumo_semanal máximo 2 frases.
 JSON apenas: {"plano":[{"dia":"","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}],"resumo_semanal":"","avisos_medicos":[],"progressao_segura":"","alerta_glp1":""}`;
 
 const SYS_PLAN_MACRO=`Você é TEMPO, coach IA do TempoRun. Gere estrutura MACRO de plano de treino.
-REGRAS: progressão segura (regra 10%/semana), fases lógicas, descanso adequado. Seja CONCISO: resumo e treinos_chave curtos (máx 3 palavras cada). Máximo 3 avisos.
+
+VOLUMES DE REFERÊNCIA (baseados em evidências científicas — Daniels Running Formula, BAA, MarathonHandbook 2026):
+MARATONA (42k):
+  - Iniciante: início 40km/sem → pico 55-65km/sem (semana mais longa: longão 28-32km)
+  - Intermediário: início 50km/sem → pico 65-80km/sem
+  - Avançado: início 65km/sem → pico 80-100km/sem
+MEIA MARATONA (21k):
+  - Iniciante: início 30km/sem → pico 45-55km/sem
+  - Intermediário: início 45km/sem → pico 55-70km/sem
+  - Avançado: início 55km/sem → pico 70-90km/sem
+10K:
+  - Iniciante: início 20km/sem → pico 35-45km/sem
+  - Intermediário: início 35km/sem → pico 50-60km/sem
+5K / VO2max / Base aeróbica:
+  - Iniciante: pico 25-35km/sem
+  - Intermediário: pico 40-55km/sem
+
+REGRAS OBRIGATÓRIAS:
+- Use os volumes acima como referência MÍNIMA para cada nível — NUNCA gere volumes abaixo deles
+- Progressão segura: nunca aumente >10%/semana; a cada 3-4 semanas, inserir semana de recuperação (volume -20-30%)
+- 80% do volume semanal em intensidade leve/moderada (Z1-Z2); 20% em qualidade
+- Longão: 25-30% do volume semanal (máx 35%)
+- Taper: últimas 2-3 semanas antes da prova: reduzir volume 40-50%, manter intensidade
+- Mínimo 1-2 dias descanso/semana
+- Seja CONCISO: resumo e treinos_chave curtos (máx 3 palavras cada). Máximo 3 avisos.
+
 Responda APENAS JSON (sem markdown):
 {"titulo":"","objetivo":"","semanas":[{"semana":1,"foco":"","volume_km":0,"treinos_chave":[""],"descansos":2,"resumo":"","intensidade":"leve"}],"avisos":[]}`
 
 const SYS_PLAN_WEEK=`Você é TEMPO, coach IA do TempoRun. Expanda UMA semana do plano em dias detalhados.
 REGRAS: nunca volume >10%/semana; mínimo 1-2 descansos; descrições curtas (1 frase).
+IMPORTANTE: o volume_km total dos 7 dias DEVE igualar o volume_km da semana fornecido no contexto. Distribua os km corretamente entre os treinos — não reduza o volume informado.
 Responda APENAS JSON — array de 7 dias:
 [{"dia":"Seg","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}]`
 const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro. Máximo 3 parágrafos objetivos.
@@ -1868,7 +1894,23 @@ ${parts.join(" | ")}` : "";
       durCtx=`Tipo: POR OBJETIVO\nObjetivo: ${objLabels[planObjetivo.objetivo]||planObjetivo.objetivo}\nSemanas: ${planObjetivo.semanas}`;
     }
 
-    const ctx=`ATLETA: ${nomeAtleta}${idade?` | ${idade} anos`:""}${dadosForm.peso?` | ${dadosForm.peso}kg`:""}\nNível: ${planForm.nivel||onboardingData.nivel}\nPace atual: ${planForm.pace_atual||"5:30"}/km\nDias disponíveis/semana: ${planForm.dias_disponiveis||4}\nVolume recente: ${kmRecente.toFixed(0)}km/mês\nHistórico lesões: ${planForm.historico_lesoes||"Nenhuma"}${glp1str}\n${durCtx}`;
+    // Volume floor por distância e nível — evita planos subótimos
+    const nivel = planForm.nivel||onboardingData.nivel||"iniciante";
+    const distProva = planTipo==="prova" ? planProva.distancia : (planObjetivo.objetivo==="maratona"?"maratona":planObjetivo.objetivo==="meia"?"meia_maratona":"outro");
+    const volumeFloors = {
+      maratona:      {iniciante:"pico mínimo 55km/semana",intermediario:"pico mínimo 65km/semana",avancado:"pico mínimo 80km/semana"},
+      "42k":         {iniciante:"pico mínimo 55km/semana",intermediario:"pico mínimo 65km/semana",avancado:"pico mínimo 80km/semana"},
+      meia_maratona: {iniciante:"pico mínimo 45km/semana",intermediario:"pico mínimo 55km/semana",avancado:"pico mínimo 70km/semana"},
+      "21k":         {iniciante:"pico mínimo 45km/semana",intermediario:"pico mínimo 55km/semana",avancado:"pico mínimo 70km/semana"},
+      "10k":         {iniciante:"pico mínimo 35km/semana",intermediario:"pico mínimo 50km/semana",avancado:"pico mínimo 60km/semana"},
+    };
+    const floorKey = ["maratona","42k","42 km","42km"].some(k=>distProva?.toLowerCase()===k) ? "maratona"
+                   : ["meia_maratona","21k","21 km","21km","meia maratona"].some(k=>distProva?.toLowerCase()===k) ? "meia_maratona"
+                   : ["10k","10 km","10km","10 milhas"].some(k=>distProva?.toLowerCase()===k) ? "10k" : null;
+    const nvelKey = nivel.toLowerCase().includes("avan") ? "avancado" : nivel.toLowerCase().includes("inter") ? "intermediario" : "iniciante";
+    const volumeInstr = floorKey ? `\nVOLUME MÍNIMO OBRIGATÓRIO para ${distProva} nível ${nivel}: ${(volumeFloors[floorKey]||{})[nvelKey]||"pico mínimo 50km/semana"} — NUNCA gere semanas abaixo deste piso (exceto semanas de recuperação -20% e taper final).` : "";
+
+    const ctx=`ATLETA: ${nomeAtleta}${idade?` | ${idade} anos`:""}${dadosForm.peso?` | ${dadosForm.peso}kg`:""}\nNível: ${nivel}\nPace atual: ${planForm.pace_atual||"5:30"}/km\nDias disponíveis/semana: ${planForm.dias_disponiveis||4}\nVolume recente: ${kmRecente.toFixed(0)}km/mês\nHistórico lesões: ${planForm.historico_lesoes||"Nenhuma"}${glp1str}\n${durCtx}${volumeInstr}`;
 
     try{
       const r=await callAI(SYS_PLAN_MACRO,ctx,[],4000);
