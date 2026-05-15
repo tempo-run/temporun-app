@@ -3684,6 +3684,18 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                               </div>
                               {d.descricao&&<p style={{color:C.tm,fontSize:11,margin:"4px 0 0",lineHeight:1.4}}>{d.descricao}</p>}
                               {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&<p style={{color:C.amber,fontSize:11,margin:"4px 0 0"}}>⚠️ {d.alerta_lesao}</p>}
+                              {!isDone&&<button onClick={()=>{
+                                setSelectedTreino({
+                                  nome:d.tipo,tipo:d.tipo,
+                                  km:d.distancia_km+"km",
+                                  dur:d.duracao_min?d.duracao_min+"min":"—",
+                                  intensidade:"moderada",semana:si+1,
+                                  descricao:d.descricao||""
+                                });
+                                setSubScreen("gravacao");
+                              }} style={{marginTop:7,background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"44",borderRadius:8,padding:"6px 12px",cursor:"pointer",color:C.violetL,fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",gap:5,width:"100%",justifyContent:"center"}}>
+                                ▶ Iniciar treino
+                              </button>}
                             </div>
                           </div>
                         </div>
@@ -3744,7 +3756,18 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                               {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&d.alerta_lesao!=="Nenhum"&&(
                                 <p style={{color:C.amber,fontSize:11,margin:"5px 0 0",lineHeight:1.4}}>⚠️ {d.alerta_lesao}</p>
                               )}
-                              <p style={{color:C.td,fontSize:10,margin:"3px 0 0",fontFamily:"monospace"}}>Nenhuma corrida recente</p>
+                              {!isDone&&<button onClick={()=>{
+                                setSelectedTreino({
+                                  nome:d.tipo,tipo:d.tipo,
+                                  km:d.distancia_km+"km",
+                                  dur:d.duracao_min?d.duracao_min+"min":"—",
+                                  intensidade:"moderada",semana:si+1,
+                                  descricao:d.descricao||""
+                                });
+                                setSubScreen("gravacao");
+                              }} style={{marginTop:7,background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"44",borderRadius:8,padding:"6px 12px",cursor:"pointer",color:C.violetL,fontSize:11,fontWeight:700,fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",gap:5,width:"100%",justifyContent:"center"}}>
+                                ▶ Iniciar treino
+                              </button>}
                             </div>
                           </div>
                         </div>
@@ -3965,7 +3988,18 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                     </div>
                     <div style={{width:22,height:22,borderRadius:6,border:"1.5px solid "+C.border,flexShrink:0,marginTop:2}}/>
                   </div>
-                  <button onClick={()=>setSubScreen("gravacao")} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"12px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 16px "+C.violet+"44"}}>
+                  <button onClick={()=>{
+                    setSelectedTreino({
+                      nome: treino.tipo,
+                      tipo: treino.tipo,
+                      km: treino.distancia_km+"km",
+                      dur: treino.duracao_min?treino.duracao_min+"min":"—",
+                      intensidade: treino.tipo?.toLowerCase().includes("interval")||treino.tipo?.toLowerCase().includes("forte")?"alta":"moderada",
+                      semana: 1,
+                      descricao: treino.descricao||""
+                    });
+                    setSubScreen("gravacao");
+                  }} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"12px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 16px "+C.violet+"44"}}>
                     ▶ Iniciar este treino
                   </button>
                 </div>
