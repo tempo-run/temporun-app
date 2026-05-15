@@ -993,6 +993,11 @@ const sb = {
     window.location.href = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
   },
 
+  async signInApple() {
+    const redirectTo = "https://app.temporun.run";
+    window.location.href = `${SUPABASE_URL}/auth/v1/authorize?provider=apple&redirect_to=${encodeURIComponent(redirectTo)}`;
+  },
+
   signInStrava() {
     const state = Math.random().toString(36).substring(2);
     sessionStorage.setItem("strava_oauth_state", state);
@@ -1258,6 +1263,10 @@ function LoginScreen({ onLogin }) {
         <button onClick={()=>{setMode("otp_email");setErro("");}} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><rect x="3" y="5" width="18" height="14" rx="2" stroke={C.violetL} strokeWidth="1.8"/><path d="M3 7l9 7 9-7" stroke={C.violetL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
           <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com e-mail</span>
+        </button>
+        <button onClick={()=>sb.signInApple()} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M17.05 20.28c-.98.95-2.05.86-3.08.41-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.41C2.79 15.25 3.51 7.7 9.05 7.42c1.28.07 2.17.74 2.93.8.89-.19 1.74-.87 3.01-.94 1.61-.09 2.82.63 3.6 1.69-3.24 1.93-2.69 6.17.61 7.35-.49 1.24-1.12 2.46-2.15 3.96zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="#fff"/></svg>
+          <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>Continuar com Apple</span>
         </button>
         <button onClick={()=>sb.signInGoogle()} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
           <svg width="22" height="22" viewBox="0 0 24 24" style={{flexShrink:0}}><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -1529,7 +1538,7 @@ export default function TempoRunApp() {
     try { return !localStorage.getItem("tr_onboarding_done"); } catch { return true; }
   });
   const [onboardingStep, setOnboardingStep] = useState(0);
-  const [onboardingData, setOnboardingData] = useState({ objetivos:[], nivel:"" });
+  const [onboardingData, setOnboardingData] = useState({ objetivos:[], nivel:"", nome:"" });
   const [selectedPlan, setSelectedPlan]     = useState("yearly");
   const [isPro, setIsPro]                   = useState(false);
 
@@ -2512,8 +2521,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         `}</style>
 
         <div style={{padding:"48px 22px 32px",display:"flex",flexDirection:"column",gap:28}}>
-
-          {/* Logo */}
           <div className="ob-s1" style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:42,height:42,borderRadius:13,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 20px "+C.violet+"55"}}>
               <img src={iconCircle} alt="TempoRun" style={{width:28,height:28,objectFit:"contain"}}/>
@@ -2524,7 +2531,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </div>
           </div>
 
-          {/* Título */}
           <div className="ob-s2">
             <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:26,fontWeight:800,margin:"0 0 6px",letterSpacing:-0.5,lineHeight:1.2}}>
               Vamos configurar<br/>seu perfil 👋
@@ -2532,7 +2538,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <p style={{color:C.tm,fontSize:14,margin:0,lineHeight:1.6}}>Leva menos de 1 minuto.</p>
           </div>
 
-          {/* Campo nome */}
           <div className="ob-s3">
             <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 8px"}}>Como quer ser chamado?</p>
             <input
@@ -2544,7 +2549,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             />
           </div>
 
-          {/* Objetivos */}
           <div className="ob-s4">
             <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 10px"}}>
               Seus objetivos
@@ -2568,7 +2572,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </div>
           </div>
 
-          {/* Nível */}
           <div className="ob-s5">
             <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"monospace",margin:"0 0 10px"}}>Nível atual</p>
             <div style={{display:"flex",flexDirection:"column",gap:9}}>
@@ -2589,11 +2592,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </div>
           </div>
 
-          {/* Botão */}
           <div style={{paddingBottom:16}}>
-            <button
-              onClick={()=>{ if(podeContinuar) finish(); }}
-              disabled={!podeContinuar}
+            <button onClick={()=>{ if(podeContinuar) finish(); }} disabled={!podeContinuar}
               style={{width:"100%",background:podeContinuar?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"#1e2456",color:"#fff",border:"none",borderRadius:15,padding:"17px 0",fontWeight:800,fontSize:16,cursor:podeContinuar?"pointer":"default",fontFamily:"'Space Grotesk',sans-serif",opacity:podeContinuar?1:0.45,transition:"all 0.25s",boxShadow:podeContinuar?"0 8px 28px "+C.violet+"55":"none",letterSpacing:0.3}}>
               🚀 Começar a treinar
             </button>
@@ -2602,7 +2602,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               Pular por agora
             </button>
           </div>
-
         </div>
       </div>
     );
@@ -3720,13 +3719,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
           <div style={{flex:1}}>
             <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano Completo</p>
-            <p style={{color:C.tm,fontSize:12,margin:0}}>{
-              savedPlan?.tipo==="macro"
-                ? (savedPlan.titulo||"Meu Plano")+" · "+(savedPlan.semanas_macro?.length||0)+" semanas"
-                : savedPlan?.plano?.length
-                  ? (savedPlan.titulo||"Plano IA")+" · "+savedPlan.plano.length+" dias"
-                  : "Crie um plano personalizado"
-            }</p>
+            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.tipo==="macro"?(savedPlan.titulo||"Meu Plano")+" · "+(savedPlan.semanas_macro?.length||0)+" semanas":savedPlan?.plano?.length?(savedPlan.titulo||"Plano IA")+" · "+savedPlan.plano.length+" dias":"Crie um plano personalizado"}</p>
           </div>
           <Ic n="chevron-right" z={18} c={C.td}/>
         </div>
