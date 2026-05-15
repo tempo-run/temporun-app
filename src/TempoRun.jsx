@@ -1984,17 +1984,26 @@ ${parts.join(" | ")}` : "";
         if(isRunningRef.current) routeRef.current.push([lat,lng]); // só grava rota se corrida ativa
         lastPosRef.current={lat,lng,ts:Date.now()};
         // Centraliza mapa na posição atual sempre
-        if(routeRef.current.length===0) routeRef.current=[[lat,lng]]; // pré-aquecimento: só posição
+        if(!isRunningRef.current) routeRef.current=[[lat,lng]]; // pré-aquecimento: só posição atual
         setRouteTick(t=>t+1);
       },
       (err)=>{console.warn("GPS:",err.message);setGpsStatus("error");},
-      {enableHighAccuracy:true,timeout:10000,maximumAge:2000}
+      {enableHighAccuracy:true,timeout:15000,maximumAge:10000}
     );
   }
 
   function stopGPS(){if(watchRef.current!==null){navigator.geolocation.clearWatch(watchRef.current);watchRef.current=null;}setGpsStatus("off");}
 
-  function iniciar(){isRunningRef.current=true;gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);setGStatus("ativo");setGSeg(0);setGKm(0);setGCad(0);setSavedRun(null);startTimer();startGPS();}
+  function iniciar(){
+    isRunningRef.current=true;
+    gSR.current=0;gKR.current=0;gCR.current=0;
+    // Preserva última posição GPS conhecida para não perder o fix
+    const lastPos=lastPosRef.current;
+    routeRef.current=lastPos?[[lastPos.lat,lastPos.lng]]:[];
+    setRouteTick(0);
+    setGStatus("ativo");setGSeg(0);setGKm(0);setGCad(0);setSavedRun(null);
+    startTimer();startGPS();
+  }
   function pausar(){isRunningRef.current=false;clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
   function retomar(){isRunningRef.current=true;setGStatus("ativo");startTimer();startGPS();}
   async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gCR.current,p,routeRef.current);}
