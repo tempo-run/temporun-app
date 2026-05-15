@@ -970,7 +970,7 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 }
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
-const MAPBOX_TOKEN  = "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
+const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN || "";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
@@ -1890,7 +1890,7 @@ ${parts.join(" | ")}` : "";
   function pausar(){clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
   function retomar(){setGStatus("ativo");startTimer();startGPS();}
   async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gBR.current,p,routeRef.current);}
-  function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGBpm(158);setGpsStatus("off");setGpsAccuracy(null);gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;}
+  function resetGrav(){clearInterval(timerRef.current);stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGBpm(158);setGpsStatus("off");setGpsAccuracy(null);setSavedRun(null);gSR.current=0;gKR.current=0;gBR.current=158;routeRef.current=[];lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
   async function sendCoach(){const msg=coachIn.trim();if(!msg||coachLoad)return;if(!checkAiLimit("coach")){setUpgradeReason(`Você usou suas ${AI_LIMITS.coach} perguntas ao Coach hoje. `);setShowUpgradeModal(true);return;}setCoachIn("");const nxt=[...coachMsgs,{from:"user",text:msg}];setCoachMsgs(nxt);setCoachLoad(true);incAiUsage("coach");try{const r=await callAI(SYS_COACH+buildPerfilCtx(),msg,coachMsgs);setCoachMsgs([...nxt,{from:"ai",text:r}]);}catch{setCoachMsgs([...nxt,{from:"ai",text:"Erro 🔌"}]);}setCoachLoad(false);}
@@ -2960,9 +2960,11 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                   </div>
                 )}
                 <div style={{flex:1,overflowY:"auto",marginBottom:8}}>{saberMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{saberLoad&&<Dots color={C.cyan}/>}</div>
-                <div style={{display:"flex",gap:7,paddingBottom:20,paddingTop:4,background:C.bg,flexShrink:0}}>
-                  <input value={saberIn} onChange={e=>setSaberIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendSaber()} placeholder={isPro?"Sua pergunta...":`Pergunta... (${Math.max(0,AI_LIMITS.saber-(getAiUsage().saber||0))} restantes)`} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-                  <button onClick={()=>sendSaber()} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,width:40,height:40,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="share" z={15} c="#fff"/></button>
+                <div style={{display:"flex",gap:7,paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))",paddingTop:4,paddingLeft:2,paddingRight:2,background:C.bg,flexShrink:0}}>
+                  <input value={saberIn} onChange={e=>setSaberIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendSaber()} placeholder={isPro?"Sua pergunta...":`Pergunta... (${Math.max(0,AI_LIMITS.saber-(getAiUsage().saber||0))} restantes)`} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:12,padding:"11px 13px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                  <button onClick={()=>sendSaber()} disabled={!saberIn.trim()||saberLoad} style={{background:saberIn.trim()&&!saberLoad?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s3,color:"#fff",border:"none",borderRadius:12,width:44,height:44,cursor:saberIn.trim()&&!saberLoad?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:saberIn.trim()&&!saberLoad?1:0.4,transition:"all 0.2s"}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
                 </div>
               </div>
             )}
@@ -3333,7 +3335,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>{setTab("studio");setStudioTab("card");setSubScreen(null);}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>Criar card</button>
-            <button onClick={()=>{setSubScreen(null);resetGrav();}} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Voltar</button>
+            <button onClick={()=>{setSubScreen(null);resetGrav();setGStatus("idle");}} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Voltar</button>
           </div>
         </div>
       );
@@ -3653,7 +3655,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>{setTab("studio");setStudioTab("card");setSubScreen(null);}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>Criar card</button>
-            <button onClick={()=>{setSubScreen(null);resetGrav();}} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Voltar</button>
+            <button onClick={()=>{setSubScreen(null);resetGrav();setGStatus("idle");}} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Voltar</button>
           </div>
         </div>
       );
