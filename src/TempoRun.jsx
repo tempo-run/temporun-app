@@ -3235,6 +3235,54 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       );
     }
 
+    // Tela principal do Treino
+    return (
+      <div>
+        <div style={{paddingTop:8,paddingBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:0,fontWeight:800}}>Treino</h1>
+          <button onClick={()=>setSubScreen("gravacao")} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"8px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",gap:6}}>
+            <Ic n="run" z={14} c="#fff"/>Treino livre
+          </button>
+        </div>
+
+        {/* Ver Plano */}
+        <div onClick={()=>setSubScreen("verPlano")} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.violet+"33",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:42,height:42,borderRadius:12,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <Ic n="report" z={20} c="#fff"/>
+          </div>
+          <div style={{flex:1}}>
+            <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano</p>
+            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.plano?"Plano IA personalizado":"Crie um plano com IA"}</p>
+          </div>
+          <Ic n="chevron-right" z={18} c={C.td}/>
+        </div>
+
+        {/* Coach Tempo */}
+        <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
+          <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>Coach Tempo</p>
+          <p style={{color:C.ts,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>Hoje focamos em velocidade de limiar. Execute em ~5:10/km.</p>
+          <button onClick={()=>{setPlanScreen("form");setSubScreen("plano");}} style={{width:"100%",background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"33",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <Ic n="ai" z={14} c={C.cyanB}/>Criar plano com IA
+          </button>
+        </div>
+
+        {/* Chat com Coach */}
+        <div style={{background:C.s1,borderRadius:14,padding:"14px 16px",border:"1px solid "+C.border}}>
+          <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 8px"}}>Chat com Coach Tempo</p>
+          {coachMsgs.slice(-2).map((m,i)=>(
+            <div key={i} style={{marginBottom:6,textAlign:m.from==="user"?"right":"left"}}>
+              <span style={{background:m.from==="user"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:C.tp,fontSize:12,padding:"6px 10px",borderRadius:10,display:"inline-block",maxWidth:"85%",lineHeight:1.4}}>{m.text}</span>
+            </div>
+          ))}
+          <div style={{display:"flex",gap:7,marginTop:8}}>
+            <input value={coachIn} onChange={e=>setCoachIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendCoach()} placeholder="Pergunta ao Coach..." style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+            <button onClick={sendCoach} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,width:40,height:40,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="send" z={15} c="#fff"/></button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── ANÁLISE ─────────────────────────────────────────────────────────────────
   function renderAnalise() {
     if(anStep==="upload") return (
