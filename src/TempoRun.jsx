@@ -824,7 +824,9 @@ function RunDetailModal({ run, onClose }) {
       if(!run.polyline||run.polyline.length<2) return null;
       const sample = run.polyline[0];
       if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
-      // GPS real: [[lat,lng]] → sample[0]=53.x (>10) → isLngLat=false → inverter
+      // Detectar formato: se p[0] é negativo e |p[0]| < 90 → é lng (Dublin: -6.x)
+      // Se p[0] > 10 → é lat (Dublin: 53.x). Normalizar para GeoJSON [lng, lat]
+      // GPS real: [[lat,lng]] → sample[0]=53.x (>10) → isLngLat=false → inverter para [lng,lat]
       // Demo:     [[lng,lat]] → sample[0]=-6.x (<0)  → isLngLat=true  → manter
       const isLngLat = sample[0] < 0 || (Math.abs(sample[0]) < 10 && Math.abs(sample[1]) > 10);
       const allCoords = run.polyline
