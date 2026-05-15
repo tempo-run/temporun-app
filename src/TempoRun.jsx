@@ -827,16 +827,23 @@ function RunDetailModal({ run, onClose }) {
       if(!run.polyline||run.polyline.length<2) return null;
       const sample = run.polyline[0];
       if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
-      // Detectar formato: se p[0] é negativo e |p[0]| < 90 → é lng (Dublin: -6.x)
-      // Se p[0] > 10 → é lat (Dublin: 53.x). Normalizar para GeoJSON [lng, lat]
-      const isLngLat = sample[0] < 0 || Math.abs(sample[0]) < 90;
-      const coords = run.polyline
+      // Detectar formato: lat ~53.x (positivo >10) ou lng ~-6.x (negativo)
+      // GPS real: [[lat,lng]] → sample[0] = 53.x → isLngLat = false → inverter para [lng,lat]
+      // Demo: [[lng,lat]] → sample[0] = -6.x → isLngLat = true → manter [lng,lat]
+      const isLngLat = sample[0] < 0 || (Math.abs(sample[0]) < 10 && Math.abs(sample[1]) > 10);
+      const allCoords = run.polyline
         .filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)
         .map(p => isLngLat ? [p[0], p[1]] : [p[1], p[0]]); // GeoJSON: [lng, lat]
-      if(coords.length<2) return null;
+      if(allCoords.length<2) return null;
+      // Reduzir pontos para evitar URL muito longa (máx ~100 pontos)
+      const step = Math.max(1, Math.floor(allCoords.length/80));
+      const coords = allCoords.filter((_,i)=>i%step===0||i===allCoords.length-1);
       const geoJson = {type:"Feature",properties:{stroke:"#22d3ee","stroke-width":4,"stroke-opacity":1},geometry:{type:"LineString",coordinates:coords}};
       const geoStr = encodeURIComponent(JSON.stringify(geoJson));
-      return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${geoStr})/auto/390x260@2x?access_token=${MAPBOX_TOKEN}&padding=50`;
+      const url = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${geoStr})/auto/390x260@2x?access_token=${MAPBOX_TOKEN}&padding=50`;
+      // Verificar tamanho da URL — limite ~8000 chars
+      if(url.length>7500) return null;
+      return url;
     } catch(e) { return null; }
   })();
 
