@@ -3004,7 +3004,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 setSavedPlan(planResult);
                 try{localStorage.setItem("tr_saved_plan",JSON.stringify(planResult));}catch{}
                 setPlanScreen("form");
-                setSubScreen("verPlano");
+                setTab("treino");
+                setTimeout(()=>setSubScreen("verPlano"),50);
               }} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>✓ Usar este plano</button>
             </div>
           </div>
