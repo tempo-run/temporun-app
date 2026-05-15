@@ -1553,6 +1553,15 @@ export default function TempoRunApp() {
   const [savedPlan, setSavedPlan] = useState(()=>{
     try{ const p=localStorage.getItem("tr_saved_plan"); return p?JSON.parse(p):null; }catch{return null;}
   });
+  const [completedWorkouts, setCompletedWorkouts] = useState(()=>{
+    try{ const c=localStorage.getItem("tr_completed_workouts"); return c?JSON.parse(c):{}; }catch{return {};}
+  });
+  function toggleWorkout(idx){
+    const key=String(idx);
+    const updated={...completedWorkouts,[key]:!completedWorkouts[key]};
+    setCompletedWorkouts(updated);
+    try{localStorage.setItem("tr_completed_workouts",JSON.stringify(updated));}catch{}
+  }
   const [showAddTreino, setShowAddTreino] = useState(false);
   const [addTreinoDia, setAddTreinoDia] = useState(null); // index do dia no plano
   const [addStep, setAddStep] = useState("tipo"); // tipo | subtipo | config
@@ -3088,21 +3097,34 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           const t = tipo.toLowerCase();
           if(t.includes("descanso")||t.includes("rest")) return C.tg;
           if(t.includes("interval")||t.includes("forte")||t.includes("tiro")||t.includes("fartlek")||t.includes("pirâmide")||t.includes("subida")) return C.coral;
-          if(t.includes("longo")||t.includes("longão")||t.includes("long")) return C.amber;
+          if(t.includes("longo")||t.includes("long")) return C.amber;
           if(t.includes("tempo")||t.includes("limiar")) return C.violetL;
           return C.cyanB;
         };
+
+        // Dividir em semanas (7 dias cada)
+        const plano = savedPlan.plano;
+        const totalDias = plano.length;
+        const semanas = [];
+        for(let i=0;i<totalDias;i+=7) semanas.push(plano.slice(i,i+7));
+        const totalTreinos = plano.filter(d=>d.distancia_km>0||!d.tipo?.toLowerCase().includes("descanso")).length;
+        const totalFeitos = Object.values(completedWorkouts).filter(Boolean).length;
+        const progPct = totalTreinos>0?Math.min(100,Math.round(totalFeitos/totalTreinos*100)):0;
+
+        const focos = ["Base aeróbica","Progressão de volume","Velocidade de limiar","Semana de recuperação"];
+
         return (
           <div>
             <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
               <button onClick={()=>setSubScreen(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
-              <div>
+              <div style={{flex:1}}>
                 <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:18,margin:0}}>Meu Plano IA</h1>
-                <p style={{color:C.tm,fontSize:12,margin:"2px 0 0"}}>{savedPlan.plano.length} dias · personalizado</p>
+                <p style={{color:C.tm,fontSize:12,margin:"2px 0 0"}}>{totalDias} dias · personalizado</p>
               </div>
-              <button onClick={()=>{setPlanScreen("form");setSubScreen(null);setTab("treino");}} style={{marginLeft:"auto",background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",fontSize:11,color:C.tm,fontFamily:"inherit"}}>Novo plano</button>
+              <button onClick={()=>{setPlanScreen("form");setSubScreen(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",fontSize:11,color:C.tm,fontFamily:"inherit"}}>Novo plano</button>
             </div>
 
+            {/* Resumo */}
             {savedPlan.resumo_semanal&&typeof savedPlan.resumo_semanal==="string"&&(
               <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:13,padding:12,marginBottom:12,display:"flex",gap:9,alignItems:"flex-start"}}>
                 <Ic n="ai" z={18} c={C.cyanB}/>
@@ -3110,37 +3132,97 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               </div>
             )}
 
+            {/* Barra de progresso */}
+            <div style={{background:C.s1,borderRadius:12,padding:"12px 14px",marginBottom:12,border:"1px solid "+C.border}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+                <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Progresso do plano</span>
+                <span style={{color:C.cyanB,fontSize:12,fontWeight:700}}>{totalFeitos} treinos concluídos</span>
+              </div>
+              <div style={{height:5,background:C.s3,borderRadius:3,overflow:"hidden"}}>
+                <div style={{width:progPct+"%",height:"100%",background:"linear-gradient(90deg,"+C.violet+","+C.cyan+")",borderRadius:3,transition:"width 0.4s"}}/>
+              </div>
+            </div>
+
+            {/* Legenda */}
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+              {[{label:"Leve",color:C.cyanB},{label:"Moderado",color:C.amber},{label:"Forte",color:C.coral},{label:"Descanso",color:C.tg}].map(l=>(
+                <div key={l.label} style={{display:"flex",alignItems:"center",gap:4}}>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:l.color}}/>
+                  <span style={{color:C.tm,fontSize:11}}>{l.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Avisos médicos */}
             {savedPlan.avisos_medicos?.length>0&&(
               <div style={{background:C.amber+"11",border:"1px solid "+C.amber+"33",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
-                <p style={{color:C.amber,fontWeight:700,fontSize:12,margin:"0 0 6px",fontFamily:"monospace"}}>⚠️ AVISOS MÉDICOS</p>
+                <p style={{color:C.amber,fontWeight:700,fontSize:11,margin:"0 0 6px",fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.5}}>⚠️ Avisos Médicos</p>
                 {savedPlan.avisos_medicos.slice(0,3).map((a,i)=>(
                   <p key={i} style={{color:C.tm,fontSize:11,margin:"0 0 4px",lineHeight:1.4}}>{typeof a==="string"?a:JSON.stringify(a)}</p>
                 ))}
               </div>
             )}
 
-            {savedPlan.plano.map((d,i)=>{
-              const isDescanso=d.tipo?.toLowerCase().includes("descanso")||d.distancia_km===0;
-              const cor=intCor2(d.tipo);
+            {/* Semanas */}
+            {semanas.map((semana,si)=>{
+              const foco = focos[si]||("Semana "+(si+1));
               return (
-                <div key={i} style={{borderRadius:13,marginBottom:7,border:"1px solid "+(d.alerta_lesao?C.amber+"44":C.border),overflow:"hidden"}}>
-                  <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",padding:"11px 13px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:d.descricao?5:0}}>
-                      <div style={{width:4,height:36,borderRadius:2,background:cor,flexShrink:0}}/>
-                      <div style={{flex:1}}>
-                        <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 3px"}}>{d.dia}</p>
-                        <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
-                          <span style={{color:isDescanso?C.td:C.tp,fontWeight:700,fontSize:13,fontFamily:"'Space Grotesk',sans-serif"}}>{d.tipo}</span>
-                          {d.distancia_km>0&&<Badge text={d.distancia_km+"km"} color={C.cyan}/>}
-                          {d.pace_alvo&&d.pace_alvo!=="—"&&<Badge text={d.pace_alvo} color={C.cyanL}/>}
+                <div key={si} style={{marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                    <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{color:"#fff",fontWeight:800,fontSize:11,fontFamily:"monospace"}}>S{si+1}</span>
+                    </div>
+                    <div style={{flex:1,height:1,background:C.border}}/>
+                    <span style={{color:C.td,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>{foco}</span>
+                  </div>
+
+                  {semana.map((d,di)=>{
+                    const globalIdx = si*7+di;
+                    const isDone = !!completedWorkouts[String(globalIdx)];
+                    const isDescanso = d.distancia_km===0||d.tipo?.toLowerCase().includes("descanso");
+                    const cor = intCor2(d.tipo);
+
+                    if(isDescanso) return (
+                      <div key={di} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 2px",borderBottom:"1px solid "+C.border+"44"}}>
+                        <div style={{width:24,height:24,borderRadius:6,border:"1.5px solid "+C.border,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",background:isDone?"#22c55e22":"transparent"}} onClick={()=>toggleWorkout(globalIdx)}>
+                          {isDone&&<Ic n="check" z={12} c="#22c55e"/>}
+                        </div>
+                        <span style={{color:C.ts,fontFamily:"monospace",fontSize:11,fontWeight:700,textTransform:"uppercase",minWidth:30}}>{d.dia?.slice(0,3)}</span>
+                        <div style={{width:6,height:6,borderRadius:3,background:C.tg}}/>
+                        <span style={{color:C.td,fontSize:13,fontStyle:"italic"}}>{d.tipo||"Descanso completo"}</span>
+                      </div>
+                    );
+
+                    return (
+                      <div key={di} style={{borderRadius:12,marginBottom:6,border:"1px solid "+(isDone?"#22c55e33":d.alerta_lesao?C.amber+"33":C.border),overflow:"hidden",background:isDone?"#22c55e08":C.s1}}>
+                        <div style={{display:"flex",alignItems:"stretch",gap:0}}>
+                          <div style={{width:4,background:isDone?"#22c55e":cor,flexShrink:0}}/>
+                          <div style={{flex:1,padding:"10px 12px"}}>
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:d.descricao?5:0}}>
+                              <div style={{flex:1}}>
+                                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
+                                  <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase"}}>{d.dia?.slice(0,3)}</span>
+                                  <span style={{color:isDone?C.td:C.tp,fontWeight:700,fontSize:14,fontFamily:"'Space Grotesk',sans-serif",textDecoration:isDone?"line-through":"none"}}>{d.tipo}</span>
+                                </div>
+                                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                                  {d.distancia_km>0&&<span style={{background:cor+"22",color:cor,border:"1px solid "+cor+"44",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>{d.distancia_km}km</span>}
+                                  {d.pace_alvo&&d.pace_alvo!=="—"&&<span style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:6,padding:"2px 8px",fontSize:11}}>{d.pace_alvo}</span>}
+                                </div>
+                              </div>
+                              <div onClick={()=>toggleWorkout(globalIdx)} style={{width:24,height:24,borderRadius:6,border:"1.5px solid "+(isDone?"#22c55e":C.border),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",background:isDone?"#22c55e":"transparent",marginLeft:8}}>
+                                {isDone&&<Ic n="check" z={12} c="#fff"/>}
+                              </div>
+                            </div>
+                            {d.descricao&&<p style={{color:C.tm,fontSize:11,margin:"5px 0 0",lineHeight:1.4}}>{d.descricao}</p>}
+                            {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&d.alerta_lesao!=="Nenhum"&&(
+                              <p style={{color:C.amber,fontSize:11,margin:"5px 0 0",lineHeight:1.4}}>⚠️ {d.alerta_lesao}</p>
+                            )}
+                            <p style={{color:C.td,fontSize:10,margin:"3px 0 0",fontFamily:"monospace"}}>Nenhuma corrida recente</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {d.descricao&&<p style={{color:C.tm,fontSize:12,margin:"4px 0 0 14px",lineHeight:1.5}}>{d.descricao}</p>}
-                    {d.alerta_lesao&&d.alerta_lesao!=="Nenhum."&&d.alerta_lesao!=="Nenhum"&&(
-                      <p style={{color:C.amber,fontSize:11,margin:"6px 0 0",lineHeight:1.4}}>⚠️ {d.alerta_lesao}</p>
-                    )}
-                  </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -3238,11 +3320,59 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     // Tela principal do Treino
     return (
       <div>
-        <div style={{paddingTop:8,paddingBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        {/* Header */}
+        <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:0,fontWeight:800}}>Treino</h1>
-          <button onClick={()=>setSubScreen("gravacao")} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"8px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",gap:6}}>
-            <Ic n="run" z={14} c="#fff"/>Treino livre
-          </button>
+          <span style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"4px 10px",color:C.tm,fontSize:12,fontWeight:600,fontFamily:"monospace"}}>
+            {new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"}).replace(".","")}
+          </span>
+        </div>
+
+        {/* Treinos Concluídos */}
+        <div style={{background:C.s1,borderRadius:14,marginBottom:10,border:"1px solid "+C.border,overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px 10px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:7}}>
+              <Ic n="trophy" z={13} c={C.ts}/>
+              <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Treinos Concluídos</span>
+            </div>
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={()=>{setShowStravaModal&&setShowStravaModal(true);}} style={{background:stravaConnected?"#fc4c0222":"#fc4c0211",border:"1px solid #fc4c0244",borderRadius:8,padding:"4px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                <div style={{width:6,height:6,borderRadius:3,background:stravaConnected?"#fc4c02":C.td}}/>
+                <span style={{color:stravaConnected?"#fc4c02":C.td,fontSize:11,fontWeight:700}}>Strava</span>
+              </button>
+              <button onClick={()=>setShowGarminModal(true)} style={{background:garminConnected?"#009CDE22":"#1a1f4a",border:"1px solid "+(garminConnected?"#009CDE44":C.border),borderRadius:8,padding:"4px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                <Ic n="watch" z={11} c={garminConnected?"#009CDE":C.td}/>
+                <span style={{color:garminConnected?"#009CDE":C.td,fontSize:11,fontWeight:700}}>Garmin</span>
+              </button>
+            </div>
+          </div>
+          {corridas.length===0&&stravaRuns.length===0?(
+            <div style={{textAlign:"center",padding:"14px 14px 18px"}}>
+              <p style={{color:C.tm,fontSize:13,margin:"0 0 3px"}}>Nenhum treino ainda</p>
+              <p style={{color:C.td,fontSize:11,margin:0}}>Finalize seu primeiro treino abaixo</p>
+            </div>
+          ):(
+            <div style={{paddingBottom:8}}>
+              {[...corridas,...stravaRuns].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,5).map((r,i)=>(
+                <div key={i} onClick={()=>setSelectedRun&&setSelectedRun(r)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",borderTop:i>0?"1px solid "+C.border:"none",cursor:"pointer"}}>
+                  <div style={{width:34,height:34,borderRadius:10,background:r.source==="strava"?"#fc4c0222":C.violet+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <span style={{color:r.source==="strava"?"#fc4c02":C.violetL,fontWeight:800,fontSize:12,fontFamily:"'Space Grotesk',sans-serif"}}>S</span>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nome}</p>
+                      {r.source==="strava"&&<span style={{color:"#fc4c02",fontSize:9,fontWeight:800,fontFamily:"monospace",letterSpacing:0.5}}>STRAVA</span>}
+                    </div>
+                    <p style={{color:C.tm,fontSize:11,margin:0}}>{r.distancia_km}km · {r.pace_medio}/km · {r.data}</p>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <p style={{color:C.ts,fontSize:11,margin:"0 0 2px"}}>▲{r.dplus||0}m</p>
+                    <Ic n="chevron-right" z={13} c={C.td}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Ver Plano Completo */}
@@ -3252,7 +3382,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
           <div style={{flex:1}}>
             <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano Completo</p>
-            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.plano?"Plano IA personalizado · "+savedPlan.plano.length+" dias":"Crie um plano com IA"}</p>
+            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.plano?"Plano IA · "+savedPlan.plano.length+" dias":"Crie um plano personalizado"}</p>
           </div>
           <Ic n="chevron-right" z={18} c={C.td}/>
         </div>
@@ -3265,23 +3395,20 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           const abrev = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][hoje.getDay()];
           const dataStr = hoje.toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
           const treino = savedPlan?.plano?.find(d=>
-            d.dia?.toLowerCase().includes(abrev.toLowerCase()) ||
+            d.dia?.toLowerCase().includes(abrev.toLowerCase())||
             d.dia?.toLowerCase().includes(diaHoje.toLowerCase().slice(0,3))
           );
-          const isDescanso = !treino || treino.distancia_km===0 || treino.tipo?.toLowerCase().includes("descanso");
+          const isDescanso = !treino||treino.distancia_km===0||treino.tipo?.toLowerCase().includes("descanso");
           const tipoColor = isDescanso?C.td:
             treino?.tipo?.toLowerCase().includes("interval")||treino?.tipo?.toLowerCase().includes("tiro")?C.coral:
             treino?.tipo?.toLowerCase().includes("longo")||treino?.tipo?.toLowerCase().includes("long")?C.amber:
             treino?.tipo?.toLowerCase().includes("tempo")?C.violetL:C.cyanB;
-
           return (
             <div style={{background:C.s1,borderRadius:14,marginBottom:10,overflow:"hidden",border:"1px solid "+C.border}}>
-              {/* Header */}
               <div style={{padding:"10px 14px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:0}}>Treino de hoje</p>
                 <p style={{color:C.td,fontSize:11,margin:0}}>{dataStr.charAt(0).toUpperCase()+dataStr.slice(1)}</p>
               </div>
-
               {isDescanso?(
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px 14px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -3291,15 +3418,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                       <p style={{color:C.td,fontSize:12,margin:0}}>Recuperação ativa ou repouso total</p>
                     </div>
                   </div>
-                  <button onClick={()=>{
-                    const idx = savedPlan?.plano?.findIndex(d=>
-                      d.dia?.toLowerCase().includes(abrev.toLowerCase())||
-                      d.dia?.toLowerCase().includes(diaHoje.toLowerCase().slice(0,3))
-                    );
-                    setAddTreinoDia(idx>=0?idx:0);
-                    setAddStep("tipo");setAddTipo(null);setAddSubtipo(null);
-                    setShowAddTreino(true);
-                  }} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"7px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                  <button onClick={()=>{const idx=savedPlan?.plano?.findIndex(d=>d.dia?.toLowerCase().includes(abrev.toLowerCase())||d.dia?.toLowerCase().includes(diaHoje.toLowerCase().slice(0,3)));setAddTreinoDia(idx>=0?idx:0);setAddStep("tipo");setAddTipo(null);setAddSubtipo(null);setShowAddTreino(true);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"7px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                     <Ic n="plus" z={13} c={C.tm}/>
                     <span style={{color:C.tm,fontSize:12,fontWeight:600}}>Adicionar</span>
                   </button>
@@ -3310,14 +3429,10 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                     <div style={{width:4,borderRadius:2,background:tipoColor,flexShrink:0,alignSelf:"stretch",minHeight:44}}/>
                     <div style={{flex:1}}>
                       <p style={{color:C.tp,fontWeight:800,fontSize:18,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{treino.tipo}</p>
-                      <p style={{color:C.tm,fontSize:12,margin:"0 0 7px"}}>{treino.descricao||""}</p>
+                      {treino.descricao&&<p style={{color:C.tm,fontSize:12,margin:"0 0 7px",lineHeight:1.4}}>{treino.descricao}</p>}
                       <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-                        {treino.distancia_km>0&&(
-                          <span style={{background:tipoColor+"22",color:tipoColor,border:"1px solid "+tipoColor+"44",borderRadius:8,padding:"3px 9px",fontSize:12,fontWeight:700}}>{treino.distancia_km}km</span>
-                        )}
-                        {treino.pace_alvo&&treino.pace_alvo!=="—"&&(
-                          <span style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:8,padding:"3px 9px",fontSize:12,fontWeight:600}}>{treino.pace_alvo}</span>
-                        )}
+                        {treino.distancia_km>0&&<span style={{background:tipoColor+"22",color:tipoColor,border:"1px solid "+tipoColor+"44",borderRadius:8,padding:"3px 9px",fontSize:12,fontWeight:700}}>{treino.distancia_km}km</span>}
+                        {treino.pace_alvo&&treino.pace_alvo!=="—"&&<span style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:8,padding:"3px 9px",fontSize:12,fontWeight:600}}>{treino.pace_alvo}</span>}
                       </div>
                     </div>
                     <div style={{width:22,height:22,borderRadius:6,border:"1.5px solid "+C.border,flexShrink:0,marginTop:2}}/>
@@ -3339,7 +3454,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <Ic n="ai" z={14} c={C.cyanB}/>Criar plano com IA
           </button>
           <button onClick={()=>setSubScreen("gravacao")} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"12px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 20px "+C.violet+"44",letterSpacing:0.3}}>
-            <Ic n="run" z={18} c="#fff"/>Iniciar treino
+            <Ic n="run" z={18} c="#fff"/>Treino livre
           </button>
         </div>
 
