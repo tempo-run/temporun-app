@@ -449,87 +449,141 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0 }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+  const startMarkerRef = useRef(null);
   const [mbLoaded, setMbLoaded] = useState(false);
+  const [mbError, setMbError] = useState(false);
 
-  // Carrega Mapbox GL JS dinamicamente
+  const MB_TOKEN = MAPBOX_TOKEN;
+
+  // Carrega Mapbox GL JS e CSS dinamicamente
   useEffect(()=>{
     if(window.mapboxgl){ setMbLoaded(true); return; }
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css";
-    document.head.appendChild(link);
-    const script = document.createElement("script");
-    script.src = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js";
-    script.onload = () => setMbLoaded(true);
-    document.head.appendChild(script);
+    // CSS
+    if(!document.querySelector('link[href*="mapbox-gl"]')){
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css";
+      document.head.appendChild(link);
+    }
+    // JS
+    if(!document.querySelector('script[src*="mapbox-gl"]')){
+      const script = document.createElement("script");
+      script.src = "https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js";
+      script.onload = () => { setMbLoaded(true); };
+      script.onerror = () => setMbError(true);
+      document.head.appendChild(script);
+    }
   }, []);
 
-  // Inicializa o mapa quando a lib estiver carregada
+  // Inicializa o mapa
   useEffect(()=>{
     if(!mbLoaded || !mapContainer.current || mapRef.current) return;
-    window.mapboxgl.accessToken = MAPBOX_TOKEN;
-    const center = route.length > 0 ? [route[route.length-1][1], route[route.length-1][0]] : [-6.2603, 53.3498]; // Dublin fallback
-    mapRef.current = new window.mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/satellite-streets-v12",
-      center,
-      zoom: 15,
-      attributionControl: false,
-      logoPosition: "bottom-left",
-    });
-    mapRef.current.addControl(new window.mapboxgl.AttributionControl({ compact: true }), "bottom-right");
-    mapRef.current.on("load", ()=>{
-      // Layer da rota
-      mapRef.current.addSource("route", { type:"geojson", data:{ type:"Feature", geometry:{ type:"LineString", coordinates:[] }}});
-      mapRef.current.addLayer({ id:"route-shadow", type:"line", source:"route", layout:{"line-cap":"round","line-join":"round"}, paint:{"line-color":"#00000066","line-width":7,"line-blur":3}});
-      mapRef.current.addLayer({ id:"route-line", type:"line", source:"route", layout:{"line-cap":"round","line-join":"round"}, paint:{"line-color":["interpolate",["linear"],["line-progress"],0,"#3b82f6",0.33,"#22c55e",0.66,"#f59e0b",1,"#ef4444"],"line-width":4,"line-gradient":true}});
-      // Marcador de início
-      if(route.length > 0){
-        const startEl = document.createElement("div");
-        startEl.style.cssText = "width:14px;height:14px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;box-shadow:0 0 8px #22c55e88";
-        new window.mapboxgl.Marker({element:startEl}).setLngLat([route[0][1],route[0][0]]).addTo(mapRef.current);
-      }
-      // Marcador da posição atual
-      const posEl = document.createElement("div");
-      posEl.style.cssText = "width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #fff;box-shadow:0 0 12px #22d3ee99";
-      markerRef.current = new window.mapboxgl.Marker({element:posEl});
-      if(route.length > 0) markerRef.current.setLngLat([route[route.length-1][1],route[route.length-1][0]]).addTo(mapRef.current);
-    });
+    try {
+      window.mapboxgl.accessToken = MB_TOKEN;
+      const center = route.length > 0 ? [route[route.length-1][1], route[route.length-1][0]] : [-6.2603, 53.3498];
+      const map = new window.mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        center,
+        zoom: 15,
+        attributionControl: false,
+        logoPosition: "bottom-left",
+        failIfMajorPerformanceCaveat: false,
+      });
+      mapRef.current = map;
+      map.on("error", (e)=>{ console.warn("Mapbox error:", e); });
+      map.on("load", ()=>{
+        // Source com lineMetrics:true obrigatório para line-gradient
+        map.addSource("route", {
+          type: "geojson",
+          lineMetrics: true,
+          data: { type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:[] }}
+        });
+        // Sombra da rota
+        map.addLayer({ id:"route-shadow", type:"line", source:"route",
+          layout:{"line-cap":"round","line-join":"round"},
+          paint:{"line-color":"#00000088","line-width":8,"line-blur":4}
+        });
+        // Rota com gradiente de pace
+        map.addLayer({ id:"route-line", type:"line", source:"route",
+          layout:{"line-cap":"round","line-join":"round"},
+          paint:{
+            "line-width": 4,
+            "line-gradient": ["interpolate",["linear"],["line-progress"],
+              0,   "#3b82f6",
+              0.33,"#22c55e",
+              0.66,"#f59e0b",
+              1,   "#ef4444"
+            ]
+          }
+        });
+        // Marcador posição atual
+        const posEl = document.createElement("div");
+        posEl.style.cssText = "width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #fff;box-shadow:0 0 12px #22d3ee99;cursor:default";
+        markerRef.current = new window.mapboxgl.Marker({element:posEl,anchor:"center"});
+        if(route.length > 0){
+          markerRef.current.setLngLat([route[route.length-1][1], route[route.length-1][0]]).addTo(map);
+        }
+      });
+    } catch(e) {
+      console.error("Mapbox init error:", e);
+      setMbError(true);
+    }
+    return ()=>{ try{ mapRef.current?.remove(); mapRef.current=null; }catch{} };
   }, [mbLoaded]);
 
   // Atualiza rota e posição a cada novo ponto GPS
   useEffect(()=>{
-    if(!mapRef.current || !mapRef.current.isStyleLoaded() || route.length < 2) return;
-    const coords = route.map(p=>[p[1],p[0]]);
-    try { mapRef.current.getSource("route")?.setData({ type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords }}); } catch{}
+    const map = mapRef.current;
+    if(!map || !map.isStyleLoaded()) return;
+    if(route.length < 2) return;
+    const coords = route.map(p=>[p[1], p[0]]);
+    try {
+      map.getSource("route")?.setData({
+        type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords }
+      });
+    } catch{}
     const last = [route[route.length-1][1], route[route.length-1][0]];
-    if(markerRef.current) markerRef.current.setLngLat(last).addTo(mapRef.current);
-    mapRef.current.easeTo({ center: last, duration: 600 });
+    // Marcador início — adiciona só uma vez
+    if(!startMarkerRef.current && window.mapboxgl){
+      const el = document.createElement("div");
+      el.style.cssText = "width:14px;height:14px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;box-shadow:0 0 8px #22c55e88";
+      startMarkerRef.current = new window.mapboxgl.Marker({element:el,anchor:"center"})
+        .setLngLat([route[0][1], route[0][0]]).addTo(map);
+    }
+    if(markerRef.current) markerRef.current.setLngLat(last).addTo(map);
+    map.easeTo({ center:last, duration:600 });
   }, [tick, route.length]);
 
-  // Estado sem rota ainda
-  if(!mbLoaded || (gpsStatus==="off" && route.length===0)) return (
+  // Fallback se Mapbox falhar ou GPS desligado
+  if(mbError || (!mbLoaded && gpsStatus==="off" && route.length===0)) return (
     <div style={{width:"100%",height:160,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:6}}>
       <div style={{width:8,height:8,borderRadius:"50%",background:gpsStatus==="searching"?"#f59e0b":"#3a4a78"}}/>
       <span style={{color:gpsStatus==="searching"?"#f59e0b":"#3a4a78",fontFamily:"monospace",fontSize:10,fontWeight:700}}>
-        {gpsStatus==="searching"?"Buscando GPS...":gpsStatus==="error"?"GPS indisponível":"Inicie para ver o mapa"}
+        {mbError?"Mapa indisponível":gpsStatus==="searching"?"Buscando GPS...":gpsStatus==="error"?"GPS indisponível":"Inicie para ver o mapa"}
       </span>
+    </div>
+  );
+
+  // Enquanto Mapbox carrega mas GPS já iniciou — mostra loading
+  if(!mbLoaded) return (
+    <div style={{width:"100%",height:160,background:"#080a24",borderRadius:"0 0 10px 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+      <div style={{width:10,height:10,borderRadius:"50%",border:"2px solid #22d3ee",borderTopColor:"transparent",animation:"spin 0.8s linear infinite"}}/>
+      <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:10,fontWeight:700}}>Carregando mapa...</span>
     </div>
   );
 
   return (
     <div style={{position:"relative",width:"100%",height:160,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
       <div ref={mapContainer} style={{width:"100%",height:"100%"}}/>
-      {/* Badge GPS */}
-      <div style={{position:"absolute",top:8,right:8,background:"#000000aa",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)"}}>
+      <div style={{position:"absolute",top:8,right:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)"}}>
         <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:9,fontWeight:800}}>
           {gpsStatus==="active"?`● GPS ±${accuracy||"?"}m`:"● AO VIVO"}
         </span>
       </div>
-      {/* Legenda pace */}
-      <div style={{position:"absolute",bottom:8,left:8,background:"#000000aa",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:6}}>
+      <div style={{position:"absolute",bottom:8,left:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:5}}>
         <span style={{fontSize:9,color:"#aaa",fontFamily:"monospace"}}>lento</span>
-        <div style={{width:40,height:4,borderRadius:2,background:"linear-gradient(90deg,#3b82f6,#22c55e,#f59e0b,#ef4444)"}}/>
+        <div style={{width:36,height:3,borderRadius:2,background:"linear-gradient(90deg,#3b82f6,#22c55e,#f59e0b,#ef4444)"}}/>
         <span style={{fontSize:9,color:"#aaa",fontFamily:"monospace"}}>rápido</span>
       </div>
     </div>
@@ -970,7 +1024,7 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 }
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
-const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN || "";
+const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN ?? "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
@@ -3319,7 +3373,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       if(gStatus==="fim") return (
         <div>
           <div style={{paddingTop:10,paddingBottom:8,display:"flex",alignItems:"center",gap:10}}>
-            <button onClick={()=>{setSubScreen(null);if(gStatus==="fim"){resetGrav();setGStatus("idle");}}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
+            <button onClick={()=>{resetGrav();setGStatus("idle");setSubScreen(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
             <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{salvando?"Salvando...":"Treino concluído"}</h1>
           </div>
           {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>Corrida salva</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · aparece nos Treinos Concluídos</p></div></div>}
@@ -3374,7 +3428,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{display:"flex",gap:8,marginTop:"auto"}}>
             {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
             :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-            :(<button onClick={iniciar} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+            :(<button onClick={()=>{resetGrav();iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
         </div>
       );
@@ -3694,7 +3748,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{display:"flex",gap:8,marginTop:"auto"}}>
             {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
             :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-            :(<button onClick={iniciar} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+            :(<button onClick={()=>{resetGrav();iniciar();}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
         </div>
       );
