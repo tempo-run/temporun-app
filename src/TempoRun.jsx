@@ -3432,7 +3432,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </div>
       );
       return (
-        <div style={{display:"flex",flexDirection:"column",minHeight:565,gap:0}}>
+        <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 160px)",maxHeight:620,gap:0}}>
 
           {/* Header — status + badges */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:8}}>
@@ -3469,9 +3469,11 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             ))}
           </div>
 
-          {/* Mapa — maior, ocupa o espaço disponível */}
-          <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0",border:"1px solid "+C.violet+"33",flex:1,minHeight:220,position:"relative"}}>
-            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={220}/>
+          {/* Mapa — ocupa todo espaço disponível */}
+          <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0",border:"1px solid "+C.violet+"33",flex:1,minHeight:200,position:"relative",display:"flex",flexDirection:"column"}}>
+            <div style={{flex:1,minHeight:200}}>
+              <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={300}/>
+            </div>
           </div>
 
           {/* Botões */}
