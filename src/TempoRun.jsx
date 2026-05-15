@@ -1371,17 +1371,44 @@ export default function TempoRunApp() {
 
   // Verifica assinatura Pro ao logar
   useEffect(()=>{
-    if(!session?.access_token || !session?.id) return;
-    fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${session.id}&select=status,plan,current_period_end&limit=1`, {
+    if(!session?.access_token) return;
+    const userId = session.id || "";
+    if(!userId) return;
+
+    // Tenta buscar por user_id directo
+    fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${userId}&select=status,plan,current_period_end&limit=1`, {
       headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
     }).then(r=>r.json()).then(data=>{
       if(Array.isArray(data) && data.length > 0) {
         const sub = data[0];
+        console.log("Subscription encontrada:", sub.status, "user_id:", userId);
         setProStatus(sub.status);
-        setIsPro(sub.status === "active" || sub.status === "trialing");
+        // Aceita active, trialing, e também incomplete recente (webhook pode atrasar)
+        const isPaid = sub.status === "active" || sub.status === "trialing" || sub.status === "incomplete";
+        setIsPro(isPaid);
       } else {
-        setIsPro(false);
-        setProStatus(null);
+        console.log("Nenhuma subscription para user_id:", userId);
+        // Tenta buscar via tabela users (auth_id)
+        fetch(`${SUPABASE_URL}/rest/v1/users?auth_id=eq.${userId}&select=id&limit=1`, {
+          headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
+        }).then(r=>r.json()).then(users=>{
+          if(Array.isArray(users) && users.length > 0) {
+            const publicId = users[0].id;
+            fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${publicId}&select=status,plan&limit=1`, {
+              headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
+            }).then(r=>r.json()).then(subs=>{
+              if(Array.isArray(subs) && subs.length > 0) {
+                console.log("Subscription via public_id:", subs[0].status);
+                setProStatus(subs[0].status);
+                setIsPro(subs[0].status === "active" || subs[0].status === "trialing" || subs[0].status === "incomplete");
+              } else {
+                setIsPro(false); setProStatus(null);
+              }
+            }).catch(()=>{});
+          } else {
+            setIsPro(false); setProStatus(null);
+          }
+        }).catch(()=>{});
       }
     }).catch(()=>{});
   },[session?.access_token, session?.id]);
