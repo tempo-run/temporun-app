@@ -3459,9 +3459,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             ))}
           </div>
 
-          {/* Mapa — ocupa todo espaço disponível */}
-          <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0 0",border:"1px solid "+C.violet+"33",flex:1,minHeight:200,position:"relative"}}>
-            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={350}/>
+          {/* Mapa — ocupa até a borda inferior */}
+          <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0 -8px",flex:1,minHeight:200,position:"relative"}}>
+            <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={400}/>
           </div>
 
           {/* Botões */}
