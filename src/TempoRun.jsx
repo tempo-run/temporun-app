@@ -1795,7 +1795,7 @@ export default function TempoRunApp() {
   const [gStatus, setGStatus] = useState("idle");
   const [gSeg, setGSeg]       = useState(0);
   const [gKm, setGKm]         = useState(0);
-  const [gCad, setGBpm]       = useState(158);
+  const [gCad, setGCad]       = useState(0);
   const timerRef=useRef(null); const gSR=useRef(0); const gKR=useRef(0); const gBR=useRef(0); const gCR=useRef(0);
   const watchRef=useRef(null);        // GPS watchPosition ID
   const lastPosRef=useRef(null);      // última posição GPS {lat,lng,ts}
