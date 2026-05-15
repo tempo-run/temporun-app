@@ -140,6 +140,11 @@ REGRAS ESPECIAIS GLP-1 (Ozempic/Wegovy/Mounjaro/Saxenda): Se o atleta usa GLP-1,
 - Alerte sobre proteína 1.2-1.6g/kg/dia para preservar músculo (ADA 2025, Frontiers 2025).
 - Se náusea: substituir corrida por run-walk.
 Fontes: STEP trials, PMC 11848261, PMC 12683586, ADA Clinical Diabetes 2025.
+TIPOS DE TREINO PERMITIDOS (use EXATAMENTE estes nomes no campo "tipo", nada mais):
+- Rodagem Leve | Rodagem Moderada | Rodagem Progressiva
+- Longão | Longão Lento | Longão com Ritmo | Longão Progressivo
+- Tempo Run | Intervalado | Fartlek
+- Subidas | Strides | Descanso | Descanso Ativo
 IMPORTANTE: descrições máximo 1 frase curta. resumo_semanal máximo 2 frases. avisos_medicos máximo 3 itens curtos. progressao_segura máximo 1 frase. Seja conciso.
 JSON apenas: {"plano":[{"dia":"","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}],"resumo_semanal":"","avisos_medicos":[],"progressao_segura":"","alerta_glp1":""}`;
 
@@ -150,6 +155,11 @@ Responda APENAS JSON (sem markdown):
 
 const SYS_PLAN_WEEK=`Você é TEMPO, coach IA do TempoRun. Expanda UMA semana do plano em dias detalhados.
 REGRAS: nunca volume >10%/semana; mínimo 1-2 descansos; descrições curtas (1 frase).
+TIPOS DE TREINO PERMITIDOS (use EXATAMENTE estes nomes, nada mais):
+- Rodagem Leve | Rodagem Moderada | Rodagem Progressiva
+- Longão | Longão Lento | Longão com Ritmo | Longão Progressivo
+- Tempo Run | Intervalado | Fartlek
+- Subidas | Strides | Descanso | Descanso Ativo
 Responda APENAS JSON — array de 7 dias:
 [{"dia":"Seg","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}]`
 const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro. Máximo 3 parágrafos objetivos.
@@ -1898,35 +1908,22 @@ ${parts.join(" | ")}` : "";
     }
   }
 
-  async function expandirSemana(semanaIdx, attempt=0) {
+  async function expandirSemana(semanaIdx) {
     if(expandedWeeks[semanaIdx]) return; // já expandida
     setExpandingWeek(semanaIdx);
     const semMacro = savedPlan?.semanas_macro?.[semanaIdx];
-    if(!semMacro){ setExpandingWeek(null); return; }
+    if(!semMacro) return;
 
     const ctx=`Semana ${semanaIdx+1} do plano: "${semMacro.foco}"\nVolume alvo: ${semMacro.volume_km}km\nTreinos chave: ${semMacro.treinos_chave?.join(", ")||""}\nDias descanso: ${semMacro.descansos||2}\nNível atleta: ${planForm.nivel||"intermediario"}\nPace base: ${planForm.pace_atual||"5:30"}/km\nGLP-1: ${planForm.glp1==="sim"?"SIM":"NÃO"}`;
 
     try{
       const r=await callAI(SYS_PLAN_WEEK,ctx,[],2500);
-      // Extrai JSON mesmo que venha com texto à volta
-      const jsonMatch=r.match(/\[[\s\S]*\]/);
-      const clean=jsonMatch ? jsonMatch[0] : r.replace(/```json|```/g,"").trim();
+      const clean=r.replace(/```json|```/g,"").trim();
       const dias=JSON.parse(clean);
-      if(!Array.isArray(dias)||dias.length===0) throw new Error("resposta vazia");
       const updated={...expandedWeeks,[semanaIdx]:dias};
       setExpandedWeeks(updated);
       try{localStorage.setItem("tr_expanded_weeks_"+savedPlan?.macro?.titulo,JSON.stringify(updated));}catch{}
-    }catch(e){
-      console.error("expandirSemana erro:",e);
-      if(attempt<1){
-        // retry automático uma vez
-        setExpandingWeek(null);
-        setTimeout(()=>expandirSemana(semanaIdx, attempt+1), 800);
-        return;
-      }
-      // Após retry falhar: marca erro para mostrar botão "Tentar novamente"
-      setExpandedWeeks(prev=>({...prev,[semanaIdx+"_erro"]:true}));
-    }
+    }catch(e){console.error(e);}
     setExpandingWeek(null);
   }
 
@@ -3389,13 +3386,12 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               semanas_macro.map((sem,si)=>{
                 const isExpanded = !!expandedWeeks[si];
                 const isExpanding = expandingWeek===si;
-                const hasErro = !!expandedWeeks[si+"_erro"];
                 const dias = expandedWeeks[si]||[];
                 const intensCor = sem.intensidade==="forte"?C.coral:sem.intensidade==="moderado"?C.amber:C.cyanB;
                 return (
-                  <div key={si} style={{marginBottom:12,border:"1px solid "+(hasErro?C.coral+"55":C.border),borderRadius:14,overflow:"hidden"}}>
+                  <div key={si} style={{marginBottom:12,border:"1px solid "+C.border,borderRadius:14,overflow:"hidden"}}>
                     {/* Cabeçalho da semana */}
-                    <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,cursor:isExpanded?"default":"pointer"}} onClick={()=>{if(!isExpanded&&!isExpanding){if(hasErro){const e={...expandedWeeks};delete e[si+"_erro"];setExpandedWeeks(e);}expandirSemana(si);}}}>
+                    <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",padding:"12px 14px",display:"flex",alignItems:"center",gap:10,cursor:isExpanded?"default":"pointer"}} onClick={()=>!isExpanded&&!isExpanding&&expandirSemana(si)}>
                       <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                         <span style={{color:"#fff",fontWeight:800,fontSize:11,fontFamily:"monospace"}}>S{si+1}</span>
                       </div>
@@ -3406,19 +3402,17 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                           <span style={{color:C.td,fontSize:11}}>{sem.resumo}</span>
                         </div>
                       </div>
-                      {!isExpanded&&!isExpanding&&!hasErro&&<div style={{background:C.violet+"22",borderRadius:8,padding:"5px 10px"}}><span style={{color:C.violetL,fontSize:11,fontWeight:700}}>Ver dias</span></div>}
+                      {!isExpanded&&!isExpanding&&<div style={{background:C.violet+"22",borderRadius:8,padding:"5px 10px"}}><span style={{color:C.violetL,fontSize:11,fontWeight:700}}>Ver dias</span></div>}
                       {isExpanding&&<div style={{width:16,height:16,borderRadius:"50%",border:"2px solid "+C.violet,borderTopColor:"transparent",animation:"spin 0.8s linear infinite"}}/>}
-                      {hasErro&&!isExpanding&&<div style={{background:C.coral+"22",borderRadius:8,padding:"5px 10px"}}><span style={{color:C.coral,fontSize:11,fontWeight:700}}>↺ Tentar novamente</span></div>}
                     </div>
 
                     {/* Treinos chave resumidos (antes de expandir) */}
                     {!isExpanded&&!isExpanding&&(
                       <div style={{padding:"8px 14px 12px",display:"flex",gap:6,flexWrap:"wrap"}}>
-                        {hasErro&&<span style={{background:C.coral+"11",color:C.coral,border:"1px solid "+C.coral+"33",borderRadius:7,padding:"3px 8px",fontSize:11}}>Erro ao carregar — toque para tentar novamente</span>}
-                        {!hasErro&&sem.treinos_chave?.map((t,ti)=>(
+                        {sem.treinos_chave?.map((t,ti)=>(
                           <span key={ti} style={{background:C.s2,color:C.tm,border:"1px solid "+C.border,borderRadius:7,padding:"3px 8px",fontSize:11}}>{t}</span>
                         ))}
-                        {!hasErro&&<span style={{background:C.s2,color:C.td,border:"1px solid "+C.border,borderRadius:7,padding:"3px 8px",fontSize:11}}>{sem.descansos||2} descansos</span>}
+                        <span style={{background:C.s2,color:C.td,border:"1px solid "+C.border,borderRadius:7,padding:"3px 8px",fontSize:11}}>{sem.descansos||2} descansos</span>
                       </div>
                     )}
 
