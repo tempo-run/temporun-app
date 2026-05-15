@@ -10,7 +10,7 @@ import inicioTreino from './assets/inicio_treino.png';
 import { useState, useEffect, useRef, useMemo } from "react";
 
 // ─── PALETTE ──────────────────────────────────────────────────────────────────
-const C = {
+const C_DARK = {
   bg:"#06071a", bg2:"#080a24", s1:"#0d0f2e", s2:"#10143a", s3:"#161b4a",
   border:"#1e2456", bsub:"#141840",
   violet:"#7c3aed", violetM:"#6d28d9", violetL:"#a855f7", violetB:"#c084fc",
@@ -19,6 +19,17 @@ const C = {
   strava:"#fc4c02", garmin:"#007cc3",
   tp:"#f0f4ff", ts:"#8b9ec7", tm:"#5567a0", td:"#3a4a78", tg:"#1e2a50",
 };
+const C_LIGHT = {
+  bg:"#f4f6ff", bg2:"#eef0fb", s1:"#ffffff", s2:"#f0f2fc", s3:"#e8ebf8",
+  border:"#d0d6f0", bsub:"#e4e8f8",
+  violet:"#7c3aed", violetM:"#6d28d9", violetL:"#6d28d9", violetB:"#7c3aed",
+  cyan:"#0891b2", cyanB:"#0891b2", cyanL:"#06b6d4",
+  amber:"#d97706", coral:"#dc4e2a", green:"#16a34a",
+  strava:"#fc4c02", garmin:"#007cc3",
+  tp:"#0f1220", ts:"#374060", tm:"#6b7db3", td:"#9aaad0", tg:"#c8d3ee",
+};
+// C é definido dentro do componente com base no tema
+let C = C_DARK;
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 function Ic({ n, z=20, c="currentColor", st={} }) {
@@ -1103,6 +1114,12 @@ const sb = {
 
 // ─── LOGIN SCREEN ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
+  // Aplica tema salvo na tela de login também
+  try {
+    const saved = JSON.parse(localStorage.getItem("tr_config")||"{}");
+    const isLight = saved.tema==="light" || (saved.tema==="auto" && window.matchMedia?.("(prefers-color-scheme: light)").matches);
+    C = isLight ? C_LIGHT : C_DARK;
+  } catch { C = C_DARK; }
   const [mode, setMode]       = useState("main"); // main | otp_email | otp_code
   const [email, setEmail]     = useState("");
   const [otp, setOtp]         = useState(["","","","","",""]);
@@ -1572,7 +1589,16 @@ export default function TempoRunApp() {
   const [proLoading, setProLoading]         = useState(false);
   const [proError, setProError]             = useState("");
   const [dadosForm, setDadosForm] = useState({nome:"", foto:null, dataNasc:"", sexo:"", pais:"Brasil", cidade:"", altura:"", peso:"", tenis:[], relogios:[], fones:[]});
-  const [configForm, setConfigForm] = useState({lembreteTreino:true, rpNotif:true, tema:"dark", vozGenero:"masculina", vozEstilo:"motivacional", mapaOffline:false, mostrarAltimetria:true, rotasSeguras:false, autoPause:true, vibracaoSplit:true, alertasHidratacao:false, cadenciaAlvo:"180", idioma:"pt-BR", assinaturaPro:false, backupSync:true});
+  const [configForm, setConfigForm] = useState(()=>{
+    try {
+      const saved = localStorage.getItem("tr_config");
+      if(saved) return {...{lembreteTreino:true, rpNotif:true, tema:"dark", vozGenero:"masculina", vozEstilo:"motivacional", mapaOffline:false, mostrarAltimetria:true, rotasSeguras:false, autoPause:true, vibracaoSplit:true, alertasHidratacao:false, cadenciaAlvo:"180", idioma:"pt-BR", assinaturaPro:false, backupSync:true}, ...JSON.parse(saved)};
+    } catch {}
+    return {lembreteTreino:true, rpNotif:true, tema:"dark", vozGenero:"masculina", vozEstilo:"motivacional", mapaOffline:false, mostrarAltimetria:true, rotasSeguras:false, autoPause:true, vibracaoSplit:true, alertasHidratacao:false, cadenciaAlvo:"180", idioma:"pt-BR", assinaturaPro:false, backupSync:true};
+  });
+  // Deriva C do tema — atualiza em tempo real
+  const tema = configForm.tema==="light" || (configForm.tema==="auto" && typeof window!=="undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+  C = tema==="light" ? C_LIGHT : C_DARK;
   const [equipDropdown, setEquipDropdown] = useState(null);
   const [equipInput, setEquipInput] = useState("");
   const PAISES = ["Brasil","Irlanda","Alemanha","Angola","Argentina","Austrália","Bélgica","Bolívia","Cabo Verde","Canadá","Chile","China","Colômbia","Coreia do Sul","Dinamarca","Emirados Árabes","Equador","Espanha","Estados Unidos","França","Grécia","Guatemala","Holanda","Hungria","Índia","Itália","Japão","México","Moçambique","Noruega","Nova Zelândia","Paraguai","Peru","Polônia","Portugal","Reino Unido","Rússia","Suécia","Suíça","Turquia","Ucrânia","Uruguai","Venezuela"];
@@ -2254,7 +2280,21 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <div style={{padding:"11px 0"}}>
               <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:"0 0 2px"}}>Aparência</p>
               <p style={{color:C.tm,fontSize:11,margin:"0 0 4px"}}>Escolha o tema do aplicativo</p>
-              {radio("tema",[{v:"dark",l:"🌙 Dark"},{v:"light",l:"☀️ Light"},{v:"auto",l:"⚙️ Auto"}])}
+              {(()=>{
+              const opts=[{v:"dark",l:"🌙 Dark"},{v:"light",l:"☀️ Light"},{v:"auto",l:"⚙️ Auto"}];
+              return <div style={{display:"flex",gap:6}}>
+                {opts.map(o=>(
+                  <button key={o.v} onClick={()=>{
+                    const next={...configForm,tema:o.v};
+                    setConfigForm(next);
+                    try{localStorage.setItem("tr_config",JSON.stringify(next));}catch{}
+                  }}
+                    style={{flex:1,background:configForm.tema===o.v?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":C.s3,border:"1px solid "+(configForm.tema===o.v?C.violet:C.border),borderRadius:9,padding:"8px 4px",cursor:"pointer",color:configForm.tema===o.v?C.tp:C.tm,fontSize:12,fontWeight:configForm.tema===o.v?700:500,fontFamily:"inherit"}}>
+                    {o.l}
+                  </button>
+                ))}
+              </div>;
+            })()}
             </div>
           </>)}
 
@@ -4855,16 +4895,16 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
   // ── FINAL RENDER ─────────────────────────────────────────────────────────────
   const screenKey = tab+(subScreen||"");
   return (
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:"#030410",minHeight:"100vh",display:"flex",justifyContent:"center",alignItems:"center",padding:16}}>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:tema==="light"?"#e8ebf8":"#030410",minHeight:"100vh",display:"flex",justifyContent:"center",alignItems:"center",padding:16,transition:"background 0.3s"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap');
-        *{box-sizing:border-box}
-        ::-webkit-scrollbar{width:3px;height:3px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#1e2456;border-radius:2px}
+        *{box-sizing:border-box;transition:background-color 0.25s,border-color 0.25s,color 0.15s}
+        ::-webkit-scrollbar{width:3px;height:3px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:${tema==="light"?"#c8d3ee":"#1e2456"};border-radius:2px}
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
         .sc{animation:fadeIn 0.2s ease}
         button{transition:all 0.15s} button:active{opacity:0.7}
-        input::placeholder{color:#3a4a78}
+        input::placeholder{color:${tema==="light"?"#9aaad0":"#3a4a78"}}
         a:hover{opacity:0.85}
       `}</style>
 
