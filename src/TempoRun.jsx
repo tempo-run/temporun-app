@@ -3321,7 +3321,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
   // ── HOME ─────────────────────────────────────────────────────────────────────
   function renderHome() {
-    const rpRankColor = rank => rank===1 ? C.amber : rank===2 ? "#cfd8dc" : rank===3 ? "#c77a43" : C.cyanB;
+    const rpRankColor = rank => rank===1 ? "#f7d84a" : rank===2 ? "#cfd8dc" : rank===3 ? "#c77a43" : C.cyanB;
     const latestRpsHome = Object.entries(rpsDb||{})
       .flatMap(([key,r])=>{
         if(!r) return [];
@@ -3498,19 +3498,20 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               <p style={{color:C.violetB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 5px",opacity:0.8}}>motivação do dia</p>
               <p style={{color:C.tp,fontSize:14,fontWeight:600,margin:0,lineHeight:1.55,fontStyle:"italic"}}>"{frases[fraseIdx]}"</p>
             </div>
+            <KmChart corridas={corridas} slice={chartSlice} setSlice={setChartSlice}/>
 
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:14}}>
               {[
                 {v:corridas.length?(kmTotal+247).toFixed(0):"247",u:"km este mês",i:"run",c:C.cyanB,sub:corridas.length?"+"+kmTotal.toFixed(1)+"km":"11 corridas"},
                 {v:"5:30/km",u:"pace médio",i:"watch",c:C.amber,sub:"últimas corridas"},
                 {v:(98+corridas.length)+"",u:"atividades",i:"flame",c:C.violetL,sub:corridas.length?corridas.length+" este mês":"este ano"},
-                {v:calcStreak()+"",u:"semanas ativo",i:"streak",c:C.cyan,sub:"sequência atual 🔥"},
+                {v:calcStreak()+"",u:"semanas ativo",i:"streak",c:C.cyan,sub:"sequência atual"},
               ].map((s,i)=>(
-                <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:"13px 12px",border:"1px solid "+s.c+"22",position:"relative",overflow:"hidden"}}>
-                  <Ic n={s.i} z={17} c={s.c}/>
-                  <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:22,margin:"6px 0 2px",letterSpacing:-0.5}}>{s.v}</p>
-                  <p style={{color:C.tp,fontWeight:600,fontSize:12,margin:"0 0 3px"}}>{s.u}</p>
-                  <p style={{color:C.td,fontFamily:"monospace",fontSize:9,fontWeight:600,textTransform:"uppercase",letterSpacing:0.4,margin:0}}>{s.sub}</p>
+                <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"9px 10px",border:"1px solid "+s.c+"22",position:"relative",overflow:"hidden",minHeight:86}}>
+                  <Ic n={s.i} z={14} c={s.c}/>
+                  <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:16,margin:"4px 0 1px",letterSpacing:-0.35}}>{s.v}</p>
+                  <p style={{color:C.tp,fontWeight:600,fontSize:10.5,margin:"0 0 2px"}}>{s.u}</p>
+                  <p style={{color:C.td,fontFamily:"monospace",fontSize:7.5,fontWeight:600,textTransform:"uppercase",letterSpacing:0.3,margin:0}}>{s.sub}</p>
                 </div>
               ))}
             </div>
@@ -3531,8 +3532,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 ))}
               </div>
             </div>
-
-            <KmChart corridas={corridas} slice={chartSlice} setSlice={setChartSlice}/>
 
 
           </div>
