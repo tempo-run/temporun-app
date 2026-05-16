@@ -1212,9 +1212,9 @@ const TEMPORUN_SUPPORT_EMAIL = "support@temporun.run";
 
 // Strava OAuth
 const STRAVA_CLIENT_ID     = "244639";
+const STRAVA_CLIENT_SECRET = "a81632ae1af89b86ca1d95643669a653423f030a";
 const STRAVA_REDIRECT_URI  = "https://app.temporun.run";
 const STRAVA_SCOPES        = "read,activity:read_all,profile:read_all";
-const STRAVA_TOKEN_FN     = SUPABASE_URL + "/functions/v1/strava-token";
 
 // Cliente Supabase mínimo (sem SDK, usa fetch direto para não precisar de npm)
 const sb = {
