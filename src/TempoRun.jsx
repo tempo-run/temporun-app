@@ -2382,12 +2382,30 @@ export default function TempoRunApp() {
     return (list||[]).filter(r=>r.source!=="strava"&&r.source!=="garmin"&&!CORRIDAS_DEMO.find(d=>d.id===r.id));
   }
 
+  function userStorageKey(key) {
+    const uid = session?.id || session?.email || "anon";
+    return `${key}_${uid}`;
+  }
+
+  function readUserLocalData(key) {
+    try {
+      const scoped = localStorage.getItem(userStorageKey(key));
+      if(scoped) return scoped;
+      return null;
+    } catch { return null; }
+  }
+
+  function writeUserLocalData(key, value) {
+    try { localStorage.setItem(userStorageKey(key), value); } catch {}
+  }
+
   async function loadSupabaseUserData(key) {
     if(!session?.access_token || !session?.id) return null;
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(session.id)}&key=eq.${encodeURIComponent(key)}&select=value&limit=1`, {
         headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
       });
+      if(!r.ok) return null;
       const data = await r.json().catch(()=>null);
       return Array.isArray(data) && data[0]?.value ? data[0].value : null;
     } catch { return null; }
@@ -2396,7 +2414,7 @@ export default function TempoRunApp() {
   async function persistSupabaseUserData(key, value) {
     if(!session?.access_token || !session?.id) return;
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
         method:"POST",
         headers:{
           "apikey":SUPABASE_ANON,
@@ -2406,26 +2424,32 @@ export default function TempoRunApp() {
         },
         body:JSON.stringify({user_id:session.id,key,value})
       });
+      if(!r.ok) console.warn("Supabase user_data save failed", key, r.status);
     } catch {}
   }
 
   async function persistCorridas(nextCorridas) {
     const local = localRunsOnly(nextCorridas);
-    try { await window.storage.set("tr5_corridas", JSON.stringify(local)); } catch(e) {}
-    await persistSupabaseUserData("tr5_corridas", JSON.stringify(local));
+    const value = JSON.stringify(local);
+    writeUserLocalData("tr5_corridas", value);
+    try { await window.storage.set("tr5_corridas", value); } catch(e) {}
+    await persistSupabaseUserData("tr5_corridas", value);
   }
 
   useEffect(()=>{
     async function load(){
       try{
         const remoteRuns = await loadSupabaseUserData("tr5_corridas");
+        const scopedRuns = readUserLocalData("tr5_corridas");
         const [rc,rp,xp,pa]=await Promise.all([
           window.storage.get("tr5_corridas").catch(()=>null),
           window.storage.get("tr5_rps").catch(()=>null),
           window.storage.get("tr5_xp").catch(()=>null),
           window.storage.get("tr5_prova").catch(()=>null),
         ]);
-        const rawRuns = remoteRuns || rc?.value;
+        const rawRuns = remoteRuns || scopedRuns || (!session?.id ? rc?.value : null);
+        if(remoteRuns) writeUserLocalData("tr5_corridas", remoteRuns);
+        if(!remoteRuns && scopedRuns) persistSupabaseUserData("tr5_corridas", scopedRuns);
         if(rawRuns){ const saved=JSON.parse(rawRuns); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
         if(rp) setRpsDb(JSON.parse(rp.value));
         if(xp) setXpTotal(JSON.parse(xp.value));
