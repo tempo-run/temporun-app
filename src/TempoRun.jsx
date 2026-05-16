@@ -1978,6 +1978,9 @@ export default function TempoRunApp() {
   const [card2Photo, setCard2Photo] = useState(null); // URL da foto do card 2
   const [fxActive, setFxActive] = useState("night-run");
   const [fxIntensity, setFxIntensity] = useState({});
+  const [fxOverlay, setFxOverlay] = useState("pace-floor");
+  const [fxTemplate, setFxTemplate] = useState("story");
+  const [fxReelStatus, setFxReelStatus] = useState("idle");
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -5713,6 +5716,26 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const activeFx = allFx.find(e=>e.id===fxActive) || allFx[0];
     const activeIntensity = fxIntensity[activeFx.id] || "Med";
     const activeFxAmount = activeIntensity==="Off"?0:activeIntensity==="Low"?36:activeIntensity==="Med"?64:92;
+    const FX_OVERLAYS = [
+      {id:"pace-floor",icon:"run",name:"Pace no chão",desc:"Pace surgindo como HUD no asfalto.",pro:false,color:C.cyanB,metric:lastRun.pace_medio||"5:30"},
+      {id:"hr-pulse",icon:"heart",name:"FC pulsando",desc:"Batimento com glow sincronizado.",pro:false,color:C.coral,metric:(lastRun.bpm_medio||158)+" bpm"},
+      {id:"altimetry",icon:"chart",name:"Altimetria animada",desc:"Linha de subida acompanhando a rota.",pro:true,color:C.green,metric:"D+ "+(lastRun.dplus||128)+"m"},
+      {id:"km-splashes",icon:"gps",name:"Km splashes",desc:"Marcos de km com impacto visual.",pro:true,color:C.violetB,metric:Number(lastRun.distancia_km||10.4).toFixed(1)+"km"},
+      {id:"ghost-runner",icon:"run",name:"Ghost runner",desc:"Silhueta comparando ritmo alvo.",pro:true,color:"#ffffff",metric:"vs alvo"},
+    ];
+    const SOCIAL_TEMPLATES = [
+      {id:"story",name:"Instagram Story",size:"9:16",icon:"photo"},
+      {id:"reel",name:"Reel",size:"9:16",icon:"video"},
+      {id:"tiktok",name:"TikTok",size:"9:16",icon:"streak"},
+      {id:"linkedin",name:"LinkedIn",size:"4:5",icon:"profile"},
+      {id:"wallpaper",name:"Wallpaper",size:"19.5:9",icon:"watch"},
+    ];
+    const activeOverlay = FX_OVERLAYS.find(o=>o.id===fxOverlay) || FX_OVERLAYS[0];
+    const activeTemplate = SOCIAL_TEMPLATES.find(t=>t.id===fxTemplate) || SOCIAL_TEMPLATES[0];
+    const startAutoReel = () => {
+      setFxReelStatus("rendering");
+      setTimeout(()=>setFxReelStatus("ready"), 1200);
+    };
     return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
@@ -5776,24 +5799,87 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <div>
                   <Badge text="FX STUDIO" color={activeFx.color}/>
                   <h2 style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:"8px 0 2px",letterSpacing:0}}>Live Preview</h2>
-                  <p style={{color:"#ffffff99",fontSize:11,margin:0,lineHeight:1.35}}>{activeFx.name} · {activeIntensity}</p>
+                  <p style={{color:"#ffffff99",fontSize:11,margin:0,lineHeight:1.35}}>{activeFx.name} · {activeOverlay.name} · {activeTemplate.size}</p>
                 </div>
                 <div style={{width:42,height:42,borderRadius:12,background:activeFx.color+"22",border:"1px solid "+activeFx.color+"66",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 18px "+activeFx.color+"33"}}>
                   <Ic n={activeFx.icon} z={21} c={activeFx.color}/>
                 </div>
               </div>
-              <div style={{position:"relative",height:118,borderRadius:14,background:"linear-gradient(135deg,#050617,#121747)",border:"1px solid #ffffff14",overflow:"hidden",padding:14,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
+              <div style={{position:"relative",height:136,borderRadius:14,background:"linear-gradient(135deg,#050617,#121747)",border:"1px solid #ffffff14",overflow:"hidden",padding:14,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
                 <div style={{position:"absolute",left:18,right:18,top:48,height:2,background:"linear-gradient(90deg,transparent,"+activeFx.color+",#fff,"+C.cyanB+",transparent)",boxShadow:"0 0 "+(8+activeFxAmount/5)+"px "+activeFx.color,opacity:activeFxAmount/100}}/>
                 <div style={{position:"absolute",right:18,bottom:16,width:72,height:72,borderRadius:"50%",border:"1px solid "+activeFx.color+"55",boxShadow:"0 0 32px "+activeFx.color+"44",opacity:0.6}}/>
+                <div style={{position:"absolute",left:20,right:20,bottom:38,height:18,background:"linear-gradient(90deg,transparent,"+activeOverlay.color+"77,transparent)",transform:"skewX(-18deg)",filter:"blur(0.3px)",opacity:activeFxAmount/110}}/>
+                <div style={{position:"absolute",left:22,bottom:35,color:activeOverlay.color,fontSize:10,fontFamily:"monospace",fontWeight:900,textShadow:"0 0 12px "+activeOverlay.color}}>
+                  {activeOverlay.metric}
+                </div>
+                {activeOverlay.id==="hr-pulse"&&<div style={{position:"absolute",right:30,top:47,width:34,height:34,borderRadius:"50%",border:"1px solid "+activeOverlay.color,boxShadow:"0 0 22px "+activeOverlay.color,opacity:0.9}}/>}
+                {activeOverlay.id==="altimetry"&&<div style={{position:"absolute",left:102,right:30,bottom:52,height:28,borderBottom:"2px solid "+activeOverlay.color,borderLeft:"2px solid "+activeOverlay.color,transform:"skewY(-10deg)",opacity:0.75}}/>}
+                {activeOverlay.id==="km-splashes"&&<div style={{position:"absolute",right:76,top:56,color:"#fff",fontSize:18,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif",textShadow:"0 0 16px "+activeOverlay.color}}>KM</div>}
+                {activeOverlay.id==="ghost-runner"&&<div style={{position:"absolute",right:98,bottom:28,width:24,height:48,borderRadius:13,background:"linear-gradient(180deg,#ffffffaa,#ffffff11)",boxShadow:"0 0 20px #ffffff66",opacity:0.7}}/>}
                 <div style={{display:"flex",justifyContent:"space-between",position:"relative"}}>
                   <span style={{color:"#ffffffcc",fontSize:10,fontFamily:"monospace",fontWeight:800,letterSpacing:0.8}}>TEMPO FX</span>
-                  <span style={{color:activeFx.color,fontSize:10,fontFamily:"monospace",fontWeight:800}}>{Math.round(activeFxAmount)}%</span>
+                  <span style={{color:activeFx.color,fontSize:10,fontFamily:"monospace",fontWeight:800}}>{activeTemplate.name}</span>
                 </div>
                 <div style={{position:"relative"}}>
                   <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:24,fontWeight:800,margin:"0 0 2px",textShadow:"0 0 18px "+activeFx.color+"66"}}>{Number(lastRun.distancia_km||0).toFixed(1)}km</p>
                   <p style={{color:"#ffffffaa",fontSize:11,margin:0}}>{lastRun.pace_medio||"5:30"} pace · {fmtT(lastRun.duracao_seg||3120)}</p>
                 </div>
               </div>
+            </div>
+
+            <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.violet+"33",borderRadius:16,padding:12,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:10}}>
+                <div>
+                  <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:14,margin:"0 0 2px"}}>AI Auto Reel</p>
+                  <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.35}}>Melhores momentos, cortes, música e FX em uma sequência pronta.</p>
+                </div>
+                <button onClick={startAutoReel} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",border:"none",borderRadius:11,color:"#fff",padding:"10px 11px",fontSize:11,fontWeight:900,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",whiteSpace:"nowrap",boxShadow:"0 0 18px "+C.cyan+"33"}}>
+                  {fxReelStatus==="rendering"?"Gerando...":fxReelStatus==="ready"?"Reel pronto":"Generate Reel"}
+                </button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
+                {[
+                  {l:"Moments",v:fxReelStatus==="idle"?"Auto":"5 cortes",c:C.cyanB},
+                  {l:"Music",v:fxReelStatus==="idle"?"Beat sync":"128 bpm",c:C.violetB},
+                  {l:"Cuts",v:fxReelStatus==="idle"?"Smart":"0:24",c:C.green},
+                ].map(item=>(
+                  <div key={item.l} style={{background:C.bg,border:"1px solid "+item.c+"33",borderRadius:11,padding:"8px 7px"}}>
+                    <p style={{color:item.c,fontSize:9,fontWeight:900,margin:"0 0 2px",fontFamily:"monospace",textTransform:"uppercase"}}>{item.l}</p>
+                    <p style={{color:C.tp,fontSize:12,fontWeight:800,margin:0}}>{item.v}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <SL><Ic n="video" z={13} c={C.cyanB}/>Overlays cinematográficos</SL>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+              {FX_OVERLAYS.map(o=>{
+                const selected = fxOverlay===o.id;
+                return (
+                  <button key={o.id} onClick={()=>setFxOverlay(o.id)} style={{background:selected?"linear-gradient(135deg,"+o.color+"22,"+C.s2+")":C.s1,border:"1px solid "+(selected?o.color+"77":C.border),borderRadius:13,padding:10,textAlign:"left",cursor:"pointer",fontFamily:"inherit",boxShadow:selected?"0 0 18px "+o.color+"22":"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:6}}>
+                      <Ic n={o.icon} z={15} c={o.color}/>
+                      <span style={{color:C.tp,fontWeight:900,fontSize:11,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.1}}>{o.name}</span>
+                      {o.pro&&<span style={{marginLeft:"auto",color:C.violetB,fontSize:8,fontWeight:900,border:"1px solid "+C.violetB+"55",borderRadius:5,padding:"1px 4px"}}>PRO</span>}
+                    </div>
+                    <p style={{color:C.tm,fontSize:10,margin:0,lineHeight:1.3}}>{o.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <SL><Ic n="share" z={13} c={C.violetB}/>Templates sociais</SL>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:14}}>
+              {SOCIAL_TEMPLATES.map(t=>{
+                const selected = fxTemplate===t.id;
+                return (
+                  <button key={t.id} onClick={()=>setFxTemplate(t.id)} style={{background:selected?"linear-gradient(135deg,"+C.violet+"30,"+C.cyan+"18)":C.s1,border:"1px solid "+(selected?C.cyanB+"77":C.border),borderRadius:12,padding:"9px 6px",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:70}}>
+                    <Ic n={t.icon} z={16} c={selected?C.cyanB:C.tm}/>
+                    <span style={{color:selected?C.tp:C.ts,fontSize:10,fontWeight:900,textAlign:"center",lineHeight:1.15}}>{t.name}</span>
+                    <span style={{color:selected?C.cyanB:C.td,fontSize:9,fontFamily:"monospace",fontWeight:800}}>{t.size}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {FX_GROUPS.map(group=>(
