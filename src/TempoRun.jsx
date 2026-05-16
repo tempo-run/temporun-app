@@ -388,8 +388,8 @@ const CORRIDAS_DEMO = [
     id:"demo_001", source:"temporun",
     nome:"Rodagem Leve · Dún Laoghaire", tipo:"Rodagem Leve",
     data:"15 mai. de 26", timestamp:"2026-05-15T07:30:00Z",
-    distancia_km:8.5, duracao_seg:2890, pace_medio:"5:41",
-    cadencia_media:174, calorias:552, dplus:38, xp_ganho:382,
+    distancia_km:5.83, duracao_seg:2292, pace_medio:"6:33",
+    cadencia_media:174, calorias:380, dplus:38, xp_ganho:200,
     polyline:[
       [-6.1358,53.2944],[-6.1342,53.2950],[-6.1325,53.2958],[-6.1310,53.2964],
       [-6.1295,53.2970],[-6.1278,53.2975],[-6.1262,53.2980],[-6.1248,53.2974],
@@ -2378,16 +2378,55 @@ export default function TempoRunApp() {
   const [anTab, setAnTab]       = useState("drills");
   const videoRef = useRef(null);
 
+  function localRunsOnly(list) {
+    return (list||[]).filter(r=>r.source!=="strava"&&r.source!=="garmin"&&!CORRIDAS_DEMO.find(d=>d.id===r.id));
+  }
+
+  async function loadSupabaseUserData(key) {
+    if(!session?.access_token || !session?.id) return null;
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(session.id)}&key=eq.${encodeURIComponent(key)}&select=value&limit=1`, {
+        headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
+      });
+      const data = await r.json().catch(()=>null);
+      return Array.isArray(data) && data[0]?.value ? data[0].value : null;
+    } catch { return null; }
+  }
+
+  async function persistSupabaseUserData(key, value) {
+    if(!session?.access_token || !session?.id) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_ANON,
+          "Authorization": `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify({ user_id: session.id, key, value })
+      });
+    } catch {}
+  }
+
+  async function persistCorridas(nextCorridas) {
+    const local = localRunsOnly(nextCorridas);
+    try { await window.storage.set("tr5_corridas", JSON.stringify(local)); } catch(e) {}
+    await persistSupabaseUserData("tr5_corridas", JSON.stringify(local));
+  }
+
   useEffect(()=>{
     async function load(){
       try{
+        const remoteRuns = await loadSupabaseUserData("tr5_corridas");
         const [rc,rp,xp,pa]=await Promise.all([
           window.storage.get("tr5_corridas").catch(()=>null),
           window.storage.get("tr5_rps").catch(()=>null),
           window.storage.get("tr5_xp").catch(()=>null),
           window.storage.get("tr5_prova").catch(()=>null),
         ]);
-        if(rc){ const saved=JSON.parse(rc.value); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
+        const rawRuns = remoteRuns || rc?.value;
+        if(rawRuns){ const saved=JSON.parse(rawRuns); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
         if(rp) setRpsDb(JSON.parse(rp.value));
         if(xp) setXpTotal(JSON.parse(xp.value));
         if(pa) setProvaAmb(JSON.parse(pa.value));
@@ -2395,7 +2434,7 @@ export default function TempoRunApp() {
       setDbReady(true);
     }
     load();
-  },[]);
+  },[session?.access_token, session?.id]);
 
   function connectStrava(){
     setStravaConnected(true);
@@ -2421,22 +2460,14 @@ export default function TempoRunApp() {
     const novas = corridas.map(r => r.id===id ? {...r, nome:novoNome} : r);
     setCorridas(novas);
     setEditingRunId(null);
-    // Persistir no Supabase
-    const local = novas.filter(r=>r.source!=="strava"&&r.source!=="garmin"&&!CORRIDAS_DEMO.find(d=>d.id===r.id));
-    try {
-      window._sb?.from("user_data").upsert({user_id:user?.id,key:"tr5_corridas",value:JSON.stringify(local)},{onConflict:"user_id,key"});
-    } catch {}
+    persistCorridas(novas);
   }
 
   function excluirCorrida(id) {
     const novas = corridas.filter(r => r.id !== id);
     setCorridas(novas);
     setExpandedRun(null);
-    // Persistir no Supabase
-    const local = novas.filter(r=>r.source!=="strava"&&r.source!=="garmin"&&!CORRIDAS_DEMO.find(d=>d.id===r.id));
-    try {
-      window._sb?.from("user_data").upsert({user_id:user?.id,key:"tr5_corridas",value:JSON.stringify(local)},{onConflict:"user_id,key"});
-    } catch {}
+    persistCorridas(novas);
   }
 
   async function salvarCorrida(seg,km,bpm,pace,polyline=[]){
@@ -2502,8 +2533,10 @@ export default function TempoRunApp() {
       nRP.all = rpHits;
     }
     const newC=[run,...corridas],newXp=xpTotal+run.xp_ganho;
-    if(provaAmb){const np={...provaAmb,treinos:[run,...(provaAmb.treinos||[])]};setProvaAmb(np);try{await window.storage.set("tr5_prova",JSON.stringify(np));}catch(e){}}
-    try{await Promise.all([window.storage.set("tr5_corridas",JSON.stringify(newC)),window.storage.set("tr5_rps",JSON.stringify(newRps)),window.storage.set("tr5_xp",JSON.stringify(newXp))]);}catch(e){}
+    if(provaAmb){const np={...provaAmb,treinos:[run,...(provaAmb.treinos||[])]};setProvaAmb(np);try{await window.storage.set("tr5_prova",JSON.stringify(np));}catch(e){}
+    }
+    try{await Promise.all([persistCorridas(newC),window.storage.set("tr5_rps",JSON.stringify(newRps)),window.storage.set("tr5_xp",JSON.stringify(newXp))]);}catch(e){}
+
     setCorridas(newC);setRpsDb(newRps);setXpTotal(newXp);setSavedRun(run);
     if(nRP){setNovoRP(nRP);setTimeout(()=>setNovoRP(null),4500);}
     setSalvando(false);
@@ -4541,7 +4574,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               </div>
             );
             return (
-            <div style={{paddingBottom:8}}>
+            <div style={{paddingBottom:8,maxHeight:330,overflowY:"auto"}}>
               {[...corridas.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id)),...stravaRuns]
                 .filter(r=>r.distancia_km>0.1)
                 .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))
@@ -4549,6 +4582,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                   const isExpanded = expandedRun===r.id;
                   const isEditing = editingRunId===r.id;
                   const isDemo = false;
+                  const isLocalRun = r.source!=="strava" && r.source!=="garmin";
                   const srcColor = r.source==="strava"?"#fc4c02":r.source==="garmin"?"#009CDE":C.cyanB;
                   const srcLabel = r.source==="strava"?"STRAVA":r.source==="garmin"?"GARMIN":null;
                   return (
@@ -4588,7 +4622,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                             ))}
                           </div>
                           {/* Renomear */}
-                          {isEditing?(
+                          {isLocalRun&&isEditing?(
                             <div style={{display:"flex",gap:7,marginBottom:8}}>
                               <input
                                 value={editingRunName}
@@ -4600,11 +4634,11 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                               <button onClick={()=>renomearCorrida(r.id,editingRunName)} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:8,padding:"7px 12px",fontWeight:700,fontSize:12,cursor:"pointer"}}>Salvar</button>
                               <button onClick={()=>setEditingRunId(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:8,padding:"7px 10px",color:C.tm,fontSize:12,cursor:"pointer"}}>✕</button>
                             </div>
-                          ):(
+                          ):isLocalRun?(
                             <button onClick={()=>{setEditingRunId(r.id);setEditingRunName(r.nome||"Corrida");}} style={{background:"none",border:"none",color:C.td,fontSize:11,cursor:"pointer",fontFamily:"inherit",padding:"0 0 8px",display:"flex",alignItems:"center",gap:4}}>
                               <Ic n="edit" z={11} c={C.td}/> Renomear corrida
                             </button>
-                          )}
+                          ):null}
                           {/* Ações */}
                           <div style={{display:"flex",gap:7}}>
                             <button onClick={()=>setSelectedRun(r)} style={{flex:1,background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"8px 0",fontWeight:700,fontSize:12,color:C.ts,cursor:"pointer",fontFamily:"inherit"}}>
@@ -4613,7 +4647,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                             <button onClick={()=>{setStudioRun(r);setTab("studio");}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)",border:"1px solid "+C.violet+"44",borderRadius:9,padding:"8px 0",fontWeight:700,fontSize:12,color:C.tp,cursor:"pointer",fontFamily:"inherit"}}>
                               Studio
                             </button>
-                            {!isDemo&&(
+                            {isLocalRun&&!isDemo&&(
                               <button onClick={()=>{if(window.confirm("Excluir esta corrida?")) excluirCorrida(r.id);}} style={{background:"none",border:"1px solid "+C.coral+"44",borderRadius:9,padding:"8px 10px",color:C.coral,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
                                 🗑
                               </button>
