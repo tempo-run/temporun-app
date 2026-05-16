@@ -1207,6 +1207,7 @@ const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
 const DELETE_ACCOUNT_FN  = SUPABASE_URL + "/functions/v1/delete-account";
 const TEMPORUN_PRIVACY_URL = "https://temporun.run/privacy";
 const TEMPORUN_TERMS_URL   = "https://temporun.run/terms";
+const TEMPORUN_CANCELLATION_URL = "https://www.temporun.run/cancel";
 const TEMPORUN_SUPPORT_EMAIL = "support@temporun.run";
 
 // Strava OAuth
@@ -2575,6 +2576,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </div>
           </div>
           {item("Terms of Service", "Open TempoRun terms in your browser", ()=>openExternal(TEMPORUN_TERMS_URL), C.violetL)}
+          {item("Cancellation Terms", "Subscription and cancellation policy", ()=>openExternal(TEMPORUN_CANCELLATION_URL), C.amber)}
           {item("Privacy Policy", "How TempoRun handles your data", ()=>openExternal(TEMPORUN_PRIVACY_URL), C.cyanB)}
           {item("Contact Support", TEMPORUN_SUPPORT_EMAIL, contactSupport, C.green)}
           <button onClick={()=>setShowAboutModal(false)} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",cursor:"pointer",color:C.ts,fontWeight:800,fontSize:13,fontFamily:"inherit",marginTop:3}}>
