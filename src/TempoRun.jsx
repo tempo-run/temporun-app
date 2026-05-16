@@ -4707,9 +4707,14 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       if(touchStartX.current===null) return;
       const dx = e.changedTouches[0].clientX - touchStartX.current;
       touchStartX.current = null;
-      if(Math.abs(dx) < 40) return; // ignorar swipes pequenos
-      if(dx < 0) setCardIndex(i=>(i+1)%TOTAL);      // swipe left → próximo
-      else        setCardIndex(i=>(i-1+TOTAL)%TOTAL); // swipe right → anterior
+      if(Math.abs(dx) < 40) return;
+      if(dx < 0) {
+        // swipe left no card 1 → vai para Análises
+        if(cardIndex === 0) { setTab("analise"); return; }
+        setCardIndex(i=>(i+1)%TOTAL);
+      } else {
+        setCardIndex(i=>(i-1+TOTAL)%TOTAL);
+      }
     }
 
     function handleSave() {
@@ -4732,27 +4737,59 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         const cardH = CARD_H;
 
         if (cardIndex === 0) {
-          // CARD 1: logo centered top + stats centered + map + logo watermark bottom
+          // CARD 1: logo + dados + traçado minimalista (fundo transparente)
           let y = 16;
-          const logoW = 90, logoH = logoW / logoAR;
+          const logoW = 80, logoH = logoW / logoAR;
           ctx.drawImage(logoImg, W/2 - logoW/2, y, logoW, logoH);
           y += logoH + 10;
-          // date
           ctx.fillStyle="#ffffff55"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
           ctx.fillText((run?.data||"Hoje").toUpperCase(), W/2, y); y += 20;
-          // dist — no lines
-          ctx.fillStyle="#f0f4ff"; ctx.font="bold 40px 'Space Grotesk',sans-serif"; ctx.textAlign="center";
-          ctx.fillText(dist+" km", W/2, y+36); y += 56;
+          ctx.fillStyle="#f0f4ff"; ctx.font="bold 42px 'Space Grotesk',sans-serif"; ctx.textAlign="center";
+          ctx.fillText(dist+" km", W/2, y+38); y += 58;
           ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
-          ctx.fillText(pace+" /km", W/2, y+26); y += 46;
+          ctx.fillText(pace+" /km", W/2, y+26); y += 44;
           ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
-          ctx.fillText(dur, W/2, y+26); y += 46;
-          // map
-          if (mapCanvas) { ctx.drawImage(mapCanvas, 0, y, W, 130); y += 130; }
-          // bottom logo watermark
-          const wLogoW = 60, wLogoH = wLogoW / logoAR;
-          ctx.globalAlpha = 0.35;
-          ctx.drawImage(logoImg, W/2 - wLogoW/2, y+8, wLogoW, wLogoH);
+          ctx.fillText(dur, W/2, y+26); y += 44;
+          // Traçado minimalista
+          const poly1e = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
+          let raw1e=[];
+          if(poly1e.length>2){
+            const se=poly1e[0];
+            const isLL1e=se[0]<0||(Math.abs(se[0])<10&&Math.abs(se[1])>10);
+            raw1e=poly1e.map(p=>({x:isLL1e?p[0]:p[1],y:isLL1e?-p[1]:-p[0]}));
+          } else {
+            const seed=run?run.distancia_km:10; let rx=0,ry=0; raw1e=[{x:rx,y:ry}];
+            for(let i=0;i<28;i++){rx+=Math.sin(i*1.3+seed)*0.003+0.002;ry+=Math.cos(i*0.9+seed)*0.0025;raw1e.push({x:rx,y:ry});}
+          }
+          const trH=160, trPad=28;
+          const minX1e=Math.min(...raw1e.map(p=>p.x)),maxX1e=Math.max(...raw1e.map(p=>p.x));
+          const minY1e=Math.min(...raw1e.map(p=>p.y)),maxY1e=Math.max(...raw1e.map(p=>p.y));
+          const rX1e=maxX1e-minX1e||1,rY1e=maxY1e-minY1e||1;
+          const sc1e=Math.min((W-trPad*2)/rX1e,(trH-trPad)/rY1e);
+          const oX1e=(W-rX1e*sc1e)/2, oY1e=y+(trH-rY1e*sc1e)/2;
+          const pts1e=raw1e.map(p=>({x:oX1e+(p.x-minX1e)*sc1e,y:oY1e+(p.y-minY1e)*sc1e}));
+          if(pts1e.length>1){
+            // Glow
+            ctx.shadowColor="#7c3aed"; ctx.shadowBlur=12;
+            ctx.strokeStyle="#7c3aed33"; ctx.lineWidth=8; ctx.lineCap="round"; ctx.lineJoin="round";
+            ctx.beginPath(); ctx.moveTo(pts1e[0].x,pts1e[0].y);
+            pts1e.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+            // Gradiente roxo→cyan
+            const gr1e=ctx.createLinearGradient(pts1e[0].x,pts1e[0].y,pts1e[pts1e.length-1].x,pts1e[pts1e.length-1].y);
+            gr1e.addColorStop(0,"#7c3aed"); gr1e.addColorStop(0.5,"#a855f7"); gr1e.addColorStop(1,"#22d3ee");
+            ctx.shadowBlur=5; ctx.strokeStyle=gr1e; ctx.lineWidth=3;
+            ctx.beginPath(); ctx.moveTo(pts1e[0].x,pts1e[0].y);
+            pts1e.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+            ctx.shadowBlur=0;
+            // Dots início/fim
+            ctx.fillStyle="#22c55e"; ctx.beginPath(); ctx.arc(pts1e[0].x,pts1e[0].y,6,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(pts1e[pts1e.length-1].x,pts1e[pts1e.length-1].y,6,0,Math.PI*2); ctx.fill();
+          }
+          y += trH;
+          // Logo watermark
+          const wLogoW = 50, wLogoH = wLogoW / logoAR;
+          ctx.globalAlpha = 0.25;
+          ctx.drawImage(logoImg, W/2 - wLogoW/2, y+6, wLogoW, wLogoH);
           ctx.globalAlpha = 1;
 
         } else if (cardIndex === 1) {
