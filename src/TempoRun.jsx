@@ -4813,6 +4813,28 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const touchStartX = useRef(null);
     const [copied, setCopied] = useState(false);
 
+    function drawCoverImage(ctx, img, x, y, w, h) {
+      const iw = img.naturalWidth || img.width;
+      const ih = img.naturalHeight || img.height;
+      if(!iw || !ih) return;
+      const scale = Math.max(w / iw, h / ih);
+      const sw = w / scale;
+      const sh = h / scale;
+      const sx = (iw - sw) / 2;
+      const sy = (ih - sh) / 2;
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    }
+
+    function loadCanvasImage(src) {
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        img.onload = ()=>resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+
     async function handleCopy() {
       // Gerar o canvas igual ao handleSave mas copiar para clipboard
       // Só disponível para cards 1 e 4 (fundo transparente com traçado)
@@ -4932,7 +4954,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       }
     }
 
-    function handleSave() {
+    async function handleSave() {
       const W = 356, SCALE = 3, CARD_H = 480;
       const off = document.createElement("canvas");
       off.width = W * SCALE;
@@ -4944,12 +4966,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
       const mapCanvas = cardIndex === 0 ? canvasRef1.current : cardIndex === 1 ? canvasRef2.current : null;
 
-      const logoImg = new Image();
-      logoImg.crossOrigin = "anonymous";
-      logoImg.src = tempoRunLogo;
-      logoImg.onload = () => {
-        const logoAR = logoImg.naturalWidth / logoImg.naturalHeight;
-        const cardH = CARD_H;
+      const logoImg = await loadCanvasImage(tempoRunLogo);
+      const logoAR = logoImg.naturalWidth / logoImg.naturalHeight;
+      const cardH = CARD_H;
 
         if (cardIndex === 0) {
           // CARD 1: logo + dados + traçado minimalista (fundo transparente)
@@ -5009,13 +5028,15 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         } else if (cardIndex === 1) {
           // CARD 2: estilo Garmin — foto + dados
-          const C2H = 420;
+          const C2H = cardH;
           const barC1 = isGradient?"#811df2":traceStroke;
           const barC2 = isGradient?"#22d3ee":traceStroke;
           // Foto de fundo se existir
           if(card2Photo){
-            const fotoImg=new Image(); fotoImg.src=card2Photo;
-            if(fotoImg.complete) ctx.drawImage(fotoImg,0,0,W,C2H);
+            try {
+              const fotoImg = await loadCanvasImage(card2Photo);
+              drawCoverImage(ctx, fotoImg, 0, 0, W, C2H);
+            } catch {}
           }
           // Barra lateral cor do toggle
           const barG2=ctx.createLinearGradient(0,0,0,C2H);
@@ -5024,22 +5045,18 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           // Logo
           const lWg=80, lHg=lWg/logoAR;
           ctx.drawImage(logoImg, W/2-lWg/2, 16, lWg, lHg);
-          // Faixa fundo dados
-          const c2r = isGradient?"30,4,60":traceStroke==="#ffffff"?"20,20,20":traceStroke==="#22d3ee"?"0,30,44":"30,4,60";
-          const c2b = isGradient?"0,20,40":traceStroke==="#ffffff"?"10,10,10":traceStroke==="#22d3ee"?"0,20,35":"20,4,50";
-          const fW2=Math.round(W*0.42), fH2=Math.round(C2H*0.55);
-          const dG=ctx.createLinearGradient(0,0,fW2,fH2);
-          dG.addColorStop(0,"rgba("+c2r+",0.70)"); dG.addColorStop(0.6,"rgba("+c2b+",0.55)"); dG.addColorStop(1,"rgba(0,0,0,0)");
-          ctx.fillStyle=dG; ctx.fillRect(0,C2H-fH2,fW2,fH2);
           // Dados
           const mG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
-          let yG=C2H-Math.round(C2H*0.55*0.88);
+          let yG=C2H-Math.round(C2H*0.44);
           mG.forEach(m=>{
+            ctx.shadowColor="rgba(0,0,0,0.65)"; ctx.shadowBlur=10; ctx.shadowOffsetY=2;
             ctx.fillStyle="#fff"; ctx.font="bold 24px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
             ctx.fillText(m.v+(m.u?" "+m.u:""),16,yG+22);
+            ctx.shadowBlur=6;
             ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.font="bold 7px monospace";
             ctx.fillText(m.l,16,yG+33); yG+=48;
           });
+          ctx.shadowColor="transparent"; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
           ctx.fillStyle="rgba(255,255,255,0.28)"; ctx.font="bold 8px monospace"; ctx.textAlign="right";
           ctx.fillText((run?.data||"Hoje").toUpperCase(),W-14,C2H-12);
 
@@ -5134,14 +5151,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         link.download = `temporun_card${cardIndex+1}.png`;
         link.href = off.toDataURL("image/png");
         link.click();
-      };
-      // If image fails to load, still export without logo
-      logoImg.onerror = () => {
-        const link = document.createElement("a");
-        link.download = `temporun_card${cardIndex+1}.png`;
-        link.href = off.toDataURL("image/png");
-        link.click();
-      };
     }
 
     const statRow = (label, value, large=false) => (
@@ -5226,7 +5235,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       ];
       const barColor1 = isGradient?"#811df2":traceStroke;
       const barColor2 = isGradient?"#22d3ee":traceStroke;
-      const CARD2_H = 420;
+      const CARD2_H = 480;
       return (
         <div style={{borderRadius:17,overflow:"hidden",border:"1px solid #7c3aed33",boxShadow:cardShadow,position:"relative",height:CARD2_H}}>
           {/* Fundo: foto ou xadrez */}
@@ -5241,9 +5250,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #00000088)"}}/>
           </div>
           {/* Faixa dados — largura 42% (linha vermelha), altura 55% (linha verde), opacidade 0.70 */}
-          <div style={{position:"absolute",bottom:0,left:0,width:"42%",height:"55%",zIndex:3}}>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,"+(isGradient?"rgba(30,4,60,0.70)":traceStroke==="#ffffff"?"rgba(20,20,20,0.70)":traceStroke==="#22d3ee"?"rgba(0,30,44,0.70)":"rgba(30,4,60,0.70)")+" 0%,"+(isGradient?"rgba(0,20,40,0.55)":traceStroke==="#ffffff"?"rgba(10,10,10,0.55)":traceStroke==="#22d3ee"?"rgba(0,20,35,0.55)":"rgba(20,4,50,0.55)")+" 60%,transparent 100%)"}}/>
-            <div style={{position:"relative",padding:"14px 16px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{position:"absolute",bottom:0,left:0,width:"42%",height:"66%",zIndex:4}}>
+            <div style={{position:"relative",padding:"14px 16px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"center",filter:"drop-shadow(0 3px 9px rgba(0,0,0,0.75))"}}>
               {metrics2.map((m,i)=>(
                 <div key={i} style={{marginBottom:i<2?10:0}}>
                   <div style={{display:"flex",alignItems:"baseline",gap:4}}>
