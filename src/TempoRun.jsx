@@ -5027,12 +5027,13 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           // Faixa fundo dados
           const c2r = isGradient?"30,4,60":traceStroke==="#ffffff"?"20,20,20":traceStroke==="#22d3ee"?"0,30,44":"30,4,60";
           const c2b = isGradient?"0,20,40":traceStroke==="#ffffff"?"10,10,10":traceStroke==="#22d3ee"?"0,20,35":"20,4,50";
-          const dG=ctx.createLinearGradient(0,0,W*0.55,0);
-          dG.addColorStop(0,"rgba("+c2r+",0.97)"); dG.addColorStop(0.5,"rgba("+c2b+",0.92)"); dG.addColorStop(1,"rgba(0,0,0,0)");
-          ctx.fillStyle=dG; ctx.fillRect(0,C2H-155,W,155);
+          const fW2=Math.round(W*0.42), fH2=Math.round(C2H*0.55);
+          const dG=ctx.createLinearGradient(0,0,fW2,fH2);
+          dG.addColorStop(0,"rgba("+c2r+",0.70)"); dG.addColorStop(0.6,"rgba("+c2b+",0.55)"); dG.addColorStop(1,"rgba(0,0,0,0)");
+          ctx.fillStyle=dG; ctx.fillRect(0,C2H-fH2,fW2,fH2);
           // Dados
           const mG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
-          let yG=C2H-145;
+          let yG=C2H-Math.round(C2H*0.55*0.88);
           mG.forEach(m=>{
             ctx.fillStyle="#fff"; ctx.font="bold 24px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
             ctx.fillText(m.v+(m.u?" "+m.u:""),16,yG+22);
