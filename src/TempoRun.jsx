@@ -4763,7 +4763,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           const lW = 90, lH = lW / logoAR;
           ctx.drawImage(logoImg, W/2 - lW/2, 12, lW, lH);
 
-        } else {
+        } else if (cardIndex === 2) {
           // CARD 3: logo centered + date + 3 col horizontal stats
           let y = 24;
           const lW = 72, lH = lW / logoAR;
@@ -4784,6 +4784,68 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         }
 
         ctx.restore(); // end clip region
+
+        // CARD 4: export separado com fundo transparente
+        if(cardIndex === 3) {
+          // Novo canvas sem fundo
+          const off4 = document.createElement("canvas");
+          off4.width = W * SCALE; off4.height = cardH * SCALE;
+          const ctx4 = off4.getContext("2d");
+          ctx4.scale(SCALE, SCALE);
+          // Fundo transparente — não preencher
+          // Desenhar traçado SVG via canvas
+          const poly = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
+          let rawPts4=[];
+          if(poly.length>2){
+            const s4=poly[0];
+            const isLL=s4[0]<0||(Math.abs(s4[0])<10&&Math.abs(s4[1])>10);
+            rawPts4=poly.map(p=>({x:isLL?p[0]:p[1],y:isLL?-p[1]:-p[0]}));
+          } else {
+            const seed=run?run.distancia_km:10;
+            let rx=0,ry=0;rawPts4=[{x:rx,y:ry}];
+            for(let i=0;i<32;i++){rx+=Math.sin(i*1.3+seed)*0.003+0.002;ry+=Math.cos(i*0.9+seed)*0.0025;rawPts4.push({x:rx,y:ry});}
+          }
+          const pad4=60;
+          const minX4=Math.min(...rawPts4.map(p=>p.x)),maxX4=Math.max(...rawPts4.map(p=>p.x));
+          const minY4=Math.min(...rawPts4.map(p=>p.y)),maxY4=Math.max(...rawPts4.map(p=>p.y));
+          const rX4=maxX4-minX4||1,rY4=maxY4-minY4||1;
+          const sc4=Math.min((W-pad4*2)/rX4,(cardH-pad4*2)/rY4);
+          const oX4=(W-rX4*sc4)/2,oY4=(cardH-rY4*sc4)/2;
+          const pts4=rawPts4.map(p=>({x:oX4+(p.x-minX4)*sc4,y:oY4+(p.y-minY4)*sc4}));
+          if(pts4.length>1){
+            // Glow
+            ctx4.shadowColor="#7c3aed"; ctx4.shadowBlur=16;
+            ctx4.strokeStyle="#7c3aed44"; ctx4.lineWidth=10;
+            ctx4.lineCap="round"; ctx4.lineJoin="round";
+            ctx4.beginPath(); ctx4.moveTo(pts4[0].x,pts4[0].y);
+            pts4.slice(1).forEach(p=>ctx4.lineTo(p.x,p.y)); ctx4.stroke();
+            // Main gradient line
+            const grad4=ctx4.createLinearGradient(pts4[0].x,pts4[0].y,pts4[pts4.length-1].x,pts4[pts4.length-1].y);
+            grad4.addColorStop(0,"#7c3aed"); grad4.addColorStop(0.5,"#a855f7"); grad4.addColorStop(1,"#22d3ee");
+            ctx4.shadowBlur=6; ctx4.shadowColor="#a855f7";
+            ctx4.strokeStyle=grad4; ctx4.lineWidth=4;
+            ctx4.beginPath(); ctx4.moveTo(pts4[0].x,pts4[0].y);
+            pts4.slice(1).forEach(p=>ctx4.lineTo(p.x,p.y)); ctx4.stroke();
+            ctx4.shadowBlur=0;
+            // Start dot
+            ctx4.fillStyle="#22c55e"; ctx4.beginPath(); ctx4.arc(pts4[0].x,pts4[0].y,7,0,Math.PI*2); ctx4.fill();
+            ctx4.fillStyle="#fff"; ctx4.beginPath(); ctx4.arc(pts4[0].x,pts4[0].y,3,0,Math.PI*2); ctx4.fill();
+            // End dot
+            ctx4.fillStyle="#22d3ee"; ctx4.beginPath(); ctx4.arc(pts4[pts4.length-1].x,pts4[pts4.length-1].y,7,0,Math.PI*2); ctx4.fill();
+            ctx4.fillStyle="#fff"; ctx4.beginPath(); ctx4.arc(pts4[pts4.length-1].x,pts4[pts4.length-1].y,3,0,Math.PI*2); ctx4.fill();
+          }
+          // Logo centralizada no topo
+          const lW4=80,lH4=lW4/logoAR;
+          ctx4.globalAlpha=0.8;
+          ctx4.drawImage(logoImg,W/2-lW4/2,14,lW4,lH4);
+          ctx4.globalAlpha=1;
+          const link4=document.createElement("a");
+          link4.download="temporun_trace.png";
+          link4.href=off4.toDataURL("image/png");
+          link4.click();
+          return;
+        }
+
         const link = document.createElement("a");
         link.download = `temporun_card${cardIndex+1}.png`;
         link.href = off.toDataURL("image/png");
@@ -4914,14 +4976,10 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             {pts.length>1&&<><circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="7" fill="#06071a" stroke="#22d3ee" strokeWidth="2.5"/><circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="3" fill="#22d3ee"/></>}
           </svg>
           {/* Logo e dados sobrepostos */}
-          <div style={{position:"absolute",top:16,left:0,right:0,display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"0 18px"}}>
-            <img src={tempoRunLogo} alt="TempoRun" style={{width:48,height:"auto",objectFit:"contain",opacity:0.7}}/>
-            <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:0}}>{data}</p>
+          <div style={{position:"absolute",top:16,left:0,right:0,display:"flex",justifyContent:"center",alignItems:"center"}}>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:56,height:"auto",objectFit:"contain",opacity:0.75,filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
           </div>
-          <div style={{position:"absolute",bottom:16,left:0,right:0,padding:"0 18px",display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
-            <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:28,margin:0,letterSpacing:-1}}>{dist}<span style={{fontSize:13,opacity:0.5,fontWeight:600}}> km</span></p>
-            <p style={{color:"#ffffff66",fontFamily:"monospace",fontSize:13,fontWeight:700,margin:0}}>{pace}<span style={{fontSize:9,opacity:0.7}}> /km</span></p>
-          </div>
+
         </div>
       );
     })();
