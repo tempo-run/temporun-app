@@ -1493,6 +1493,191 @@ const TR_I18N = {
     "home.currentStreak": "current streak",
     "home.latestPrs": "Latest personal records",
     "home.viewAll": "View all",
+    "saber.back": "Back",
+    "saber.explore": "Explore",
+    "saber.askAi": "Ask AI",
+    "saber.dailyCuriosity": "daily curiosity",
+    "saber.cadenceFact": "Runners with cadence above 170 spm have 30% lower risk of knee injury",
+    "saber.learnMore": "Learn more",
+    "saber.glp1Title": "Weight Loss Medication & Running",
+    "saber.glp1Headline": "Ozempic, Wegovy and Mounjaro directly affect running performance",
+    "saber.glp1Desc": "Studies show a 16-39% reduction in calorie intake, 25-40% lean mass loss and increased risk of early fatigue.",
+    "saber.emptyTitle": "Ask about your running",
+    "saber.emptySubtitle": "Biomechanics, nutrition, recovery, injuries...",
+    "saber.profileBased": "Answers based on your profile",
+    "saber.questionPlaceholderPro": "Your question...",
+    "saber.questionPlaceholderFree": "Question...",
+    "saber.remaining": "remaining",
+    "profile.settings": "Settings",
+    "profile.settingsDesc": "Notifications, theme, running, account",
+    "profile.personalData": "Personal data",
+    "profile.personalDataDesc": "Profile, gear, city",
+    "profile.logout": "Logout",
+    "profile.logoutDesc": "Sign out",
+    "nav.home": "Home",
+    "nav.explore": "Explore",
+    "nav.training": "Training",
+    "nav.analysis": "Analysis",
+    "nav.studio": "Studio",
+    "rp.detectedSingle": "record detected",
+    "rp.detectedMany": "records detected",
+    "rp.newPr": "New Personal Record",
+    "rp.improved": "Improved",
+    "rp.viewRecords": "View records",
+    "training.title": "Training",
+    "training.completed": "Completed workouts",
+    "training.emptyTitle": "No workouts yet",
+    "training.emptySubtitle": "Finish your first workout below",
+    "training.viewFullPlan": "View full plan",
+    "training.myPlan": "My Plan",
+    "training.aiPlan": "AI Plan",
+    "training.weeks": "weeks",
+    "training.days": "days",
+    "training.createPersonalizedPlan": "Create a personalized plan",
+    "training.today": "Today workout",
+    "training.rest": "Rest",
+    "training.restDesc": "Active recovery or full rest",
+    "training.add": "Add",
+    "training.startThisWorkout": "Start this workout",
+    "training.coachTempo": "Coach Tempo",
+    "training.coachTip": "Today we focus on threshold speed. Execute around 5:10/km.",
+    "training.createPlan": "Create plan",
+    "training.freeRun": "Free run",
+    "training.chatWithCoach": "Chat with Coach Tempo",
+    "training.askCoach": "Ask Coach...",
+    "training.runSaved": "Run saved",
+    "training.appearsInCompleted": "appears in Completed workouts",
+    "training.planTitle": "Personalized AI Plan",
+    "training.planIntro": "We will build a complete, personalized plan for you.",
+    "training.goalQuestion": "What is your goal?",
+    "training.prepareRace": "Prepare for a race",
+    "training.prepareRaceDesc": "5k, 10k, half marathon, marathon · with a set date",
+    "training.improveByGoal": "Improve by goal",
+    "training.improveByGoalDesc": "VO2max, aerobic base, consistency · no fixed date",
+    "training.raceDistance": "Race distance",
+    "training.raceDate": "Race date",
+    "training.preparationWeeks": "weeks of preparation",
+    "training.objective": "Goal",
+    "training.daysAvailable": "Available days/week",
+    "training.weeklyDistance": "Current weekly distance (km)",
+    "training.injuryHistory": "Injury history",
+    "training.noInjuriesPlaceholder": "None or e.g. knee tendinitis",
+    "training.referenceTime": "Reference time (Personal Record)",
+    "training.referenceHint": "Total race time · used to calculate training paces",
+    "training.level": "Level",
+    "training.beginner": "beginner",
+    "training.intermediate": "intermediate",
+    "training.advanced": "advanced",
+    "training.glp1Question": "Do you use weight-loss medication?",
+    "training.glp1Desc": "Ozempic · Wegovy · Mounjaro · Saxenda",
+    "training.yesUse": "Yes, I use it",
+    "training.noUse": "No",
+    "training.nauseaToday": "Active nausea today?",
+    "training.withNausea": "With nausea",
+    "training.noNausea": "No nausea",
+    "training.generateMyPlan": "GENERATE MY PLAN",
+    "training.analyzingData": "Analyzing your data...",
+    "training.planGenerated": "Plan generated",
+    "training.redo": "Redo",
+    "training.useThisPlan": "Use this plan",
+    "training.createCard": "Create card",
+    "training.workoutDone": "Workout completed",
+    "training.saving": "Saving...",
+    "analysis.badgeTech": "TECHNICAL ANALYSIS · AI",
+    "analysis.badgePro": "PRO ANALYSIS",
+    "analysis.badgePreview": "PREVIEW ANALYSIS",
+    "analysis.title": "Biomechanics analysis",
+    "analysis.subtitle": "Send a moving video up to 20 seconds",
+    "analysis.close": "Close",
+    "analysis.coachTip": "Film your run from the side, on flat ground and with good lighting. Capture at least 8 stride cycles.",
+    "analysis.tapUpload": "Tap to upload video",
+    "analysis.uploadSpecs": "MP4, MOV · up to 20 seconds · max 50MB",
+    "analysis.whatEvaluated": "What will be evaluated",
+    "analysis.verticalLift": "Vertical Lift",
+    "analysis.verticalLiftDesc": "Vertical oscillation of the center of mass",
+    "analysis.strideLength": "Stride Length",
+    "analysis.strideLengthDesc": "Length and landing point",
+    "analysis.landing": "Landing",
+    "analysis.landingDesc": "How and where the foot touches the ground",
+    "analysis.overstriding": "Overstriding",
+    "analysis.overstridingDesc": "Foot landing ahead of the hip",
+    "analysis.trunkArms": "Trunk and Arm Position",
+    "analysis.trunkArmsDesc": "Forward lean and limb movement",
+    "analysis.verticalOsc": "Vertical Oscillation",
+    "analysis.verticalOscDesc": "Energy wasted in upward motion",
+    "analysis.groundContact": "Ground Contact Time",
+    "analysis.groundContactDesc": "Support duration on each stride",
+    "analysis.extraData": "Additional data",
+    "analysis.cadenceLabel": "Average cadence (spm)",
+    "analysis.paceLabel": "Average pace (min:sec/km)",
+    "analysis.distanceLabel": "Distance (km)",
+    "analysis.injuriesLabel": "Recent injuries (optional)",
+    "analysis.analyzeVideo": "ANALYZE VIDEO",
+    "analysis.analyzing": "Analyzing biomechanics...",
+    "analysis.evaluating": "Evaluating 4 technical metrics",
+    "analysis.reportTitle": "Biomechanics report",
+    "analysis.sendYourVideo": "Send your video",
+    "analysis.techIndex": "Technical Index",
+    "analysis.metricsEvaluated": "Evaluated metrics",
+    "analysis.exclusivePro": "Pro exclusive",
+    "analysis.lockedMetrics": "locked metrics",
+    "analysis.unlockDesc": "Unlock the full analysis with personalized drills, a 4-week plan and all scientific metrics.",
+    "analysis.ctaPro": "View full analysis — Subscribe Pro",
+    "analysis.tempoSummary": "TEMPO Summary",
+    "analysis.fourWeekPlan": "4-week plan",
+    "analysis.suggestedTechWorkout": "Suggested Technical Workout",
+    "analysis.sets": "Sets",
+    "analysis.duration": "Duration",
+    "analysis.recoveryShort": "Recovery",
+    "analysis.recovery": "Recovery",
+    "analysis.disclaimer": "This analysis is educational and does not replace in-person evaluation by a sports physiotherapist or qualified professional. Based on scientific evidence (BJSM, NLM, ACSM, Sports Med).",
+    "analysis.videoTooLong": "Video too long. Send a moving video up to 20 seconds.",
+    "studio.title": "Share",
+    "studio.subtitle": "Create cards and generate content",
+    "studio.tabCard": "Card",
+    "studio.tabRps": "PRs",
+    "studio.tabEffects": "Effects",
+    "studio.gradient": "Gradient",
+    "studio.purple": "Purple",
+    "studio.white": "White",
+    "studio.photo": "Photo",
+    "studio.change": "Change",
+    "studio.cardLabel": "Card",
+    "studio.copy": "Copy",
+    "studio.copied": "Copied",
+    "studio.saved": "Saved!",
+    "studio.savePng": "Save PNG",
+    "studio.of": "of",
+    "studio.clipboardUnsupported": "Clipboard is not supported in this browser",
+    "studio.distance": "Distance",
+    "studio.averagePace": "Average Pace",
+    "studio.totalTime": "Total Time",
+    "studio.personalRecords": "Personal Records",
+    "studio.runner": "Runner",
+    "studio.chooseRpShare": "Choose the PR to share",
+    "studio.gold": "Gold",
+    "studio.silver": "Silver",
+    "studio.bronze": "Bronze",
+    "studio.share": "Share",
+    "studio.today": "Today",
+    "explore.discover": "DISCOVER",
+    "explore.title": "Explore",
+    "explore.subtitle": "Routes, races and gear",
+    "explore.routes": "Routes",
+    "explore.races": "Races",
+    "explore.myRace": "MY RACE",
+    "explore.registration": "Registration",
+    "explore.findPhotos": "After the race: find your photos",
+    "explore.photoSearchDesc": "Enter your bib number so AI can search for your photos on the main websites.",
+    "explore.bibNumber": "Bib number",
+    "explore.search": "Search",
+    "explore.raceWorkouts": "Workouts for this race",
+    "explore.noLinkedWorkouts": "No linked workouts yet",
+    "explore.startWorkoutToLink": "Start a workout to link it automatically",
+    "explore.trainForRace": "Train for this race",
+    "explore.recommended": "RECOMMENDED",
+    "explore.whereBuy": "Where to buy",
+    "explore.best": "Best",
   },
 };
 function tr(lang, key, fallback) {
@@ -2231,7 +2416,7 @@ export default function TempoRunApp() {
           seg:rpSeg,
           pace:calcPace(d.km,rpSeg),
           data:run.data,
-          melhora:diff?fmtT(diff):null,
+          melhora:null,
           runId:run.id,
           checkedAt:now.toISOString(),
         };
@@ -2528,7 +2713,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const url=URL.createObjectURL(file);
     const vid=document.createElement("video");vid.src=url;
     vid.onloadedmetadata=()=>{
-      if(vid.duration>21){alert("Vídeo muito longo. Envie um vídeo de até 20 segundos em movimento.");return;}
+      if(vid.duration>21){alert(tt("analysis.videoTooLong", "Vídeo muito longo. Envie um vídeo de até 20 segundos em movimento."));return;}
       setAnVideoFile(file);
       setAnVideo({name:file.name,duration:Math.round(vid.duration),size:(file.size/1024/1024).toFixed(1)});
       setAnStep("info");
@@ -3563,10 +3748,10 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{position:"fixed",inset:0,background:C.bg,zIndex:150,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto"}}>
             <div style={{background:C.s1,borderBottom:"1px solid "+C.border,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
               <button onClick={()=>setShowSaber(false)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-                <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>Voltar</span>
+                <Ic n="back" z={13} c={C.ts}/><span style={{color:C.ts,fontSize:12}}>{tt("saber.back", "Voltar")}</span>
               </button>
               <div style={{flex:1,display:"flex",background:C.s3,borderRadius:10,padding:3}}>
-                {[{id:"explorar",l:"Explorar"},{id:"perguntar",l:"Perguntar à IA"}].map(t=>(
+                {[{id:"explorar",l:tt("saber.explore", "Explorar")},{id:"perguntar",l:tt("saber.askAi", "Perguntar à IA")}].map(t=>(
                   <button key={t.id} onClick={()=>setSaberTab(t.id)} style={{flex:1,background:saberTab===t.id?"linear-gradient(135deg,"+C.violet+"55,"+C.cyan+"22)":"transparent",color:saberTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
                 ))}
               </div>
@@ -3575,17 +3760,17 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             {saberTab==="explorar"&&(
               <div style={{flex:1,overflowY:"auto",paddingBottom:24}}>
                 <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"33",borderRadius:12,padding:12,marginBottom:10}}>
-                  <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 5px"}}>curiosidade do dia</p>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:"0 0 6px",lineHeight:1.4}}>Corredores com cadência acima de 170 spm têm 30% menos risco de lesão no joelho</p>
-                  <button onClick={()=>sendSaber("Explique sobre cadência e como aumentar a minha")} style={{background:C.violet+"22",color:C.violetL,border:"1px solid "+C.violet+"44",borderRadius:7,padding:"5px 11px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Saber mais →</button>
+                  <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 5px"}}>{tt("saber.dailyCuriosity", "curiosidade do dia")}</p>
+                  <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:"0 0 6px",lineHeight:1.4}}>{tt("saber.cadenceFact", "Corredores com cadência acima de 170 spm têm 30% menos risco de lesão no joelho")}</p>
+                  <button onClick={()=>sendSaber("Explique sobre cadência e como aumentar a minha")} style={{background:C.violet+"22",color:C.violetL,border:"1px solid "+C.violet+"44",borderRadius:7,padding:"5px 11px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{tt("saber.learnMore", "Saber mais")} →</button>
                 </div>
                 <div style={{background:"linear-gradient(135deg,#1a0e00,#1e1500)",border:"1px solid "+C.amber+"55",borderRadius:12,padding:12,marginBottom:10}}>
                   <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
                     <div style={{width:24,height:24,borderRadius:7,background:C.amber+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="warning" z={13} c={C.amber}/></div>
-                    <p style={{color:C.amber,fontFamily:"monospace",fontSize:9,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.5}}>Caneta Emagrecedora & Corrida</p>
+                    <p style={{color:C.amber,fontFamily:"monospace",fontSize:9,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.5}}>{tt("saber.glp1Title", "Caneta Emagrecedora & Corrida")}</p>
                   </div>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:12,margin:"0 0 5px",lineHeight:1.4}}>Ozempic, Wegovy e Mounjaro afetam diretamente o desempenho na corrida</p>
-                  <p style={{color:C.ts,fontSize:11,margin:"0 0 8px",lineHeight:1.5}}>Estudos mostram redução de 16–39% na ingestão calórica, perda de 25–40% de massa muscular e risco aumentado de fadiga precoce.</p>
+                  <p style={{color:C.tp,fontWeight:700,fontSize:12,margin:"0 0 5px",lineHeight:1.4}}>{tt("saber.glp1Headline", "Ozempic, Wegovy e Mounjaro afetam diretamente o desempenho na corrida")}</p>
+                  <p style={{color:C.ts,fontSize:11,margin:"0 0 8px",lineHeight:1.5}}>{tt("saber.glp1Desc", "Estudos mostram redução de 16–39% na ingestão calórica, perda de 25–40% de massa muscular e risco aumentado de fadiga precoce.")}</p>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     {["GLP-1 afeta meu desempenho?","Como treinar com Ozempic?","Perco músculo usando GLP-1?"].map((q,i)=>(
                       <button key={i} onClick={()=>sendSaber(q)} style={{background:C.amber+"18",color:C.amber,border:"1px solid "+C.amber+"44",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{q}</button>
@@ -3608,13 +3793,13 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
                 {!saberMsgs.length&&(
                   <div style={{textAlign:"center",padding:"20px 0 14px"}}>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 4px"}}>Pergunte sobre sua corrida</p>
-                    <p style={{color:C.td,fontSize:12,margin:"0 0 10px"}}>Biomecânica, nutrição, recuperação, lesões...</p>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 4px"}}>{tt("saber.emptyTitle", "Pergunte sobre sua corrida")}</p>
+                    <p style={{color:C.td,fontSize:12,margin:"0 0 10px"}}>{tt("saber.emptySubtitle", "Biomecânica, nutrição, recuperação, lesões...")}</p>
                     {(dadosForm.peso||dadosForm.nome||corridas.length>0)&&(
                       <div style={{display:"inline-flex",alignItems:"center",gap:6,background:C.s2,border:"1px solid "+C.violet+"33",borderRadius:20,padding:"5px 12px",marginBottom:4}}>
                         <div style={{width:6,height:6,borderRadius:3,background:C.violetL,flexShrink:0}}/>
                         <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.4}}>
-                          Respostas baseadas no seu perfil
+                          {tt("saber.profileBased", "Respostas baseadas no seu perfil")}
                           {dadosForm.peso?` · ${dadosForm.peso}kg`:""}
                           {corridas.length>0?` · ${corridas.length} corridas`:""}
                           {corridas.length>0&&corridas[0]?.pace_medio?` · pace ${corridas[0].pace_medio}`:""}
@@ -3625,7 +3810,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                 )}
                 <div style={{flex:1,overflowY:"auto",marginBottom:8}}>{saberMsgs.map((m,i)=><Bubble key={i} m={m}/>)}{saberLoad&&<Dots color={C.cyan}/>}</div>
                 <div style={{display:"flex",gap:7,paddingBottom:"max(20px, env(safe-area-inset-bottom, 20px))",paddingTop:4,paddingLeft:2,paddingRight:2,background:C.bg,flexShrink:0}}>
-                  <input value={saberIn} onChange={e=>setSaberIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendSaber()} placeholder={isPro?"Sua pergunta...":`Pergunta... (${Math.max(0,AI_LIMITS.saber-(getAiUsage().saber||0))} restantes)`} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:12,padding:"11px 13px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                  <input value={saberIn} onChange={e=>setSaberIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendSaber()} placeholder={isPro?tt("saber.questionPlaceholderPro", "Sua pergunta..."):`${tt("saber.questionPlaceholderFree", "Pergunta...")} (${Math.max(0,AI_LIMITS.saber-(getAiUsage().saber||0))} ${tt("saber.remaining", "restantes")})`} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:12,padding:"11px 13px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
                   <button onClick={()=>sendSaber()} disabled={!saberIn.trim()||saberLoad} style={{background:saberIn.trim()&&!saberLoad?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s3,color:"#fff",border:"none",borderRadius:12,width:44,height:44,cursor:saberIn.trim()&&!saberLoad?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:saberIn.trim()&&!saberLoad?1:0.4,transition:"all 0.2s"}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
@@ -3639,9 +3824,9 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         {showPerfil&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:18,padding:14,marginBottom:14,border:"1px solid "+C.violet+"44",animation:"fadeIn 0.2s ease",display:"flex",flexDirection:"column",gap:6}}>
             {[
-              {id:"config", nome:"Configurações", desc:"Notificações, tema, corrida, conta",  icon:"settings", cor:C.cyanB},
-              {id:"dados",  nome:"Dados pessoais", desc:"Perfil, equipamentos, cidade", icon:"profile",  cor:C.violetL},
-              {id:"logout", nome:"Logout", desc:"Sair da conta",                icon:"back",     cor:C.coral},
+              {id:"config", nome:tt("profile.settings", "Configurações"), desc:tt("profile.settingsDesc", "Notificações, tema, corrida, conta"),  icon:"settings", cor:C.cyanB},
+              {id:"dados",  nome:tt("profile.personalData", "Dados pessoais"), desc:tt("profile.personalDataDesc", "Perfil, equipamentos, cidade"), icon:"profile",  cor:C.violetL},
+              {id:"logout", nome:tt("profile.logout", "Logout"), desc:tt("profile.logoutDesc", "Sair da conta"),                icon:"back",     cor:C.coral},
             ].map(opt=>(
               <button key={opt.id} onClick={()=>{
                 if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();try{localStorage.removeItem("tr_onboarding_done");}catch{}setSession(null);setShowPerfil(false);setShowOnboarding(true);setOnboardingStep(0);setTab("home");}
@@ -3739,27 +3924,27 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       <div>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>{if(planTipo){setPlanTipo(null);}else{setSubScreen(null);}}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
-          <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>Plano IA personalizado</h1>
+          <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{tt("training.planTitle", "Plano IA personalizado")}</h1>
         </div>
         {planScreen==="form"&&(
           <div>
             <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
               <Ic n="ai" z={26} c={C.cyanB}/>
-              <div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Coach TEMPO</p><p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>Vamos montar um plano completo e personalizado para você.</p></div>
+              <div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Coach TEMPO</p><p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{tt("training.planIntro", "Vamos montar um plano completo e personalizado para você.")}</p></div>
             </div>
 
             {/* Tipo de plano */}
             {!planTipo&&(
               <div>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 12px",textTransform:"uppercase",letterSpacing:0.5}}>Qual é o seu objetivo?</p>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 12px",textTransform:"uppercase",letterSpacing:0.5}}>{tt("training.goalQuestion", "Qual é o seu objetivo?")}</p>
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   <button onClick={()=>setPlanTipo("prova")} style={{background:C.s1,border:"1px solid "+C.border,borderRadius:14,padding:"16px 14px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
                     <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,"+C.coral+"33,"+C.amber+"22)",border:"1px solid "+C.coral+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       <span style={{fontSize:22}}>🏁</span>
                     </div>
                     <div>
-                      <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>Preparar para uma prova</p>
-                      <p style={{color:C.tm,fontSize:12,margin:0}}>5k, 10k, meia maratona, maratona · com data definida</p>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.prepareRace", "Preparar para uma prova")}</p>
+                      <p style={{color:C.tm,fontSize:12,margin:0}}>{tt("training.prepareRaceDesc", "5k, 10k, meia maratona, maratona · com data definida")}</p>
                     </div>
                   </button>
                   <button onClick={()=>setPlanTipo("objetivo")} style={{background:C.s1,border:"1px solid "+C.border,borderRadius:14,padding:"16px 14px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
@@ -3767,8 +3952,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                       <span style={{fontSize:22}}>🎯</span>
                     </div>
                     <div>
-                      <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>Melhorar por objetivo</p>
-                      <p style={{color:C.tm,fontSize:12,margin:0}}>VO2max, base aeróbica, consistência · sem data fixa</p>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.improveByGoal", "Melhorar por objetivo")}</p>
+                      <p style={{color:C.tm,fontSize:12,margin:0}}>{tt("training.improveByGoalDesc", "VO2max, base aeróbica, consistência · sem data fixa")}</p>
                     </div>
                   </button>
                 </div>
@@ -3779,9 +3964,9 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             {planTipo==="prova"&&(
               <div>
                 <button onClick={()=>setPlanTipo(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:12,marginBottom:14,display:"flex",alignItems:"center",gap:5,padding:0,fontFamily:"inherit"}}>
-                  <Ic n="back" z={12} c={C.tm}/> Voltar
+                  <Ic n="back" z={12} c={C.tm}/> {tt("common.back", "Voltar")}
                 </button>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Distância da prova</p>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>{tt("training.raceDistance", "Distância da prova")}</p>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
                   {[
                     {id:"5k",    l:"5km"},
@@ -3797,13 +3982,13 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                     <button key={d.id} onClick={()=>setPlanProva(p=>({...p,distancia:d.id}))} style={{background:planProva.distancia===d.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planProva.distancia===d.id?"#fff":C.tm,border:"1px solid "+(planProva.distancia===d.id?C.violet:C.border),borderRadius:11,padding:"10px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>{d.l}</button>
                   ))}
                 </div>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.5}}>Data da prova</p>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.5}}>{tt("training.raceDate", "Data da prova")}</p>
                 <input type="date" value={planProva.data_prova} onChange={e=>setPlanProva(p=>({...p,data_prova:e.target.value}))} min={new Date().toISOString().split("T")[0]} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:14}}/>
                 {planProva.data_prova&&(()=>{
                   const semanas=Math.max(4,Math.round((new Date(planProva.data_prova)-new Date())/(7*24*60*60*1000)));
                   return <div style={{background:C.violet+"11",border:"1px solid "+C.violet+"33",borderRadius:10,padding:"8px 12px",marginBottom:14,display:"flex",alignItems:"center",gap:8}}>
                     <Ic n="calendar" z={14} c={C.violetL}/>
-                    <p style={{color:C.violetL,fontSize:12,margin:0,fontWeight:600}}>{semanas} semanas de preparação</p>
+                    <p style={{color:C.violetL,fontSize:12,margin:0,fontWeight:600}}>{semanas} {tt("training.preparationWeeks", "semanas de preparação")}</p>
                   </div>;
                 })()}
               </div>
@@ -3813,9 +3998,9 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             {planTipo==="objetivo"&&(
               <div>
                 <button onClick={()=>setPlanTipo(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:12,marginBottom:14,display:"flex",alignItems:"center",gap:5,padding:0,fontFamily:"inherit"}}>
-                  <Ic n="back" z={12} c={C.tm}/> Voltar
+                  <Ic n="back" z={12} c={C.tm}/> {tt("common.back", "Voltar")}
                 </button>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Objetivo</p>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>{tt("training.objective", "Objetivo")}</p>
                 <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
                   {[
                     {id:"vo2max",   l:"🫁 Melhorar VO2max",        s:"8 semanas · melhora de 5-15%"},
@@ -3844,7 +4029,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             {/* Campos comuns */}
             {planTipo&&(
               <div>
-                {[{label:"Dias disponíveis/semana",k:"dias_disponiveis",ph:"Ex: 4"},{label:"Distância semanal atual (km)",k:"dist_semana",ph:"Ex: 25"},{label:"Histórico de lesões",k:"historico_lesoes",ph:"Nenhuma ou ex: tendinite joelho"}].map((f,i)=>(
+                {[{label:tt("training.daysAvailable", "Dias disponíveis/semana"),k:"dias_disponiveis",ph:"Ex: 4"},{label:tt("training.weeklyDistance", "Distância semanal atual (km)"),k:"dist_semana",ph:"Ex: 25"},{label:tt("training.injuryHistory", "Histórico de lesões"),k:"historico_lesoes",ph:tt("training.noInjuriesPlaceholder", "Nenhuma ou ex: tendinite joelho")}].map((f,i)=>(
                   <div key={i} style={{marginBottom:11}}>
                     <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.3}}>{f.label}</p>
                     <input value={planForm[f.k]} onChange={e=>setPlanForm(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
@@ -3853,7 +4038,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
                 {/* Tempo de referência (RP) */}
                 <div style={{marginBottom:13}}>
-                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>Tempo de referência (Record Pessoal)</p>
+                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>{tt("training.referenceTime", "Tempo de referência (Record Pessoal)")}</p>
                   <div style={{display:"flex",gap:6,marginBottom:10}}>
                     {[{id:"5k",l:"5km"},{id:"10k",l:"10km"},{id:"21k",l:"Meia"},{id:"42k",l:"Maratona"}].map(d=>(
                       <button key={d.id} onClick={()=>setPaceRef(p=>({...p,dist:d.id}))} style={{flex:1,background:paceRef.dist===d.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:paceRef.dist===d.id?"#fff":C.tm,border:"1px solid "+(paceRef.dist===d.id?C.violet:C.border),borderRadius:9,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{d.l}</button>
@@ -3862,34 +4047,34 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                   <input value={paceRef.tempo} onChange={e=>setPaceRef(p=>({...p,tempo:e.target.value}))}
                     placeholder={paceRef.dist==="5k"?"Ex: 25:30":paceRef.dist==="10k"?"Ex: 52:00":paceRef.dist==="21k"?"Ex: 1:55:00":"Ex: 4:10:00"}
                     style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
-                  <p style={{color:C.td,fontSize:10,margin:"5px 0 0"}}>Tempo total da prova · usado para calcular paces de treino</p>
+                  <p style={{color:C.td,fontSize:10,margin:"5px 0 0"}}>{tt("training.referenceHint", "Tempo total da prova · usado para calcular paces de treino")}</p>
                 </div>
                 <div style={{marginBottom:13}}>
-                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>Nível</p>
-                  <div style={{display:"flex",gap:7}}>{["iniciante","intermediario","avancado"].map(n=><button key={n} onClick={()=>setPlanForm(p=>({...p,nivel:n}))} style={{flex:1,background:planForm.nivel===n?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planForm.nivel===n?"#fff":C.tm,border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{n}</button>)}</div>
+                  <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.3}}>{tt("training.level", "Nível")}</p>
+                  <div style={{display:"flex",gap:7}}>{[{id:"iniciante",l:tt("training.beginner", "iniciante")},{id:"intermediario",l:tt("training.intermediate", "intermediario")},{id:"avancado",l:tt("training.advanced", "avancado")}].map(n=><button key={n.id} onClick={()=>setPlanForm(p=>({...p,nivel:n.id}))} style={{flex:1,background:planForm.nivel===n.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:planForm.nivel===n.id?"#fff":C.tm,border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{n.l}</button>)}</div>
                 </div>
                 <div style={{background:"linear-gradient(135deg,#1a0e00,#221500)",border:"1px solid "+C.amber+"55",borderRadius:14,padding:14,marginBottom:13}}>
                   <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:11}}>
                     <div style={{width:32,height:32,borderRadius:10,background:C.amber+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="warning" z={17} c={C.amber}/></div>
                     <div>
-                      <p style={{color:C.amber,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>Usa caneta emagrecedora?</p>
-                      <p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>Ozempic · Wegovy · Mounjaro · Saxenda</p>
+                      <p style={{color:C.amber,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.glp1Question", "Usa caneta emagrecedora?")}</p>
+                      <p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>{tt("training.glp1Desc", "Ozempic · Wegovy · Mounjaro · Saxenda")}</p>
                     </div>
                   </div>
                   <div style={{display:"flex",gap:8,marginBottom:planForm.glp1==="sim"?12:0}}>
                     {["nao","sim"].map(v=>(
                       <button key={v} onClick={()=>setPlanForm(p=>({...p,glp1:v}))} style={{flex:1,background:planForm.glp1===v?(v==="sim"?"linear-gradient(135deg,"+C.amber+","+C.coral+")":"linear-gradient(135deg,"+C.violet+","+C.cyan+")"):"linear-gradient(135deg,"+C.s2+","+C.s3+")",color:planForm.glp1===v?"#fff":C.tm,border:"1px solid "+(planForm.glp1===v?(v==="sim"?C.amber:C.violet):C.border),borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                        {v==="sim"?"✓ Sim, uso":"✗ Não uso"}
+                        {v==="sim"?"✓ "+tt("training.yesUse", "Sim, uso"):"✗ "+tt("training.noUse", "Não uso")}
                       </button>
                     ))}
                   </div>
                   {planForm.glp1==="sim"&&(
                     <div>
-                      <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.3}}>Náusea ativa hoje?</p>
+                      <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.3}}>{tt("training.nauseaToday", "Náusea ativa hoje?")}</p>
                       <div style={{display:"flex",gap:8}}>
                         {["nao","sim"].map(v=>(
                           <button key={v} onClick={()=>setPlanForm(p=>({...p,glp1_nausea:v}))} style={{flex:1,background:planForm.glp1_nausea===v?(v==="sim"?C.coral+"33":C.green+"22"):C.s3,color:planForm.glp1_nausea===v?(v==="sim"?C.coral:C.green):C.tm,border:"1px solid "+(planForm.glp1_nausea===v?(v==="sim"?C.coral+"55":C.green+"55"):C.border),borderRadius:9,padding:"8px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
-                            {v==="sim"?"Com náusea":"Sem náusea"}
+                            {v==="sim"?tt("training.withNausea", "Com náusea"):tt("training.noNausea", "Sem náusea")}
                           </button>
                         ))}
                       </div>
@@ -3897,7 +4082,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                   )}
                 </div>
                 <button onClick={gerarPlanoMacro} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"14px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}>
-                  <Ic n="ai" z={18} c="#fff"/>GERAR MEU PLANO
+                  <Ic n="ai" z={18} c="#fff"/>{tt("training.generateMyPlan", "GERAR MEU PLANO")}
                 </button>
               </div>
             )}
@@ -3906,7 +4091,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         {planScreen==="loading"&&(
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:380,gap:18}}>
             <div style={{width:60,height:60,borderRadius:18,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 30px "+C.violet+"44"}}><Ic n="ai" z={32} c="#fff"/></div>
-            <div style={{textAlign:"center"}}><p style={{color:C.tp,fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',sans-serif",margin:"0 0 6px"}}>Analisando seus dados...</p><Dots color={C.cyanB}/></div>
+            <div style={{textAlign:"center"}}><p style={{color:C.tp,fontWeight:700,fontSize:16,fontFamily:"'Space Grotesk',sans-serif",margin:"0 0 6px"}}>{tt("training.analyzingData", "Analisando seus dados...")}</p><Dots color={C.cyanB}/></div>
           </div>
         )}
         {planScreen==="result"&&planResult&&(
@@ -3914,7 +4099,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:15,padding:13,marginBottom:13,display:"flex",gap:9,alignItems:"flex-start"}}>
               <Ic n="ai" z={22} c={C.cyanB}/>
               <div>
-                <p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 5px",fontFamily:"'Space Grotesk',sans-serif"}}>Plano gerado</p>
+                <p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 5px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.planGenerated", "Plano gerado")}</p>
                 <p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{planResult.resumo_semanal}</p>
               </div>
             </div>
@@ -3953,14 +4138,14 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               );
             })}
             <div style={{display:"flex",gap:8,marginTop:13}}>
-              <button onClick={()=>setPlanScreen("form")} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Refazer</button>
+              <button onClick={()=>setPlanScreen("form")} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{tt("training.redo", "Refazer")}</button>
               <button onClick={()=>{
                 setSavedPlan(planResult);
                 try{localStorage.setItem("tr_saved_plan",JSON.stringify(planResult));}catch{}
                 setPlanScreen("form");
                 setTab("treino");
                 setTimeout(()=>setSubScreen("verPlano"),50);
-              }} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>✓ Usar este plano</button>
+              }} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>✓ {tt("training.useThisPlan", "Usar este plano")}</button>
             </div>
           </div>
         )}
@@ -3973,9 +4158,9 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         <div>
           <div style={{paddingTop:10,paddingBottom:8,display:"flex",alignItems:"center",gap:10}}>
             <button onClick={()=>{resetGrav();setGStatus("idle");setSubScreen(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
-            <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{salvando?"Salvando...":"Treino concluído"}</h1>
+            <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{salvando?tt("training.saving", "Salvando..."):tt("training.workoutDone", "Treino concluído")}</h1>
           </div>
-          {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>Corrida salva</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · aparece nos Treinos Concluídos</p></div></div>}
+          {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>{tt("training.runSaved", "Corrida salva")}</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · {tt("training.appearsInCompleted", "aparece nos Treinos Concluídos")}</p></div></div>}
           {novoRP&&<div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:12,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}><Ic n="trophy" z={22} c="#fff"/><div><p style={{color:"#fff",fontWeight:800,fontSize:14,margin:0}}>Novo Recorde!</p><p style={{color:"#ffffffcc",fontSize:12,margin:0}}>{novoRP.dist} em {novoRP.tempo}</p></div></div>}
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"44",borderRadius:17,padding:16,marginBottom:12}}>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 11px"}}>resumo</p>
@@ -3987,8 +4172,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <button onClick={()=>{if(savedRun){setSelectedRun(savedRun);}}} style={{width:"100%",background:"transparent",border:"none",color:C.cyanB,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",padding:"4px 0",textAlign:"center",textDecoration:"underline",letterSpacing:0.2}}>Ver dados completos →</button>
           </div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{setTab("studio");setStudioTab("card");setSubScreen(null);}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>Criar card</button>
-            <button onClick={()=>{setSubScreen(null);resetGrav();setGStatus("idle");}} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Voltar</button>
+            <button onClick={()=>{setTab("studio");setStudioTab("card");setSubScreen(null);}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>{tt("training.createCard", "Criar card")}</button>
+            <button onClick={()=>{setSubScreen(null);resetGrav();setGStatus("idle");}} style={{flex:1,background:C.s2,color:C.ts,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{tt("common.back", "Voltar")}</button>
           </div>
         </div>
       );
@@ -4323,7 +4508,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <button onClick={()=>{setSubScreen(null);if(gStatus==="fim"){resetGrav();setGStatus("idle");}}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
             <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{salvando?"Salvando...":"Treino concluído"}</h1>
           </div>
-          {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>Corrida salva</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · aparece nos Treinos Concluídos</p></div></div>}
+          {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>{tt("training.runSaved", "Corrida salva")}</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · {tt("training.appearsInCompleted", "aparece nos Treinos Concluídos")}</p></div></div>}
           {novoRP&&<div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:12,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}><Ic n="trophy" z={22} c="#fff"/><div><p style={{color:"#fff",fontWeight:800,fontSize:14,margin:0}}>Novo Recorde!</p><p style={{color:"#ffffffcc",fontSize:12,margin:0}}>{novoRP.dist} em {novoRP.tempo}</p></div></div>}
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"44",borderRadius:17,padding:16,marginBottom:12}}>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 11px"}}>resumo</p>
@@ -4386,7 +4571,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       <div>
         {/* Header */}
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:0,fontWeight:800}}>Treino</h1>
+          <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:0,fontWeight:800}}>{tt("training.title", "Treino")}</h1>
           <span style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"4px 10px",color:C.tm,fontSize:12,fontWeight:600,fontFamily:"monospace"}}>
             {new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"}).replace(".","")}
           </span>
@@ -4397,7 +4582,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px 10px"}}>
             <div style={{display:"flex",alignItems:"center",gap:7}}>
               <Ic n="trophy" z={13} c={C.ts}/>
-              <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Treinos Concluídos</span>
+              <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{tt("training.completed", "Treinos Concluídos")}</span>
             </div>
             <div style={{display:"flex",gap:6}}>
               <button onClick={()=>{setShowStravaModal&&setShowStravaModal(true);}} style={{background:stravaConnected?"#fc4c0222":"#fc4c0211",border:"1px solid #fc4c0244",borderRadius:8,padding:"4px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
@@ -4412,8 +4597,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
           {corridas.length===0&&stravaRuns.length===0?(
             <div style={{textAlign:"center",padding:"14px 14px 18px"}}>
-              <p style={{color:C.tm,fontSize:13,margin:"0 0 3px"}}>Nenhum treino ainda</p>
-              <p style={{color:C.td,fontSize:11,margin:0}}>Finalize seu primeiro treino abaixo</p>
+              <p style={{color:C.tm,fontSize:13,margin:"0 0 3px"}}>{tt("training.emptyTitle", "Nenhum treino ainda")}</p>
+              <p style={{color:C.td,fontSize:11,margin:0}}>{tt("training.emptySubtitle", "Finalize seu primeiro treino abaixo")}</p>
             </div>
           ):(
             <div style={{paddingBottom:8}}>
@@ -4445,8 +4630,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <Ic n="report" z={20} c="#fff"/>
           </div>
           <div style={{flex:1}}>
-            <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Ver Plano Completo</p>
-            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.tipo==="macro"?(savedPlan.titulo||"Meu Plano")+" · "+(savedPlan.semanas_macro?.length||0)+" semanas":savedPlan?.plano?.length?(savedPlan.titulo||"Plano IA")+" · "+savedPlan.plano.length+" dias":"Crie um plano personalizado"}</p>
+            <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.viewFullPlan", "Ver Plano Completo")}</p>
+            <p style={{color:C.tm,fontSize:12,margin:0}}>{savedPlan?.tipo==="macro"?(savedPlan.titulo||tt("training.myPlan", "Meu Plano"))+" · "+(savedPlan.semanas_macro?.length||0)+" "+tt("training.weeks", "semanas"):savedPlan?.plano?.length?(savedPlan.titulo||tt("training.aiPlan", "Plano IA"))+" · "+savedPlan.plano.length+" "+tt("training.days", "dias"):tt("training.createPersonalizedPlan", "Crie um plano personalizado")}</p>
           </div>
           <Ic n="chevron-right" z={18} c={C.td}/>
         </div>
@@ -4470,7 +4655,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           return (
             <div style={{background:C.s1,borderRadius:14,marginBottom:10,overflow:"hidden",border:"1px solid "+C.border}}>
               <div style={{padding:"10px 14px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:0}}>Treino de hoje</p>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:0}}>{tt("training.today", "Treino de hoje")}</p>
                 <p style={{color:C.td,fontSize:11,margin:0}}>{dataStr.charAt(0).toUpperCase()+dataStr.slice(1)}</p>
               </div>
               {isDescanso?(
@@ -4478,13 +4663,13 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
                     <div style={{width:4,height:44,borderRadius:2,background:C.td,flexShrink:0}}/>
                     <div>
-                      <p style={{color:C.tm,fontWeight:700,fontSize:16,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>😴 Descanso</p>
-                      <p style={{color:C.td,fontSize:12,margin:0}}>Recuperação ativa ou repouso total</p>
+                      <p style={{color:C.tm,fontWeight:700,fontSize:16,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>😴 {tt("training.rest", "Descanso")}</p>
+                      <p style={{color:C.td,fontSize:12,margin:0}}>{tt("training.restDesc", "Recuperação ativa ou repouso total")}</p>
                     </div>
                   </div>
                   <button onClick={()=>{const idx=savedPlan?.plano?.findIndex(d=>d.dia?.toLowerCase().includes(abrev.toLowerCase())||d.dia?.toLowerCase().includes(diaHoje.toLowerCase().slice(0,3)));setAddTreinoDia(idx>=0?idx:0);setAddStep("tipo");setAddTipo(null);setAddSubtipo(null);setShowAddTreino(true);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"7px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                     <Ic n="plus" z={13} c={C.tm}/>
-                    <span style={{color:C.tm,fontSize:12,fontWeight:600}}>Adicionar</span>
+                    <span style={{color:C.tm,fontSize:12,fontWeight:600}}>{tt("training.add", "Adicionar")}</span>
                   </button>
                 </div>
               ):(
@@ -4513,7 +4698,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                     });
                     setSubScreen("gravacao");
                   }} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"12px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 16px "+C.violet+"44"}}>
-                    ▶ Iniciar este treino
+                    ▶ {tt("training.startThisWorkout", "Iniciar este treino")}
                   </button>
                 </div>
               )}
@@ -4523,28 +4708,28 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
         {/* Coach Tempo */}
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
-          <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>Coach Tempo</p>
-          <p style={{color:C.ts,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>Hoje focamos em velocidade de limiar. Execute em ~5:10/km.</p>
+          <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>{tt("training.coachTempo", "Coach Tempo")}</p>
+          <p style={{color:C.ts,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>{tt("training.coachTip", "Hoje focamos em velocidade de limiar. Execute em ~5:10/km.")}</p>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>{setPlanScreen("form");setSubScreen("plano");}} style={{flex:1,height:48,background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"33",borderRadius:10,padding:"0 8px",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,whiteSpace:"nowrap"}}>
-              <Ic n="ai" z={14} c={C.cyanB}/>Criar plano
+              <Ic n="ai" z={14} c={C.cyanB}/>{tt("training.createPlan", "Criar plano")}
             </button>
             <button onClick={()=>setSubScreen("gravacao")} style={{flex:1,height:48,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"0 8px",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7,boxShadow:"0 4px 20px "+C.violet+"44",letterSpacing:0.2,whiteSpace:"nowrap"}}>
-              <Ic n="run" z={17} c="#fff"/>Treino livre
+              <Ic n="run" z={17} c="#fff"/>{tt("training.freeRun", "Treino livre")}
             </button>
           </div>
         </div>
 
         {/* Chat com Coach */}
         <div style={{background:C.s1,borderRadius:14,padding:"14px 16px",border:"1px solid "+C.border}}>
-          <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 8px"}}>Chat com Coach Tempo</p>
+          <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 8px"}}>{tt("training.chatWithCoach", "Chat com Coach Tempo")}</p>
           {coachMsgs.slice(-2).map((m,i)=>(
             <div key={i} style={{marginBottom:6,textAlign:m.from==="user"?"right":"left"}}>
               <span style={{background:m.from==="user"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:C.tp,fontSize:12,padding:"6px 10px",borderRadius:10,display:"inline-block",maxWidth:"85%",lineHeight:1.4}}>{m.text}</span>
             </div>
           ))}
           <div style={{display:"flex",gap:7,marginTop:8}}>
-            <input value={coachIn} onChange={e=>setCoachIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendCoach()} placeholder="Pergunta ao Coach..." style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+            <input value={coachIn} onChange={e=>setCoachIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendCoach()} placeholder={tt("training.askCoach", "Pergunta ao Coach...")} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 11px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
             <button onClick={sendCoach} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,width:40,height:40,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="send" z={15} c="#fff"/></button>
           </div>
         </div>
@@ -4558,35 +4743,35 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       <div>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
           <div>
-          <Badge text="ANÁLISE TÉCNICA · IA" color={C.violet}/>
-          <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>Análise biomecânica</h1>
-          <p style={{color:C.tm,fontSize:12,margin:0}}>Envie um vídeo de até 20 segundos em movimento</p>
+          <Badge text={tt("analysis.badgeTech", "ANÁLISE TÉCNICA · IA")} color={C.violet}/>
+          <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>{tt("analysis.title", "Análise biomecânica")}</h1>
+          <p style={{color:C.tm,fontSize:12,margin:0}}>{tt("analysis.subtitle", "Envie um vídeo de até 20 segundos em movimento")}</p>
           </div>
-          <button onClick={()=>setAnStep("result")} title="Fechar" style={{width:34,height:34,borderRadius:10,background:C.s2,border:"1px solid "+C.cyanB+"66",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.cyanB,fontSize:20,fontWeight:700,lineHeight:1,flexShrink:0}}>×</button>
+          <button onClick={()=>setAnStep("result")} title={tt("analysis.close", "Fechar")} style={{width:34,height:34,borderRadius:10,background:C.s2,border:"1px solid "+C.cyanB+"66",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.cyanB,fontSize:20,fontWeight:700,lineHeight:1,flexShrink:0}}>×</button>
         </div>
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
           <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ai" z={17} c="#fff"/></div>
           <div>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,margin:"0 0 5px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Coach TEMPO</p>
-            <p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.5}}>Filme sua corrida de lado, em terreno plano e bem iluminado. Capture pelo menos 8 ciclos de passada.</p>
+            <p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.5}}>{tt("analysis.coachTip", "Filme sua corrida de lado, em terreno plano e bem iluminado. Capture pelo menos 8 ciclos de passada.")}</p>
           </div>
         </div>
         <label style={{display:"block",background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"2px dashed "+C.violet+"66",borderRadius:14,padding:"24px 20px",textAlign:"center",cursor:"pointer",marginBottom:11}}>
           <input type="file" accept="video/*" onChange={handleVideoUpload} style={{display:"none"}}/>
           <Ic n="upload" z={32} c={C.violet}/>
-          <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"9px 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Toque para enviar vídeo</p>
-          <p style={{color:C.tm,fontSize:11,margin:0}}>MP4, MOV · até 20 segundos · max 50MB</p>
+          <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"9px 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("analysis.tapUpload", "Toque para enviar vídeo")}</p>
+          <p style={{color:C.tm,fontSize:11,margin:0}}>{tt("analysis.uploadSpecs", "MP4, MOV · até 20 segundos · max 50MB")}</p>
         </label>
         <div style={{background:C.s1,borderRadius:12,padding:13,border:"1px solid "+C.border}}>
-          <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>O que será avaliado</p>
+          <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>{tt("analysis.whatEvaluated", "O que será avaliado")}</p>
           {[
-            {n:"Elevação Vertical",d:"Oscilação vertical do centro de massa"},
-            {n:"Tamanho da Passada",d:"Comprimento e ponto de aterrissagem"},
-            {n:"Aterrissagem",d:"Como e onde o pé toca o solo"},
-            {n:"Overstriding",d:"Pé aterrissando à frente do quadril"},
-            {n:"Posição do Tronco e Braços",d:"Inclinação anterior e movimento dos membros"},
-            {n:"Oscilação Vertical",d:"Energia desperdiçada no movimento para cima"},
-            {n:"Tempo de Contato com o Solo",d:"Duração do apoio em cada passada"},
+            {n:tt("analysis.verticalLift", "Elevação Vertical"),d:tt("analysis.verticalLiftDesc", "Oscilação vertical do centro de massa")},
+            {n:tt("analysis.strideLength", "Tamanho da Passada"),d:tt("analysis.strideLengthDesc", "Comprimento e ponto de aterrissagem")},
+            {n:tt("analysis.landing", "Aterrissagem"),d:tt("analysis.landingDesc", "Como e onde o pé toca o solo")},
+            {n:tt("analysis.overstriding", "Overstriding"),d:tt("analysis.overstridingDesc", "Pé aterrissando à frente do quadril")},
+            {n:tt("analysis.trunkArms", "Posição do Tronco e Braços"),d:tt("analysis.trunkArmsDesc", "Inclinação anterior e movimento dos membros")},
+            {n:tt("analysis.verticalOsc", "Oscilação Vertical"),d:tt("analysis.verticalOscDesc", "Energia desperdiçada no movimento para cima")},
+            {n:tt("analysis.groundContact", "Tempo de Contato com o Solo"),d:tt("analysis.groundContactDesc", "Duração do apoio em cada passada")},
           ].map((m,i)=>(
             <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
               <div style={{width:18,height:18,borderRadius:5,background:C.cyanB+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}><Ic n="check" z={11} c={C.cyanB}/></div>
@@ -4600,7 +4785,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       <div>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setAnStep("upload")} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
-          <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>Dados complementares</h1>
+          <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{tt("analysis.extraData", "Dados complementares")}</h1>
         </div>
         <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.violet+"33",borderRadius:13,padding:12,marginBottom:14,display:"flex",gap:10,alignItems:"center"}}>
           <div style={{width:32,height:32,borderRadius:9,background:C.violet+"22",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic n="video" z={17} c={C.violet}/></div>
@@ -4609,21 +4794,21 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <p style={{color:C.tm,fontSize:11,margin:"2px 0 0",fontFamily:"monospace"}}>{anVideo.duration}s · {anVideo.size}MB</p>
           </div>
         </div>
-        {[{label:"Cadência média (spm)",k:"cadencia",ph:"Ex: 170"},{label:"Pace médio (min:seg/km)",k:"pace_medio",ph:"Ex: 5:30"},{label:"Distância (km)",k:"distancia",ph:"Ex: 10"},{label:"Lesões recentes (opcional)",k:"lesoes",ph:"Ex: tendinite no joelho"}].map((f,i)=>(
+        {[{label:tt("analysis.cadenceLabel", "Cadência média (spm)"),k:"cadencia",ph:"Ex: 170"},{label:tt("analysis.paceLabel", "Pace médio (min:seg/km)"),k:"pace_medio",ph:"Ex: 5:30"},{label:tt("analysis.distanceLabel", "Distância (km)"),k:"distancia",ph:"Ex: 10"},{label:tt("analysis.injuriesLabel", "Lesões recentes (opcional)"),k:"lesoes",ph:"Ex: tendinite no joelho"}].map((f,i)=>(
           <div key={i} style={{marginBottom:11}}>
             <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 5px",textTransform:"uppercase",letterSpacing:0.3}}>{f.label}</p>
             <input value={anInfo[f.k]} onChange={e=>setAnInfo(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"10px 12px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
           </div>
         ))}
-        <button onClick={gerarAnalise} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"14px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44",marginTop:6}}><Ic n="ai" z={18} c="#fff"/>ANALISAR VÍDEO</button>
+        <button onClick={gerarAnalise} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"14px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44",marginTop:6}}><Ic n="ai" z={18} c="#fff"/>{tt("analysis.analyzeVideo", "ANALISAR VÍDEO")}</button>
       </div>
     );
     if(anStep==="loading") return (
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:520,gap:20}}>
         <div style={{width:70,height:70,borderRadius:20,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 10px 35px "+C.violet+"66"}}><Ic n="ai" z={38} c="#fff"/></div>
         <div style={{textAlign:"center"}}>
-          <p style={{color:C.tp,fontWeight:700,fontSize:17,fontFamily:"'Space Grotesk',sans-serif",margin:"0 0 6px"}}>Analisando biomecânica...</p>
-          <p style={{color:C.tm,fontSize:12,margin:"0 0 12px"}}>Avaliando 4 métricas técnicas</p>
+          <p style={{color:C.tp,fontWeight:700,fontSize:17,fontFamily:"'Space Grotesk',sans-serif",margin:"0 0 6px"}}>{tt("analysis.analyzing", "Analisando biomecânica...")}</p>
+          <p style={{color:C.tm,fontSize:12,margin:"0 0 12px"}}>{tt("analysis.evaluating", "Avaliando 4 métricas técnicas")}</p>
           <Dots color={C.cyanB}/>
         </div>
       </div>
@@ -4632,16 +4817,16 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       <div>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <Badge text={isPro?"ANÁLISE PRO":"ANÁLISE PRÉVIA"} color={isPro?C.violet:C.amber}/>
-            <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:20}}>Relatório biomecânico</h1>
+            <Badge text={isPro?tt("analysis.badgePro", "ANÁLISE PRO"):tt("analysis.badgePreview", "ANÁLISE PRÉVIA")} color={isPro?C.violet:C.amber}/>
+            <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:20}}>{tt("analysis.reportTitle", "Relatório biomecânico")}</h1>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:C.cyanB,fontSize:12,fontWeight:700,fontFamily:"\'Space Grotesk\',sans-serif",whiteSpace:"nowrap"}}>Envie seu vídeo</span><button onClick={()=>setAnStep("upload")} style={{background:C.s2,border:"1px solid "+C.cyanB+"66",borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="upload" z={13} c={C.cyanB}/></button></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:C.cyanB,fontSize:12,fontWeight:700,fontFamily:"\'Space Grotesk\',sans-serif",whiteSpace:"nowrap"}}>{tt("analysis.sendYourVideo", "Envie seu vídeo")}</span><button onClick={()=>setAnStep("upload")} style={{background:C.s2,border:"1px solid "+C.cyanB+"66",borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="upload" z={13} c={C.cyanB}/></button></div>
         </div>
 
         {/* Score — visível para todos */}
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:17,padding:"18px 16px",marginBottom:13,textAlign:"center",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:-30,left:"50%",transform:"translateX(-50%)",width:200,height:80,borderRadius:"50%",background:C.violet+"22",filter:"blur(25px)",pointerEvents:"none"}}/>
-          <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 7px",position:"relative"}}>Índice Técnico</p>
+          <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 7px",position:"relative"}}>{tt("analysis.techIndex", "Índice Técnico")}</p>
           <div style={{display:"flex",justifyContent:"center",alignItems:"baseline",gap:6,position:"relative",marginBottom:5}}>
             <span style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:54,fontWeight:800,letterSpacing:-2,lineHeight:1}}>{anData.indice_tecnica}</span>
             <span style={{color:C.tm,fontSize:18,fontWeight:600}}>/100</span>
@@ -4659,7 +4844,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         </div>
 
         {/* MÉTRICAS — Free: 1 visível + blur nas restantes / Pro: todas */}
-        <SL><Ic n="bars" z={13} c={C.ts}/>Métricas avaliadas</SL>
+        <SL><Ic n="bars" z={13} c={C.ts}/>{tt("analysis.metricsEvaluated", "Métricas avaliadas")}</SL>
 
         {isPro ? (
           // PRO: todas as métricas com detalhes completos
@@ -4717,17 +4902,17 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                 <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(6,7,26,0.6)",backdropFilter:"blur(1px)"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:18}}>🔒</span>
-                    <p style={{color:C.tp,fontSize:12,fontWeight:700,margin:0}}>Exclusivo Pro</p>
+                    <p style={{color:C.tp,fontSize:12,fontWeight:700,margin:0}}>{tt("analysis.exclusivePro", "Exclusivo Pro")}</p>
                   </div>
                 </div>
               </div>
             ))}
             {/* CTA Pro */}
             <div style={{background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"55",borderRadius:14,padding:"16px 14px",marginBottom:12,textAlign:"center"}}>
-              <p style={{color:C.tp,fontWeight:800,fontSize:15,margin:"0 0 6px",fontFamily:"'Space Grotesk',sans-serif"}}>🔬 {anData.metricas_ocultas_count} métricas bloqueadas</p>
-              <p style={{color:C.tm,fontSize:12,margin:"0 0 14px",lineHeight:1.5}}>Desbloqueie análise completa com drills personalizados, plano de 4 semanas e todas as métricas científicas.</p>
+              <p style={{color:C.tp,fontWeight:800,fontSize:15,margin:"0 0 6px",fontFamily:"'Space Grotesk',sans-serif"}}>🔬 {anData.metricas_ocultas_count} {tt("analysis.lockedMetrics", "métricas bloqueadas")}</p>
+              <p style={{color:C.tm,fontSize:12,margin:"0 0 14px",lineHeight:1.5}}>{tt("analysis.unlockDesc", "Desbloqueie análise completa com drills personalizados, plano de 4 semanas e todas as métricas científicas.")}</p>
               <button onClick={()=>setShowProModal(true)} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>
-                🚀 Ver análise completa — Assinar Pro
+                🚀 {tt("analysis.ctaPro", "Ver análise completa — Assinar Pro")}
               </button>
             </div>
           </div>
@@ -4735,14 +4920,14 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
         {isPro&&anData.resumo&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:13,marginBottom:12,border:"1px solid "+C.cyanB+"33"}}>
-            <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.5}}>Resumo do TEMPO</p>
+            <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.5}}>{tt("analysis.tempoSummary", "Resumo do TEMPO")}</p>
             <p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.6}}>{anData.resumo}</p>
           </div>
         )}
 
         {isPro&&(
           <div style={{display:"flex",background:C.s2,borderRadius:10,padding:3,marginBottom:12,gap:2}}>
-            {[{id:"drills",l:"Drills"},{id:"treino",l:"Treino"},{id:"cues",l:"Cues"},{id:"plano",l:"Plano 4 sem"}].map(t=>(
+            {[{id:"drills",l:"Drills"},{id:"treino",l:tt("nav.training", "Treino")},{id:"cues",l:"Cues"},{id:"plano",l:tt("analysis.fourWeekPlan", "Plano 4 sem")}].map(t=>(
               <button key={t.id} onClick={()=>setAnTab(t.id)} style={{flex:1,background:anTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:anTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
             ))}
           </div>
@@ -4764,17 +4949,17 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
         {isPro&&anTab==="treino"&&anData.treino_tecnico&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:14,border:"1px solid "+C.violet+"33"}}>
-            <p style={{color:C.violetL,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Treino Técnico Sugerido</p>
+            <p style={{color:C.violetL,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>{tt("analysis.suggestedTechWorkout", "Treino Técnico Sugerido")}</p>
             <p style={{color:C.tp,fontSize:13,margin:"0 0 12px",lineHeight:1.6}}>{anData.treino_tecnico.descricao}</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:11}}>
-              {[{l:"Séries",v:anData.treino_tecnico.series,c:C.violetL},{l:"Duração",v:anData.treino_tecnico.duracao_s+"s",c:C.cyanB},{l:"Recup.",v:"60s",c:C.amber}].map((s,i)=>(
+              {[{l:tt("analysis.sets", "Séries"),v:anData.treino_tecnico.series,c:C.violetL},{l:tt("analysis.duration", "Duração"),v:anData.treino_tecnico.duracao_s+"s",c:C.cyanB},{l:tt("analysis.recoveryShort", "Recup."),v:"60s",c:C.amber}].map((s,i)=>(
                 <div key={i} style={{background:C.s3,borderRadius:9,padding:"9px 8px",textAlign:"center",border:"1px solid "+s.c+"22"}}>
                   <p style={{color:s.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 3px",opacity:0.8}}>{s.l}</p>
                   <p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:18,margin:0,letterSpacing:-0.5}}>{s.v}</p>
                 </div>
               ))}
             </div>
-            <p style={{color:C.tm,fontSize:11,margin:0,fontStyle:"italic"}}>Recuperação: {anData.treino_tecnico.recuperacao}</p>
+            <p style={{color:C.tm,fontSize:11,margin:0,fontStyle:"italic"}}>{tt("analysis.recovery", "Recuperação")}: {anData.treino_tecnico.recuperacao}</p>
           </div>
         )}
 
@@ -4809,7 +4994,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
         <div style={{background:C.s1,border:"1px solid "+C.amber+"33",borderRadius:11,padding:"10px 12px",margin:"14px 0 6px",display:"flex",gap:9,alignItems:"flex-start"}}>
           <Ic n="warning" z={16} c={C.amber} st={{flexShrink:0,marginTop:2}}/>
-          <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.5}}>Esta análise é educativa e não substitui avaliação presencial de um fisioterapeuta esportivo ou profissional habilitado. Baseada em evidências científicas (BJSM, NLM, ACSM, Sports Med).</p>
+          <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.5}}>{tt("analysis.disclaimer", "Esta análise é educativa e não substitui avaliação presencial de um fisioterapeuta esportivo ou profissional habilitado. Baseada em evidências científicas (BJSM, NLM, ACSM, Sports Med).")}</p>
         </div>
       </div>
     );
@@ -4823,7 +5008,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",gap:10}}>
           <button onClick={()=>setSubScreen(null)} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
           <div style={{flex:1,minWidth:0}}>
-            <Badge text="MINHA PROVA" color={provaAmb.prova.cor}/>
+            <Badge text={tt("explore.myRace", "MINHA PROVA")} color={provaAmb.prova.cor}/>
             <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"5px 0 0",fontFamily:"'Space Grotesk',sans-serif",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{provaAmb.prova.nome}</p>
           </div>
         </div>
@@ -4836,18 +5021,18 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             </div>
             <a href={provaAmb.prova.link} target="_blank" rel="noopener noreferrer" style={{background:provaAmb.prova.cor+"22",border:"1px solid "+provaAmb.prova.cor+"55",borderRadius:9,padding:"7px 10px",display:"flex",alignItems:"center",gap:5,textDecoration:"none"}}>
               <Ic n="link" z={13} c={provaAmb.prova.cor}/>
-              <span style={{color:provaAmb.prova.cor,fontSize:11,fontWeight:700}}>Inscrição</span>
+              <span style={{color:provaAmb.prova.cor,fontSize:11,fontWeight:700}}>{tt("explore.registration", "Inscrição")}</span>
             </a>
           </div>
         </div>
 
-        <SL><Ic n="bib" z={13} c={C.ts}/>Após a prova: encontre suas fotos</SL>
+        <SL><Ic n="bib" z={13} c={C.ts}/>{tt("explore.findPhotos", "Após a prova: encontre suas fotos")}</SL>
         <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:13,marginBottom:13,border:"1px solid "+C.cyanB+"33"}}>
-          <p style={{color:C.tm,fontSize:12,margin:"0 0 9px",lineHeight:1.5}}>Digite seu número de peito para a IA buscar suas fotos nos principais sites.</p>
+          <p style={{color:C.tm,fontSize:12,margin:"0 0 9px",lineHeight:1.5}}>{tt("explore.photoSearchDesc", "Digite seu número de peito para a IA buscar suas fotos nos principais sites.")}</p>
           <div style={{display:"flex",gap:7}}>
-            <input value={numPeito} onChange={e=>setNumPeito(e.target.value)} placeholder="Número de peito" style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"10px 12px",color:C.tp,fontSize:14,fontFamily:"monospace",outline:"none",letterSpacing:1}}/>
+            <input value={numPeito} onChange={e=>setNumPeito(e.target.value)} placeholder={tt("explore.bibNumber", "Número de peito")} style={{flex:1,background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"10px 12px",color:C.tp,fontSize:14,fontFamily:"monospace",outline:"none",letterSpacing:1}}/>
             <button onClick={buscarFotos} disabled={buscFotos||!numPeito.trim()} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"10px 14px",fontWeight:700,fontSize:13,cursor:numPeito.trim()?"pointer":"not-allowed",fontFamily:"'Space Grotesk',sans-serif",opacity:buscFotos||!numPeito.trim()?0.5:1,display:"flex",alignItems:"center",gap:6}}>
-              {buscFotos?<Dots color="#fff"/>:<><Ic n="photo" z={13} c="#fff"/>Buscar</>}
+              {buscFotos?<Dots color="#fff"/>:<><Ic n="photo" z={13} c="#fff"/>{tt("explore.search", "Buscar")}</>}
             </button>
           </div>
           {resFotos&&(
@@ -4864,7 +5049,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           )}
         </div>
 
-        <SL><Ic n="run" z={13} c={C.ts}/>Treinos para esta prova ({provaAmb.treinos?.length||0})</SL>
+        <SL><Ic n="run" z={13} c={C.ts}/>{tt("explore.raceWorkouts", "Treinos para esta prova")} ({provaAmb.treinos?.length||0})</SL>
         {provaAmb.treinos?.length?provaAmb.treinos.map((t,i)=>(
           <div key={i} style={{background:C.s1,borderRadius:11,padding:"10px 12px",marginBottom:6,border:"1px solid "+C.border,display:"flex",alignItems:"center",gap:11}}>
             <div style={{width:30,height:30,borderRadius:8,background:C.cyanB+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="run" z={15} c={C.cyanB}/></div>
@@ -4875,8 +5060,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
         )):(
           <div style={{background:C.s1,borderRadius:11,padding:13,textAlign:"center",border:"1px dashed "+C.border}}>
-            <p style={{color:C.tm,fontSize:12,margin:0}}>Nenhum treino vinculado ainda</p>
-            <p style={{color:C.td,fontSize:11,margin:"3px 0 0"}}>Inicie um treino para vincular automaticamente</p>
+            <p style={{color:C.tm,fontSize:12,margin:0}}>{tt("explore.noLinkedWorkouts", "Nenhum treino vinculado ainda")}</p>
+            <p style={{color:C.td,fontSize:11,margin:"3px 0 0"}}>{tt("explore.startWorkoutToLink", "Inicie um treino para vincular automaticamente")}</p>
           </div>
         )}
       </div>
@@ -4885,12 +5070,12 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
     return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
-          <Badge text="DESCOBRIR" color={C.cyan}/>
-          <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>Explorar</h1>
-          <p style={{color:C.tm,fontSize:12,margin:0}}>Rotas, provas e equipamentos</p>
+          <Badge text={tt("explore.discover", "DESCOBRIR")} color={C.cyan}/>
+          <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>{tt("explore.title", "Explorar")}</h1>
+          <p style={{color:C.tm,fontSize:12,margin:0}}>{tt("explore.subtitle", "Rotas, provas e equipamentos")}</p>
         </div>
         <div style={{display:"flex",background:C.s2,borderRadius:11,padding:4,marginBottom:14,gap:3}}>
-          {[{id:"rotas",l:"Rotas",i:"pin"},{id:"provas",l:"Provas",i:"trophy"},{id:"gear",l:"TempoShop",i:"shoe"}].map(t=>(
+          {[{id:"rotas",l:tt("explore.routes", "Rotas"),i:"pin"},{id:"provas",l:tt("explore.races", "Provas"),i:"trophy"},{id:"gear",l:"TempoShop",i:"shoe"}].map(t=>(
             <button key={t.id} onClick={()=>setExplTab(t.id)} style={{flex:1,background:explTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:explTab===t.id?C.tp:C.tm,border:explTab===t.id?"1px solid "+C.violet+"44":"1px solid transparent",borderRadius:8,padding:"8px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
               <Ic n={t.i} z={13} c={explTab===t.id?C.cyanB:C.tm}/>{t.l}
             </button>
@@ -4939,7 +5124,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                 </div>
                 <div style={{display:"flex",gap:7}}>
                   <button onClick={()=>selecionarProva(p)} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                    Treinar para esta prova
+                    {tt("explore.trainForRace", "Treinar para esta prova")}
                   </button>
                   <a href={p.link} target="_blank" rel="noopener noreferrer" style={{background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 12px",display:"flex",alignItems:"center",textDecoration:"none"}}>
                     <Ic n="link" z={14} c={C.cyanB}/>
@@ -4958,18 +5143,18 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                   <Ic n="shoe" z={32} c={C.cyanB}/>
                 </div>
                 <div style={{flex:1}}>
-                  <Badge text="RECOMENDADO" color={C.cyanB}/>
+                  <Badge text={tt("explore.recommended", "RECOMENDADO")} color={C.cyanB}/>
                   <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"5px 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Nike Pegasus 40</p>
                   <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.4}}>Tênis daily trainer com excelente custo-benefício para o seu volume.</p>
                 </div>
               </div>
-              <SL><Ic n="link" z={13} c={C.ts}/>Onde comprar</SL>
+              <SL><Ic n="link" z={13} c={C.ts}/>{tt("explore.whereBuy", "Onde comprar")}</SL>
               {lojaItems.map((l,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",background:C.s3,borderRadius:9,marginBottom:5,border:"1px solid "+(l.ok?C.cyanB+"33":C.border)}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:5}}>
                       <p style={{color:C.tp,fontWeight:700,fontSize:12,margin:0}}>{l.loja}</p>
-                      {l.ok&&<Badge text="Melhor" color={C.cyanB}/>}
+                      {l.ok&&<Badge text={tt("explore.best", "Melhor")} color={C.cyanB}/>}
                     </div>
                     <p style={{color:C.tm,fontSize:10,margin:"2px 0 0",fontFamily:"monospace"}}>{l.tipo} · {l.frete} · {l.prazo}</p>
                   </div>
@@ -4997,7 +5182,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
     const dur   = run ? fmtT(run.duracao_seg) : "54:00";
     const bpm   = run?.bpm_medio   ? run.bpm_medio + "" : "158";
     const dplus = run?.dplus       ? run.dplus + "m"    : "128m";
-    const data  = run?.data        || "Hoje";
+    const data  = run?.data        || tt("studio.today", "Hoje");
 
     const NEON = { route:"#a855f7", glow:"#7c3aed", bg:"#1a1a2edd", street:"#16213e", pin:"#c084fc", dot:"#22d3ee" };
 
@@ -5225,7 +5410,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             const lW2=80,lH2=lW2/logoAR;
             ctx.drawImage(logoImg,W/2-lW2/2,y,lW2,lH2); y+=lH2+10;
             ctx.fillStyle="#ffffff55"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
-            ctx.fillText((run?.data||"Hoje").toUpperCase(),W/2,y); y+=20;
+            ctx.fillText((run?.data||tt("studio.today", "Hoje")).toUpperCase(),W/2,y); y+=20;
             ctx.fillStyle="#f0f4ff"; ctx.font="bold 42px 'Space Grotesk',sans-serif";
             ctx.fillText(dist+" km",W/2,y+38); y+=58;
             ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
@@ -5239,7 +5424,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             ctx.globalAlpha=1;
             ctx.drawImage(logoImg,W/2-lW3/2,y,lW3,lH3); y+=lH3+16;
             ctx.fillStyle="#ffffff44"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
-            ctx.fillText((run?.data||"Hoje").toUpperCase(),W/2,y); y+=28;
+            ctx.fillText((run?.data||tt("studio.today", "Hoje")).toUpperCase(),W/2,y); y+=28;
             const cols=[{v:dist,u:"km",c:"#a855f7"},{v:pace,u:"/km",c:"#7c3aed"},{v:dur,u:"tempo",c:"#22d3ee"}];
             const cw3=(W-40)/3;
             cols.forEach((col,i)=>{
@@ -5259,7 +5444,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             setCopied(true);
             setTimeout(()=>setCopied(false),2000);
           },"image/png");
-        } catch(e){ alert("Clipboard não suportado neste browser"); }
+        } catch(e){ alert(tt("studio.clipboardUnsupported", "Clipboard não suportado neste browser")); }
       };
     }
 
@@ -5303,7 +5488,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           ctx.drawImage(logoImg, W/2 - logoW/2, y, logoW, logoH);
           y += logoH + 10;
           ctx.fillStyle="#ffffff55"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
-          ctx.fillText((run?.data||"Hoje").toUpperCase(), W/2, y); y += 20;
+          ctx.fillText((run?.data||tt("studio.today", "Hoje")).toUpperCase(), W/2, y); y += 20;
           ctx.fillStyle="#f0f4ff"; ctx.font="bold 42px 'Space Grotesk',sans-serif"; ctx.textAlign="center";
           ctx.fillText(dist+" km", W/2, y+38); y += 58;
           ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
@@ -5372,7 +5557,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           const lWg=80, lHg=lWg/logoAR;
           ctx.drawImage(logoImg, W/2-lWg/2, 16, lWg, lHg);
           // Dados
-          const mG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
+          const mG=[{v:dist,u:"km",l:tt("studio.distance", "DISTÂNCIA").toUpperCase()},{v:pace,u:"/km",l:tt("studio.averagePace", "PACE MÉDIO").toUpperCase()},{v:dur,u:"",l:tt("studio.totalTime", "TEMPO TOTAL").toUpperCase()}];
           let yG=C2H-Math.round(C2H*0.44);
           mG.forEach(m=>{
             ctx.shadowColor="rgba(0,0,0,0.65)"; ctx.shadowBlur=10; ctx.shadowOffsetY=2;
@@ -5384,7 +5569,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           });
           ctx.shadowColor="transparent"; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
           ctx.fillStyle="rgba(255,255,255,0.28)"; ctx.font="bold 8px monospace"; ctx.textAlign="right";
-          ctx.fillText((run?.data||"Hoje").toUpperCase(),W-14,C2H-12);
+          ctx.fillText((run?.data||tt("studio.today", "Hoje")).toUpperCase(),W-14,C2H-12);
 
         } else if (cardIndex === 2) {
           // CARD 3: mapa neon
@@ -5399,7 +5584,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           ctx.drawImage(logoImg, W/2 - lW/2, y, lW, lH);
           y += lH + 16;
           ctx.fillStyle="#ffffff44"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
-          ctx.fillText((run?.data||"Hoje").toUpperCase(), W/2, y); y += 28;
+          ctx.fillText((run?.data||tt("studio.today", "Hoje")).toUpperCase(), W/2, y); y += 28;
           const cols = [{v:dist,u:"km",bc:"#a855f7"},{v:pace,u:"/km",bc:"#7c3aed"},{v:dur,u:"tempo",bc:"#22d3ee"}];
           const cw3 = (W-40)/3;
           cols.forEach((col,i)=>{
@@ -5555,9 +5740,9 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
     // ── CARD 2: estilo Garmin — foto de fundo + dados + barra gradiente ──
     const Card2 = (()=>{
       const metrics2 = [
-        {v:dist,  u:"km",  l:"DISTÂNCIA"},
-        {v:pace,  u:"/km", l:"PACE MÉDIO"},
-        {v:dur,   u:"",    l:"TEMPO TOTAL"},
+        {v:dist,  u:"km",  l:tt("studio.distance", "DISTÂNCIA").toUpperCase()},
+        {v:pace,  u:"/km", l:tt("studio.averagePace", "PACE MÉDIO").toUpperCase()},
+        {v:dur,   u:"",    l:tt("studio.totalTime", "TEMPO TOTAL").toUpperCase()},
       ];
       const barColor1 = isGradient?"#811df2":traceStroke;
       const barColor2 = isGradient?"#22d3ee":traceStroke;
@@ -5596,7 +5781,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           {/* Botão upload foto */}
           <label style={{position:"absolute",top:12,right:12,zIndex:4,background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,padding:"5px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,backdropFilter:"blur(4px)"}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span style={{color:"#fff",fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{card2Photo?"Trocar":"Foto"}</span>
+            <span style={{color:"#fff",fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{card2Photo?tt("studio.change", "Trocar"):tt("studio.photo", "Foto")}</span>
             <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
               const file=e.target.files[0]; if(!file) return;
               const reader=new FileReader();
@@ -5699,7 +5884,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
     })();
 
     const CARDS = [Card1, Card2, Card3, Card4, Card5];
-    const LABELS = ["Card 1 de 5","Card 2 de 5","Card 3 de 5","Card 4 de 5","Card 5 de 5"];
+    const LABELS = [1,2,3,4,5].map(n=>`${tt("studio.cardLabel", "Card")} ${n} ${tt("studio.of", "de")} 5`);
 
     return (
       <div>
@@ -5734,7 +5919,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </button>
           {(cardIndex===0||cardIndex===1||cardIndex===3||cardIndex===4)&&(
             <button onClick={handleCopy} style={{flex:1,background:copied?"#22c55e22":C.s2,color:copied?"#22c55e":C.cyanB,border:"1px solid "+(copied?"#22c55e44":C.cyanB+"44"),borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
-              <Ic n="save" z={15} c={copied?"#22c55e":C.cyanB}/>{copied?"Copiado ✓":"Copiar"}
+              <Ic n="save" z={15} c={copied?"#22c55e":C.cyanB}/>{copied?tt("studio.copied", "Copiado")+" ✓":tt("studio.copy", "Copiar")}
             </button>
           )}
           <button style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 13px",cursor:"pointer",display:"flex",alignItems:"center"}}>
@@ -5998,7 +6183,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         {/* Actions */}
         <div style={{display:"flex",gap:8}}>
           <button onClick={handleExport} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
-            <Ic n="save" z={15} c="#fff"/>{exported?"Salvo!":"Salvar PNG"}
+            <Ic n="save" z={15} c="#fff"/>{exported?tt("studio.saved", "Salvo!"):tt("studio.savePng", "Salvar PNG")}
           </button>
           <button style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 13px",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
             <Ic n="share" z={15} c={C.cyanB}/>
@@ -6016,12 +6201,12 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       {name:"Trail",bg:"linear-gradient(135deg,#1a0e00,#221500)"},
     ];
     const COLOR_PALETTE = {
-      gradient: {accent:"#811df2", label:"Gradiente", stroke:"gradient"},
-      violet:   {accent:"#811df2", label:"Roxo",      stroke:"#811df2"},
+      gradient: {accent:"#811df2", label:tt("studio.gradient", "Gradiente"), stroke:"gradient"},
+      violet:   {accent:"#811df2", label:tt("studio.purple", "Roxo"),      stroke:"#811df2"},
       cyan:     {accent:"#22d3ee", label:"Cyan",      stroke:"#22d3ee"},
-      white:    {accent:"#ffffff", label:"Branco",    stroke:"#ffffff"},
+      white:    {accent:"#ffffff", label:tt("studio.white", "Branco"),    stroke:"#ffffff"},
     };
-    const lastRun = studioRun || corridas[0] || {distancia_km:10.4, pace_medio:"5:30", duracao_seg:3120, dplus:128, bpm_medio:158, data:"Hoje"};
+    const lastRun = studioRun || corridas[0] || {distancia_km:10.4, pace_medio:"5:30", duracao_seg:3120, dplus:128, bpm_medio:158, data:tt("studio.today", "Hoje")};
     const accent = COLOR_PALETTE[cardColor].accent;
     const traceStroke = COLOR_PALETTE[cardColor].stroke;
     const isGradient = traceStroke === "gradient";
@@ -6209,11 +6394,11 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
           <Badge text="STUDIO" color={C.violetL}/>
-          <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>Compartilhar</h1>
-          <p style={{color:C.tm,fontSize:12,margin:0}}>Crie cards e gere conteúdo</p>
+          <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>{tt("studio.title", "Compartilhar")}</h1>
+          <p style={{color:C.tm,fontSize:12,margin:0}}>{tt("studio.subtitle", "Crie cards e gere conteúdo")}</p>
         </div>
         <div style={{display:"flex",background:C.s2,borderRadius:11,padding:4,marginBottom:14,gap:3}}>
-          {[{id:"card",l:"Card"},{id:"rps",l:"RPs"},{id:"efeitos",l:"Efeitos"}].map(t=>(
+          {[{id:"card",l:tt("studio.tabCard", "Card")},{id:"rps",l:tt("studio.tabRps", "RPs")},{id:"efeitos",l:tt("studio.tabEffects", "Efeitos")}].map(t=>(
             <button key={t.id} onClick={()=>setStudioTab(t.id)} style={{flex:1,background:studioTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:studioTab===t.id?C.tp:C.tm,border:studioTab===t.id?"1px solid "+C.violet+"44":"1px solid transparent",borderRadius:8,padding:"8px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
               {t.l}
             </button>
@@ -6246,8 +6431,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                 <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
                   <Ic n="medal" z={18} c={C.cyanB}/>
                   <div style={{minWidth:0}}>
-                    <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontWeight:900,fontSize:22,margin:0,letterSpacing:-0.3}}>Recordes Pessoais</p>
-                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{dadosForm.nome||session?.strava_athlete?.firstname||"Corredor"}</p>
+                    <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontWeight:900,fontSize:22,margin:0,letterSpacing:-0.3}}>{tt("studio.personalRecords", "Recordes Pessoais")}</p>
+                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{dadosForm.nome||session?.strava_athlete?.firstname||tt("studio.runner", "Corredor")}</p>
                   </div>
                 </div>
                 <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 18px "+C.cyan+"33"}}>
@@ -6293,19 +6478,19 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             </div>
             {rpShareOpen&&(
               <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"33",borderRadius:14,padding:12,marginBottom:10,animation:"fadeIn .2s ease"}}>
-                <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 9px"}}>Escolha o RP para compartilhar</p>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 9px"}}>{tt("studio.chooseRpShare", "Escolha o RP para compartilhar")}</p>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                   {rpEfforts.map(e=>(
                     <button key={e.rank} onClick={()=>exportRpMedal(e.rank,e)} style={{background:C.bg,border:"1px solid "+(e.rank===1?C.amber:e.rank===2?"#cfd8dc":"#c77a43")+"55",borderRadius:12,padding:"9px 4px",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                       <MedalSvg rank={e.rank} size={45}/>
-                      <span style={{color:C.tp,fontSize:11,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif"}}>{e.rank===1?"Ouro":e.rank===2?"Prata":"Bronze"}</span>
+                      <span style={{color:C.tp,fontSize:11,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif"}}>{e.rank===1?tt("studio.gold", "Ouro"):e.rank===2?tt("studio.silver", "Prata"):tt("studio.bronze", "Bronze")}</span>
                       <span style={{color:C.tm,fontSize:9,fontFamily:"monospace"}}>{e.time}</span>
                     </button>
                   ))}
                 </div>
               </div>
             )}
-            <button onClick={()=>setRpShareOpen(v=>!v)} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Ic n="share" z={15} c="#fff"/>Compartilhar</button>
+            <button onClick={()=>setRpShareOpen(v=>!v)} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Ic n="share" z={15} c="#fff"/>{tt("studio.share", "Compartilhar")}</button>
           </div>
         )}
 
@@ -6493,13 +6678,13 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{position:"relative",width:58,height:58,borderRadius:18,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",boxShadow:"0 0 26px "+C.cyanB+"55"}}>
             <Ic n="trophy" z={29} c="#fff"/>
           </div>
-          <p style={{position:"relative",color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:900,letterSpacing:1.2,textTransform:"uppercase",margin:"0 0 6px"}}>{hits>1?hits+" recordes detectados":"recorde detectado"}</p>
-          <h2 style={{position:"relative",color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:23,fontWeight:900,margin:"0 0 6px",letterSpacing:-0.4}}>Novo Recorde Pessoal</h2>
+          <p style={{position:"relative",color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:900,letterSpacing:1.2,textTransform:"uppercase",margin:"0 0 6px"}}>{hits>1?hits+" "+tt("rp.detectedMany", "recordes detectados"):tt("rp.detectedSingle", "recorde detectado")}</p>
+          <h2 style={{position:"relative",color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:23,fontWeight:900,margin:"0 0 6px",letterSpacing:-0.4}}>{tt("rp.newPr", "Novo Recorde Pessoal")}</h2>
           <p style={{position:"relative",color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:32,fontWeight:900,margin:"0 0 2px",lineHeight:1}}>{novoRP?.tempo}</p>
           <p style={{position:"relative",color:C.ts,fontSize:14,margin:"0 0 12px"}}>{novoRP?.dist} {novoRP?.pace?(" - "+novoRP.pace+"/km"):""}</p>
-          {novoRP?.melhora&&<p style={{position:"relative",color:C.green,fontSize:12,fontWeight:800,margin:"0 0 14px"}}>Melhorou {novoRP.melhora}</p>}
+          {novoRP?.melhora&&<p style={{position:"relative",color:C.green,fontSize:12,fontWeight:800,margin:"0 0 14px"}}>{tt("rp.improved", "Melhorou")} {novoRP.melhora}</p>}
           <button onClick={()=>{setNovoRP(null);setTab("studio");setStudioTab("rps");}} style={{position:"relative",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 18px",fontWeight:900,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 8px 24px "+C.violet+"44"}}>
-            Ver recordes
+            {tt("rp.viewRecords", "Ver recordes")}
           </button>
         </div>
       </div>
@@ -6570,8 +6755,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
         <div style={{background:C.bg,borderTop:"1px solid "+C.border,padding:"7px 4px 12px",display:"flex",alignItems:"center",position:"relative"}}>
           {[
-            {id:"home",   n:"home",   l:"Início"},
-            {id:"explorar",n:"explore",l:"Explorar"},
+            {id:"home",   n:"home",   l:tt("nav.home", "Início")},
+            {id:"explorar",n:"explore",l:tt("nav.explore", "Explorar")},
           ].map(t=>{
             const active = loggedIn ? tab===t.id : t.id==="home";
             const disabled = !loggedIn && t.id!=="home";
@@ -6602,11 +6787,11 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                 <line x1="8" y1="18" x2="5" y2="16" stroke={loggedIn&&tab==="treino"?"#fff":"#6b7db3"} strokeWidth="1.8" strokeLinecap="round"/>
               </svg>
             </div>
-            <span style={{fontSize:8.5,fontWeight:700,color:loggedIn&&tab==="treino"?C.tp:C.tg,letterSpacing:0.2,fontFamily:"monospace",textTransform:"uppercase",marginTop:2}}>Treino</span>
+            <span style={{fontSize:8.5,fontWeight:700,color:loggedIn&&tab==="treino"?C.tp:C.tg,letterSpacing:0.2,fontFamily:"monospace",textTransform:"uppercase",marginTop:2}}>{tt("nav.training", "Treino")}</span>
           </button>
           {[
-            {id:"analise",n:"report",l:"Análise"},
-            {id:"studio", n:"studio",l:"Studio"},
+            {id:"analise",n:"report",l:tt("nav.analysis", "Análise")},
+            {id:"studio", n:"studio",l:tt("nav.studio", "Studio")},
           ].map(t=>{
             const active = loggedIn && tab===t.id;
             const disabled = !loggedIn;
