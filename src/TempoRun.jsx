@@ -2382,8 +2382,12 @@ export default function TempoRunApp() {
     return (list||[]).filter(r=>r.source!=="strava"&&r.source!=="garmin"&&!CORRIDAS_DEMO.find(d=>d.id===r.id));
   }
 
+  function currentUserId() {
+    return session?.id || (session?.access_token ? jwtUserId(session.access_token) : "") || "";
+  }
+
   function userStorageKey(key) {
-    const uid = session?.id || session?.email || "anon";
+    const uid = currentUserId() || session?.email || "anon";
     return `${key}_${uid}`;
   }
 
@@ -2391,6 +2395,13 @@ export default function TempoRunApp() {
     try {
       const scoped = localStorage.getItem(userStorageKey(key));
       if(scoped) return scoped;
+      if(session?.email) {
+        const emailScoped = localStorage.getItem(`${key}_${session.email}`);
+        if(emailScoped) {
+          if(currentUserId()) writeUserLocalData(key, emailScoped);
+          return emailScoped;
+        }
+      }
       return null;
     } catch { return null; }
   }
@@ -2400,9 +2411,10 @@ export default function TempoRunApp() {
   }
 
   async function loadSupabaseUserData(key) {
-    if(!session?.access_token || !session?.id) return null;
+    const userId = currentUserId();
+    if(!session?.access_token || !userId) return null;
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(session.id)}&key=eq.${encodeURIComponent(key)}&select=value&limit=1`, {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(userId)}&key=eq.${encodeURIComponent(key)}&select=value&limit=1`, {
         headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
       });
       if(!r.ok) return null;
@@ -2412,7 +2424,8 @@ export default function TempoRunApp() {
   }
 
   async function persistSupabaseUserData(key, value) {
-    if(!session?.access_token || !session?.id) return;
+    const userId = currentUserId();
+    if(!session?.access_token || !userId) return;
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
         method:"POST",
@@ -2422,7 +2435,7 @@ export default function TempoRunApp() {
           "Content-Type":"application/json",
           "Prefer":"resolution=merge-duplicates"
         },
-        body:JSON.stringify({user_id:session.id,key,value})
+        body:JSON.stringify({user_id:userId,key,value})
       });
       if(!r.ok) console.warn("Supabase user_data save failed", key, r.status);
     } catch {}
@@ -2447,7 +2460,7 @@ export default function TempoRunApp() {
           window.storage.get("tr5_xp").catch(()=>null),
           window.storage.get("tr5_prova").catch(()=>null),
         ]);
-        const rawRuns = remoteRuns || scopedRuns || (!session?.id ? rc?.value : null);
+        const rawRuns = remoteRuns || scopedRuns || (!currentUserId() ? rc?.value : null);
         if(remoteRuns) writeUserLocalData("tr5_corridas", remoteRuns);
         if(!remoteRuns && scopedRuns) persistSupabaseUserData("tr5_corridas", scopedRuns);
         if(rawRuns){ const saved=JSON.parse(rawRuns); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
