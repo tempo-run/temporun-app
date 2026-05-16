@@ -1946,7 +1946,7 @@ export default function TempoRunApp() {
   const [studioRun, setStudioRun] = useState(null);
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
-  const [cardColor, setCardColor] = useState("blue");
+  const [cardColor, setCardColor] = useState("gradient");
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -5054,11 +5054,13 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <svg width="100%" height={H1} viewBox={`0 0 ${W1} ${H1}`} style={{position:"absolute",top:0,left:0}}>
             <defs>
               <linearGradient id={g1id} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#7c3aed"/><stop offset="50%" stopColor="#a855f7"/><stop offset="100%" stopColor="#22d3ee"/>
+                <stop offset="0%" stopColor={isGradient?traceColor1:traceStroke}/>
+                <stop offset="50%" stopColor={isGradient?"#a855f7":traceStroke}/>
+                <stop offset="100%" stopColor={isGradient?traceColor2:traceStroke}/>
               </linearGradient>
               <filter id={gw1id}><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
-            {pathD1&&<path d={pathD1} fill="none" stroke="#7c3aed" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
+            {pathD1&&<path d={pathD1} fill="none" stroke={isGradient?traceColor1:traceStroke} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
             {pathD1&&<path d={pathD1} fill="none" stroke={`url(#${g1id})`} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${gw1id})`}/>}
             {pts1.length>0&&<><circle cx={pts1[0].x} cy={pts1[0].y} r="5" fill="#06071a" stroke="#22c55e" strokeWidth="2"/><circle cx={pts1[0].x} cy={pts1[0].y} r="2.5" fill="#22c55e"/></>}
             {pts1.length>1&&<><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="5" fill="#06071a" stroke="#22d3ee" strokeWidth="2"/><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="2.5" fill="#22d3ee"/></>}
@@ -5187,9 +5189,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
             <defs>
               <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#7c3aed"/>
-                <stop offset="50%" stopColor="#a855f7"/>
-                <stop offset="100%" stopColor="#22d3ee"/>
+                <stop offset="0%" stopColor={isGradient?traceColor1:traceStroke}/>
+                <stop offset="50%" stopColor={isGradient?"#a855f7":traceStroke}/>
+                <stop offset="100%" stopColor={isGradient?traceColor2:traceStroke}/>
               </linearGradient>
               <filter id={glowId}>
                 <feGaussianBlur stdDeviation="3" result="blur"/>
@@ -5197,7 +5199,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               </filter>
             </defs>
             {/* Glow layer */}
-            {pathD&&<path d={pathD} fill="none" stroke="#7c3aed" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.25"/>}
+            {pathD&&<path d={pathD} fill="none" stroke={isGradient?traceColor1:traceStroke} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.25"/>}
             {/* Main trace */}
             {pathD&&<path d={pathD} fill="none" stroke={`url(#${gradId})`} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${glowId})`}/>}
             {/* Start dot */}
@@ -5241,6 +5243,24 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           {Array.from({length:TOTAL}).map((_,i)=>(
             <div key={i} onClick={()=>setCardIndex(i)} style={{width:i===cardIndex?20:6,height:6,borderRadius:3,background:i===cardIndex?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border,cursor:"pointer",transition:"none"}}/>
           ))}
+        </div>
+
+        {/* toggle de cor do traçado */}
+        <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"center",alignItems:"center"}}>
+          {Object.entries(COLOR_PALETTE).map(([key,val])=>{
+            const isSelected = cardColor===key;
+            const previewBg = key==="gradient"
+              ? "linear-gradient(135deg,#811df2,#22d3ee)"
+              : key==="white" ? "#e0e0e0"
+              : key==="cyan" ? "#22d3ee"
+              : "#811df2";
+            return (
+              <button key={key} onClick={()=>setCardColor(key)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 8px"}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:previewBg,border:isSelected?"2.5px solid #fff":"2px solid #ffffff33",boxShadow:isSelected?"0 0 8px #ffffff66":"none"}}/>
+                <span style={{color:isSelected?C.tp:C.td,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{val.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* actions */}
@@ -5532,12 +5552,17 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       {name:"Trail",bg:"linear-gradient(135deg,#1a0e00,#221500)"},
     ];
     const COLOR_PALETTE = {
-      blue: {accent:C.cyanB, label:"Azul"},
-      violet: {accent:C.violetL, label:"Violeta"},
-      amber: {accent:C.amber, label:"Âmbar"},
+      gradient: {accent:"#811df2", label:"Gradiente", stroke:"gradient"},
+      violet:   {accent:"#811df2", label:"Roxo",      stroke:"#811df2"},
+      cyan:     {accent:"#22d3ee", label:"Cyan",      stroke:"#22d3ee"},
+      white:    {accent:"#ffffff", label:"Branco",    stroke:"#ffffff"},
     };
     const lastRun = studioRun || corridas[0] || {distancia_km:10.4, pace_medio:"5:30", duracao_seg:3120, dplus:128, bpm_medio:158, data:"Hoje"};
     const accent = COLOR_PALETTE[cardColor].accent;
+    const traceStroke = COLOR_PALETTE[cardColor].stroke;
+    const isGradient = traceStroke === "gradient";
+    const traceColor1 = "#811df2";
+    const traceColor2 = "#22d3ee";
     return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
