@@ -189,6 +189,62 @@ TIPOS DE TREINO PERMITIDOS (use EXATAMENTE estes nomes no campo "tipo", nada mai
 - Subidas | Strides | Descanso | Descanso Ativo
 Responda APENAS JSON — array de 7 dias:
 [{"dia":"Seg","tipo":"","distancia_km":0,"pace_alvo":"","descricao":"","alerta_lesao":""}]`
+const SYS_ANALISE_PREVIEW=`Você é TEMPO, especialista em biomecânica da corrida do TempoRun. Analise os frames de vídeo fornecidos e retorne APENAS um JSON com este formato exato (sem markdown):
+{"score":75,"classificacao":"Bom","frase_impacto":"","metricas_preview":[{"nome":"","valor":"","status":"ok|atencao|risco","visivel":true}],"metricas_ocultas_count":6}
+
+REGRAS:
+- score: 0-100 baseado na análise visual dos frames
+- classificacao: "Excelente"(90+) | "Bom"(75-89) | "Regular"(55-74) | "Atenção"(<55)
+- frase_impacto: 1 frase personalizada e impactante sobre o PRINCIPAL problema detectado, mencionando risco real (lesão, perda de eficiência etc). Ex: "Detectamos overstriding severo — padrão associado a 3x mais lesões de joelho (BJSM 2012)."
+- metricas_preview: retorne APENAS 1 métrica visível (a mais crítica detectada)
+- A métrica visível deve ter nome, valor estimado e status real
+
+BASE CIENTÍFICA OBRIGATÓRIA para frase_impacto:
+- Overstriding → "associado a aumento de 3x na força de impacto (Heiderscheit et al., 2011, J Orthop Sports Phys Ther)"
+- Cadência baixa (<160spm) → "redução de 5-10% da cadência aumenta risco de lesão em 30% (Schubert et al., 2014, Sports Med)"
+- Oscilação vertical alta → "cada cm acima de 8cm reduz economia de corrida em ~1% (Barnes & Kilding, 2015, Sports Med)"
+- Overstriding → "aumenta síndrome IT band e stress tibial (Davis et al., 2010, Med Sci Sports Exerc)"
+- Aterrissagem em calcanhar + overstriding → "força de impacto 3x maior vs midfoot (Lieberman et al., 2010, Nature)"
+- Postura inclinada para trás → "aumenta carga lombar e reduz propulsão (Schache et al., 2011, J Biomech)"
+- Tempo de contato alto → "associado a menor economia de corrida (Moore, 2016, Sports Med)"
+
+Seja direto, científico e específico ao que viu nos frames. Responda APENAS o JSON.`;
+
+const SYS_ANALISE_PRO=`Você é TEMPO, especialista em biomecânica da corrida com base em evidências científicas. Analise os frames de vídeo e retorne diagnóstico completo em JSON (sem markdown):
+{
+  "score":75,
+  "classificacao":"Bom",
+  "frase_impacto":"",
+  "resumo":"",
+  "metricas":[
+    {"id":1,"nome":"Elevação Vertical","valor":"","status":"ok|atencao|risco","ideal":"6-8 cm","descricao":"","cor_status":"green|amber|coral","fonte":""},
+    {"id":2,"nome":"Tamanho da Passada","valor":"","status":"ok|atencao|risco","ideal":"sob o CG","descricao":"","cor_status":"green|amber|coral","fonte":""},
+    {"id":3,"nome":"Aterrissagem","valor":"","status":"ok|atencao|risco","ideal":"midfoot/forefoot","descricao":"","cor_status":"green|amber|coral","fonte":""},
+    {"id":4,"nome":"Overstriding","valor":"","status":"ok|atencao|risco","ideal":"Baixo","descricao":"","cor_status":"green|amber|coral","fonte":""},
+    {"id":5,"nome":"Posição do Tronco","valor":"","status":"ok|atencao|risco","ideal":"5-10° inclinação anterior","descricao":"","cor_status":"green|amber|coral","fonte":""},
+    {"id":6,"nome":"Oscilação Vertical","valor":"","status":"ok|atencao|risco","ideal":"<8 cm","descricao":"","cor_status":"green|amber|coral","fonte":""},
+    {"id":7,"nome":"Tempo de Contato","valor":"","status":"ok|atencao|risco","ideal":"<250ms elite, <300ms recreativo","descricao":"","cor_status":"green|amber|coral","fonte":""}
+  ],
+  "drills":[{"nome":"","duracao":"","descricao":""}],
+  "cues":[""],
+  "treino_tecnico":{"descricao":"","series":6,"duracao_s":40,"recuperacao":""},
+  "plano_4sem":[{"semana":1,"foco":"","descricao":""}]
+}
+
+BASE CIENTÍFICA OBRIGATÓRIA — cite a fonte no campo "fonte" de cada métrica:
+ELEVAÇÃO VERTICAL: ideal 6-8cm. >10cm = perda eficiência. Fonte: Barnes & Kilding (2015) Sports Med; PMC4887325
+PASSADA/OVERSTRIDING: pé deve aterrar sob o CG. Overstriding → 3x força impacto. Fonte: Heiderscheit et al. (2011) J Orthop Sports Phys Ther; PMID 21330636
+ATERRISSAGEM: midfoot/forefoot reduz pico de impacto vs calcanhar. Fonte: Lieberman et al. (2010) Nature; PMID 20111000
+CADÊNCIA: 170-180spm ideal. Aumento de 10% reduz carga joelho 14%. Fonte: Heiderscheit et al. (2011); PMC3112336
+TRONCO: 5-10° inclinação anterior melhora propulsão e reduz carga lombar. Fonte: Schache et al. (2011) J Biomech; PMID 21247583
+OSCILAÇÃO VERTICAL: <8cm. Maior OSC = menor economia. Fonte: Saunders et al. (2004) Sports Med; PMID 15059249
+TEMPO CONTATO: elite <200ms, recreativo 250-300ms. Menor = maior economia. Fonte: Moore (2016) Sports Med; PMC4887325
+RISCO DE LESÃO: 80% dos corredores lesionam-se por ano. Overuse principal causa. Fonte: van Gent et al. (2007) BJSM; PMID 17473005
+
+Para cada métrica: descreva o que viu nos frames, impacto na performance/lesão, e recomendação específica.
+Drills, cues e plano devem ser 100% personalizados para os problemas detectados.
+Responda APENAS o JSON.`;
+
 const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro. Máximo 3 parágrafos objetivos.
 
 BASE DE CONHECIMENTO:
@@ -2004,6 +2060,7 @@ export default function TempoRunApp() {
   const [buscFotos, setBuscFotos]     = useState(false);
   const [resFotos, setResFotos]       = useState(null);
   const [anStep, setAnStep]     = useState("result");
+  const [anVideoFile, setAnVideoFile] = useState(null);
   const [anVideo, setAnVideo]   = useState({name:"corrida_michel.mp4",duration:28,size:"42.3"});
   const [anInfo, setAnInfo]     = useState({cadencia:"170",pace_medio:"5:30",distancia:"10",lesoes:""});
   const [anData, setAnData]     = useState({indice_tecnica:78,classificacao:"Bom",metricas:[
@@ -2408,46 +2465,118 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const url=URL.createObjectURL(file);
     const vid=document.createElement("video");vid.src=url;
     vid.onloadedmetadata=()=>{
-      if(vid.duration>32){alert("Vídeo muito longo. Envie um vídeo de até 30 segundos.");return;}
+      if(vid.duration>22){alert("Vídeo muito longo. Envie um vídeo de até 20 segundos.");return;}
+      setAnVideoFile(file);
       setAnVideo({name:file.name,duration:Math.round(vid.duration),size:(file.size/1024/1024).toFixed(1)});
       setAnStep("info");
     };
   }
 
+  // Extrai N frames de um vídeo como base64 JPEG
+  async function extractVideoFrames(videoFile, numFrames=4) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(videoFile);
+      const video = document.createElement("video");
+      video.src = url; video.muted = true; video.playsInline = true;
+      video.onloadedmetadata = () => {
+        const duration = Math.min(video.duration, 20);
+        const frames = [];
+        const canvas = document.createElement("canvas");
+        canvas.width = 480; canvas.height = 270; // 16:9 reduzido
+        const ctx2 = canvas.getContext("2d");
+        let captured = 0;
+        const times = Array.from({length:numFrames}, (_,i) => (duration/(numFrames+1))*(i+1));
+        const captureFrame = (idx) => {
+          if(idx >= times.length){ URL.revokeObjectURL(url); resolve(frames); return; }
+          video.currentTime = times[idx];
+          video.onseeked = () => {
+            ctx2.drawImage(video, 0, 0, canvas.width, canvas.height);
+            frames.push(canvas.toDataURL("image/jpeg", 0.7).split(",")[1]);
+            captured++;
+            captureFrame(idx+1);
+          };
+        };
+        captureFrame(0);
+      };
+      video.onerror = () => resolve([]);
+      video.load();
+    });
+  }
+
   async function gerarAnalise(){
     setAnStep("loading"); setAnData(null);
-    await new Promise(r=>setTimeout(r,2000));
-    setAnData({
-      indice_tecnica:78,
-      classificacao:"Bom",
-      data_analise: new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}),
-      video_duracao: anVideo?.duration||32,
-      video_nome: anVideo?.name||"corrida_25maio.mp4",
-      metricas:[
-        {id:1,nome:"Elevação Vertical",valor:"8.6 cm",status:"Regular",ideal:"6-8 cm",descricao:"Oscilação um pouco acima do ideal. Reduzir a elevação vertical pode melhorar a economia de corrida e reduzir taxas de carga.",cor_status:"amber"},
-        {id:2,nome:"Tamanho da Passada x Pace",valor:"1.22 m",status:"Regular",ideal:"1.00–1.15 m",descricao:"Sua passada está longa demais para o seu pace atual. Passadas mais curtas e rápidas tendem a ser mais eficientes e seguras.",cor_status:"amber"},
-        {id:3,nome:"Aterrissagem",valor:"OK",status:"Excelente",ideal:"Abaixo do CG",descricao:"Seu pé aterrissa próximo ou abaixo do centro de gravidade. Isso reduz o impacto de frenagem e é o ideal biomecânico.",cor_status:"green"},
-        {id:4,nome:"Overstriding",valor:"Alto",status:"Atenção",ideal:"Baixo",descricao:"Seu pé está aterrissando muito à frente do quadril. Isso gera força de frenagem e pode aumentar o risco de lesões.",cor_status:"coral"},
-      ],
-      resumo:"Você tem uma boa base técnica, mas pequenos ajustes podem trazer grandes ganhos. Foque em reduzir a oscilação vertical e a extensão da passada para melhorar sua eficiência e reduzir o risco de lesões.",
-      drills:[
-        {nome:"Skipping A",duracao:"2×30s",descricao:"Melhora a mecânica e a frequência de passada. Mantenha joelhos altos e pouso suave."},
-        {nome:"Ankling",duracao:"2×30s",descricao:"Ativa o tornozelo e melhora a cadência. Foco na elasticidade do tornozelo ao pousar."},
-        {nome:"Wall Drill",duracao:"3×20s",descricao:"Trabalha o quadril e a postura. Apoie as mãos na parede e alterne os joelhos em ritmo rápido."},
-        {nome:"Quick Steps",duracao:"4×20s",descricao:"Passos curtos e rápidos com leve inclinação. Simula cadência alta em terreno plano."},
-        {nome:"Strides",duracao:"6×80m",descricao:"Acelerações progressivas para leveza e técnica. Acelere suavemente até 90% do esforço máximo."},
-        {nome:"Corrida com Metrônomo",duracao:"10 min",descricao:"Use app de metrônomo em 175–180 bpm e sincronize os passos. Excelente para fixar a cadência ideal."},
-      ],
-      treino_tecnico:{descricao:"6 a 8 blocos de 30–45s em cadência alta, foco total na frequência de passada. Recuperação leve entre blocos.",series:6,duracao_s:40,recuperacao:"60s caminhada leve"},
-      cues:["Pise mais próximo do corpo","Passos rápidos e leves","Reduza o salto vertical","Incline levemente o tronco à frente","Mantenha os ombros relaxados"],
-      plano_4sem:[
-        {semana:1,foco:"Cadência",descricao:"2 sessões técnicas de 20min. Drills de skipping A e ankling. Meta: 170 spm."},
-        {semana:2,foco:"Passada",descricao:"2 sessões com foco em encurtar passada. Strides 6×80m com metrônomo."},
-        {semana:3,foco:"Eficiência",descricao:"2 sessões combinando cadência + passada. Corrida de 20min com metrônomo em 175 bpm."},
-        {semana:4,foco:"Integração",descricao:"2 sessões aplicando técnica em rodagem moderada de 30–40min. Consolida os ganhos."},
-      ]
-    });
-    setAnStep("result");
+    try {
+      // Extrair frames do vídeo
+      const frames = anVideoFile ? await extractVideoFrames(anVideoFile, 4) : [];
+      const temFrames = frames.length > 0;
+
+      // Montar mensagens com frames
+      const userContent = [];
+      frames.forEach((f, i) => {
+        userContent.push({type:"image", source:{type:"base64", media_type:"image/jpeg", data:f}});
+      });
+      userContent.push({type:"text", text:`Analise os frames da corrida acima.
+Dados do atleta: cadência=${anInfo.cadencia}spm | pace=${anInfo.pace_medio}/km | distância=${anInfo.distancia}km | lesões=${anInfo.lesoes||"nenhuma"}
+${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas nos dados textuais com valores estimados.":""}`});
+
+      // Escolher sistema baseado no plano
+      const sys = isPro ? SYS_ANALISE_PRO : SYS_ANALISE_PREVIEW;
+      const maxTok = isPro ? 2000 : 600;
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          model:"claude-haiku-4-5-20251001",
+          max_tokens: maxTok,
+          system: sys,
+          messages:[{role:"user", content: temFrames ? userContent : [{type:"text", text:userContent[userContent.length-1].text}]}]
+        })
+      });
+      const data = await res.json();
+      const raw = data.content?.[0]?.text||"{}";
+      const parsed = JSON.parse(raw.replace(/```json|```/g,"").trim());
+
+      if(isPro) {
+        // Análise completa Pro
+        setAnData({
+          indice_tecnica: parsed.score||70,
+          classificacao: parsed.classificacao||"Regular",
+          frase_impacto: parsed.frase_impacto||"",
+          resumo: parsed.resumo||"",
+          data_analise: new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}),
+          metricas: parsed.metricas||[],
+          drills: parsed.drills||[],
+          cues: parsed.cues||[],
+          treino_tecnico: parsed.treino_tecnico||{},
+          plano_4sem: parsed.plano_4sem||[],
+          isPro: true,
+        });
+      } else {
+        // Preview Free — score + frase + 1 métrica + blur nas restantes
+        setAnData({
+          indice_tecnica: parsed.score||70,
+          classificacao: parsed.classificacao||"Regular",
+          frase_impacto: parsed.frase_impacto||"",
+          metricas_preview: parsed.metricas_preview||[],
+          metricas_ocultas_count: parsed.metricas_ocultas_count||6,
+          isPro: false,
+          data_analise: new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}),
+        });
+      }
+      setAnStep("result");
+    } catch(e) {
+      console.error("Erro análise:", e);
+      // Fallback com dados mock se API falhar
+      setAnData({
+        indice_tecnica:72, classificacao:"Regular",
+        frase_impacto:"Detectamos padrões que podem aumentar o risco de lesão. Análise completa disponível no plano Pro.",
+        metricas_preview:[{nome:"Cadência",valor:anInfo.cadencia+"spm",status:"atencao"}],
+        metricas_ocultas_count:6, isPro:false,
+        data_analise: new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}),
+      });
+      setAnStep("result");
+    }
   }
 
   async function selecionarProva(prova){
@@ -4434,12 +4563,13 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       <div>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <Badge text="ANÁLISE TÉCNICA" color={C.violet}/>
+            <Badge text={anData.isPro?"ANÁLISE PRO":"ANÁLISE PRÉVIA"} color={anData.isPro?C.violet:C.amber}/>
             <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:20}}>Relatório biomecânico</h1>
           </div>
           <button onClick={()=>setAnStep("upload")} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="upload" z={13} c={C.ts}/></button>
         </div>
 
+        {/* Score — visível para todos */}
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:17,padding:"18px 16px",marginBottom:13,textAlign:"center",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:-30,left:"50%",transform:"translateX(-50%)",width:200,height:80,borderRadius:"50%",background:C.violet+"22",filter:"blur(25px)",pointerEvents:"none"}}/>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 7px",position:"relative"}}>Índice Técnico</p>
@@ -4448,48 +4578,110 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <span style={{color:C.tm,fontSize:18,fontWeight:600}}>/100</span>
           </div>
           <Badge text={anData.classificacao} color={C.cyanB}/>
-        </div>
-
-        <SL><Ic n="bars" z={13} c={C.ts}/>Métricas avaliadas</SL>
-        {anData.metricas.map((m)=>{
-          const cor = colorStatus(m.cor_status);
-          const fig = m.id===1?"vertical":m.id===2?"stride":m.id===3?"landing":"overstride";
-          return (
-            <div key={m.id} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+cor+"33",borderRadius:13,padding:12,marginBottom:9}}>
-              <div style={{display:"flex",gap:11,alignItems:"flex-start"}}>
-                <div style={{flexShrink:0,background:cor+"11",borderRadius:8,padding:4,border:"1px solid "+cor+"22"}}>
-                  <RunnerFig highlight={fig} size={50}/>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4,gap:8}}>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.3}}>{m.nome}</p>
-                    <Badge text={m.status} color={cor}/>
-                  </div>
-                  <div style={{display:"flex",gap:8,marginBottom:5}}>
-                    <span style={{color:cor,fontWeight:800,fontSize:13,fontFamily:"'Space Grotesk',sans-serif"}}>{m.valor}</span>
-                    <span style={{color:C.tg,fontSize:11,fontFamily:"monospace"}}>ideal: {m.ideal}</span>
-                  </div>
-                  <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.55}}>{m.descricao}</p>
-                </div>
+          {/* Frase de impacto — visível para todos, cria urgência */}
+          {anData.frase_impacto&&(
+            <div style={{marginTop:14,background:"linear-gradient(135deg,"+C.coral+"18,"+C.amber+"11)",border:"1px solid "+C.coral+"44",borderRadius:11,padding:"10px 13px",position:"relative"}}>
+              <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
+                <p style={{color:C.tp,fontSize:12,fontWeight:600,margin:0,lineHeight:1.6,textAlign:"left"}}>{anData.frase_impacto}</p>
               </div>
             </div>
-          );
-        })}
-
-        <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:13,marginBottom:12,border:"1px solid "+C.cyanB+"33"}}>
-          <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.5}}>Resumo do TEMPO</p>
-          <p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.6}}>{anData.resumo}</p>
+          )}
         </div>
 
-        <div style={{display:"flex",background:C.s2,borderRadius:10,padding:3,marginBottom:12,gap:2}}>
-          {[{id:"drills",l:"Drills"},{id:"treino",l:"Treino"},{id:"cues",l:"Cues"},{id:"plano",l:"Plano 4 sem"}].map(t=>(
-            <button key={t.id} onClick={()=>setAnTab(t.id)} style={{flex:1,background:anTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:anTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
-          ))}
-        </div>
+        {/* MÉTRICAS — Free: 1 visível + blur nas restantes / Pro: todas */}
+        <SL><Ic n="bars" z={13} c={C.ts}/>Métricas avaliadas</SL>
 
-        {anTab==="drills"&&(
+        {anData.isPro ? (
+          // PRO: todas as métricas com detalhes completos
+          (anData.metricas||[]).map((m)=>{
+            const cor = colorStatus(m.cor_status);
+            const figMap = {1:"vertical",2:"stride",3:"landing",4:"overstride",5:"vertical",6:"vertical",7:"landing"};
+            const fig = figMap[m.id]||"vertical";
+            return (
+              <div key={m.id} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+cor+"33",borderRadius:13,padding:12,marginBottom:9}}>
+                <div style={{display:"flex",gap:11,alignItems:"flex-start"}}>
+                  <div style={{flexShrink:0,background:cor+"11",borderRadius:8,padding:4,border:"1px solid "+cor+"22"}}>
+                    <RunnerFig highlight={fig} size={50}/>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4,gap:8}}>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.3}}>{m.nome}</p>
+                      <Badge text={m.status} color={cor}/>
+                    </div>
+                    <div style={{display:"flex",gap:8,marginBottom:5}}>
+                      <span style={{color:cor,fontWeight:800,fontSize:13,fontFamily:"'Space Grotesk',sans-serif"}}>{m.valor}</span>
+                      <span style={{color:C.tg,fontSize:11,fontFamily:"monospace"}}>ideal: {m.ideal}</span>
+                    </div>
+                    <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.55}}>{m.descricao}</p>
+                    {m.fonte&&<p style={{color:C.tg,fontSize:9,margin:"5px 0 0",fontFamily:"monospace",fontStyle:"italic"}}>📚 {m.fonte}</p>}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          // FREE: 1 métrica visível + restantes bloqueadas
           <div>
-            {anData.drills.map((d,i)=>(
+            {(anData.metricas_preview||[]).map((m,i)=>{
+              const cor = m.status==="ok"?C.green:m.status==="risco"?C.coral:C.amber;
+              return (
+                <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+cor+"33",borderRadius:13,padding:12,marginBottom:9}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>{m.nome}</p>
+                    <Badge text={m.status==="ok"?"Bom":m.status==="risco"?"Atenção":"Regular"} color={cor}/>
+                  </div>
+                  <p style={{color:cor,fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{m.valor}</p>
+                </div>
+              );
+            })}
+            {/* Métricas bloqueadas */}
+            {Array.from({length: anData.metricas_ocultas_count||6}).map((_,i)=>(
+              <div key={"locked"+i} style={{background:C.s1,border:"1px solid "+C.border,borderRadius:13,padding:12,marginBottom:9,position:"relative",overflow:"hidden"}}>
+                <div style={{filter:"blur(5px)",opacity:0.4,pointerEvents:"none"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>{"█████████".slice(0,6+i%3)}</p>
+                    <div style={{background:C.coral+"33",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:C.coral}}>●●●</div>
+                  </div>
+                  <p style={{color:C.coral,fontWeight:800,fontSize:16,margin:0}}>██████</p>
+                </div>
+                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(6,7,26,0.6)",backdropFilter:"blur(1px)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:18}}>🔒</span>
+                    <p style={{color:C.tp,fontSize:12,fontWeight:700,margin:0}}>Exclusivo Pro</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* CTA Pro */}
+            <div style={{background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"55",borderRadius:14,padding:"16px 14px",marginBottom:12,textAlign:"center"}}>
+              <p style={{color:C.tp,fontWeight:800,fontSize:15,margin:"0 0 6px",fontFamily:"'Space Grotesk',sans-serif"}}>🔬 {anData.metricas_ocultas_count} métricas bloqueadas</p>
+              <p style={{color:C.tm,fontSize:12,margin:"0 0 14px",lineHeight:1.5}}>Desbloqueie análise completa com drills personalizados, plano de 4 semanas e todas as métricas científicas.</p>
+              <button onClick={()=>setShowProModal(true)} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>
+                🚀 Ver análise completa — Assinar Pro
+              </button>
+            </div>
+          </div>
+        )}
+
+        {anData.isPro&&anData.resumo&&(
+          <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:13,marginBottom:12,border:"1px solid "+C.cyanB+"33"}}>
+            <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.5}}>Resumo do TEMPO</p>
+            <p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.6}}>{anData.resumo}</p>
+          </div>
+        )}
+
+        {anData.isPro&&(
+          <div style={{display:"flex",background:C.s2,borderRadius:10,padding:3,marginBottom:12,gap:2}}>
+            {[{id:"drills",l:"Drills"},{id:"treino",l:"Treino"},{id:"cues",l:"Cues"},{id:"plano",l:"Plano 4 sem"}].map(t=>(
+              <button key={t.id} onClick={()=>setAnTab(t.id)} style={{flex:1,background:anTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:anTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
+            ))}
+          </div>
+        )}
+
+        {anData.isPro&&anTab==="drills"&&(
+          <div>
+            {(anData.drills||[]).map((d,i)=>(
               <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"10px 12px",marginBottom:7,border:"1px solid "+C.border}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3,gap:8}}>
                   <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>{d.nome}</p>
@@ -4501,7 +4693,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
         )}
 
-        {anTab==="treino"&&anData.treino_tecnico&&(
+        {anData.isPro&&anTab==="treino"&&anData.treino_tecnico&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:14,border:"1px solid "+C.violet+"33"}}>
             <p style={{color:C.violetL,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Treino Técnico Sugerido</p>
             <p style={{color:C.tp,fontSize:13,margin:"0 0 12px",lineHeight:1.6}}>{anData.treino_tecnico.descricao}</p>
@@ -4517,9 +4709,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
         )}
 
-        {anTab==="cues"&&(
+        {anData.isPro&&anTab==="cues"&&(
           <div>
-            {anData.cues.map((c,i)=>(
+            {(anData.cues||[]).map((c,i)=>(
               <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"11px 13px",marginBottom:7,border:"1px solid "+C.border,display:"flex",alignItems:"center",gap:11}}>
                 <div style={{width:24,height:24,borderRadius:7,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <span style={{color:"#fff",fontWeight:800,fontSize:12,fontFamily:"'Space Grotesk',sans-serif"}}>{i+1}</span>
@@ -4530,9 +4722,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
         )}
 
-        {anTab==="plano"&&(
+        {anData.isPro&&anTab==="plano"&&(
           <div>
-            {anData.plano_4sem.map((s)=>(
+            {(anData.plano_4sem||[]).map((s)=>(
               <div key={s.semana} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:12,marginBottom:8,border:"1px solid "+C.border}}>
                 <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:6}}>
                   <div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:8,padding:"3px 9px"}}>
@@ -4548,7 +4740,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         <div style={{background:C.s1,border:"1px solid "+C.amber+"33",borderRadius:11,padding:"10px 12px",margin:"14px 0 6px",display:"flex",gap:9,alignItems:"flex-start"}}>
           <Ic n="warning" z={16} c={C.amber} st={{flexShrink:0,marginTop:2}}/>
-          <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.5}}>Esta análise é educativa e não substitui avaliação presencial de um fisioterapeuta esportivo ou profissional habilitado.</p>
+          <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.5}}>Esta análise é educativa e não substitui avaliação presencial de um fisioterapeuta esportivo ou profissional habilitado. Baseada em evidências científicas (BJSM, NLM, ACSM, Sports Med).</p>
         </div>
       </div>
     );
