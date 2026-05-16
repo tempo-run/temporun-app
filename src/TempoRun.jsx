@@ -4761,7 +4761,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           ctx.drawImage(logoImg,W/2-lW/2,lY,lW,lH);
           ctx.globalAlpha=1;
           if(cardIdx===0){
-            // Dados por cima
             let y=16;
             const lW2=80,lH2=lW2/logoAR;
             ctx.drawImage(logoImg,W/2-lW2/2,y,lW2,lH2); y+=lH2+10;
@@ -4773,6 +4772,24 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             ctx.fillText(pace+" /km",W/2,y+26); y+=44;
             ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
             ctx.fillText(dur,W/2,y+26);
+          } else if(cardIdx===2){
+            // Card 3: logo + data + 3 stats horizontais, fundo transparente
+            let y=CARD_H/2-80;
+            const lW3=72,lH3=lW3/logoAR;
+            ctx.globalAlpha=1;
+            ctx.drawImage(logoImg,W/2-lW3/2,y,lW3,lH3); y+=lH3+16;
+            ctx.fillStyle="#ffffff44"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
+            ctx.fillText((run?.data||"Hoje").toUpperCase(),W/2,y); y+=28;
+            const cols=[{v:dist,u:"km",c:"#a855f7"},{v:pace,u:"/km",c:"#7c3aed"},{v:dur,u:"tempo",c:"#22d3ee"}];
+            const cw3=(W-40)/3;
+            cols.forEach((col,i)=>{
+              const cx=20+i*(cw3+6);
+              ctx.fillStyle=col.c+"88"; ctx.fillRect(cx,y,cw3,1.5);
+              ctx.fillStyle="#f0f4ff"; ctx.font="bold 28px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
+              ctx.fillText(col.v,cx,y+38);
+              ctx.fillStyle="#ffffff55"; ctx.font="bold 8px monospace";
+              ctx.fillText(col.u.toUpperCase(),cx,y+54);
+            });
           }
         };
         drawCard(cardIndex);
@@ -5172,7 +5189,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <button onClick={handleSave} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
             <Ic n="save" z={15} c="#fff"/>PNG
           </button>
-          {(cardIndex===0||cardIndex===3)&&(
+          {(cardIndex===0||cardIndex===2||cardIndex===3)&&(
             <button onClick={handleCopy} style={{flex:1,background:copied?"#22c55e22":C.s2,color:copied?"#22c55e":C.cyanB,border:"1px solid "+(copied?"#22c55e44":C.cyanB+"44"),borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
               <Ic n="save" z={15} c={copied?"#22c55e":C.cyanB}/>{copied?"Copiado ✓":"Copiar"}
             </button>
