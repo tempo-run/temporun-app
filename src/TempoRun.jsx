@@ -4709,9 +4709,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       const W = 356, SCALE = 3, CARD_H = 480;
       const off = document.createElement("canvas");
       off.width = W * SCALE; off.height = CARD_H * SCALE;
-      const ctx = off.getContext("2d");
+      const ctx = off.getContext("2d", {alpha: true});
+      ctx.clearRect(0, 0, W * SCALE, CARD_H * SCALE); // limpar antes do scale
       ctx.scale(SCALE, SCALE);
-      ctx.clearRect(0, 0, W, CARD_H);
 
       const logoImg = new Image();
       logoImg.crossOrigin = "anonymous";
@@ -4793,12 +4793,13 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       touchStartX.current = null;
       if(Math.abs(dx) < 40) return;
       if(dx < 0) {
-        // swipe left → próximo card (ou Análises se já no último)
-        if(cardIndex === TOTAL-1) { setTab("analise"); return; }
-        setCardIndex(i=>(i+1)%TOTAL);
+        // swipe left → próximo card (não faz nada no último)
+        if(cardIndex === TOTAL-1) return;
+        setCardIndex(i=>i+1);
       } else {
-        // swipe right → card anterior
-        setCardIndex(i=>(i-1+TOTAL)%TOTAL);
+        // swipe right → card anterior (não faz nada no primeiro)
+        if(cardIndex === 0) return;
+        setCardIndex(i=>i-1);
       }
     }
 
