@@ -783,6 +783,20 @@ const RPs_base=[
   {dist:"21K", tempo:"1:34:07",data:"5 out 24", melhora:"4:21",cor:C.violetL},
   {dist:"42K", tempo:"3:28:44",data:"15 set 24",melhora:null,  cor:C.coral},
 ];
+const RP_TRACKED_DISTANCES = [
+  {id:"400m",label:"400m",key:"400m",km:0.4,base:106},
+  {id:"800m",label:"800m",key:"800m",km:0.8,base:226},
+  {id:"1k",label:"1K",key:"1K",km:1,base:222},
+  {id:"1.6k",label:"1.6 km",key:"1.6K",km:1.609,base:378},
+  {id:"3.2k",label:"3.2 km",key:"3.2K",km:3.219,base:798},
+  {id:"5k",label:"5K",key:"5K",km:5,base:1194},
+  {id:"10k",label:"10K",key:"10K",km:10,base:2538},
+  {id:"15k",label:"15K",key:"15K",km:15,base:4020},
+  {id:"10mi",label:"10 mile",key:"10MI",km:16.093,base:4350},
+  {id:"21k",label:"Half-Marathon",key:"21K",km:21.097,base:5647},
+  {id:"42k",label:"Marathon",key:"42K",km:42.195,base:12524},
+  {id:"50k",label:"50K",key:"50K",km:50,base:16200},
+];
 const atributos=[
   {nome:"Resistência",  val:72,cor:C.cyanB},{nome:"Velocidade",   val:58,cor:C.cyan},
   {nome:"Trail Técnico",val:45,cor:C.amber},{nome:"Recuperação",  val:81,cor:C.cyanL},
@@ -1971,6 +1985,7 @@ export default function TempoRunApp() {
   const [explTab, setExplTab] = useState("rotas");
   const [studioTab, setStudioTab] = useState("card");
   const [studioRun, setStudioRun] = useState(null);
+  const [rpDistance, setRpDistance] = useState("400m");
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
   const [cardColor, setCardColor] = useState("gradient");
@@ -2076,10 +2091,37 @@ export default function TempoRunApp() {
       xp_ganho:Math.round(km*45+seg/60*2),
       polyline:validPoly.length>1 ? validPoly : null,
     };
-    const defs=[{key:"1K",min:0.9,max:1.1},{key:"5K",min:4.5,max:5.5},{key:"10K",min:9,max:11},{key:"21K",min:19,max:23},{key:"42K",min:40,max:44}];
-    const matched=defs.find(d=>km>=d.min&&km<=d.max);
     const newRps={...rpsDb};let nRP=null;
-    if(matched){const prev=newRps[matched.key];if(!prev||seg<prev.seg){const diff=prev?prev.seg-seg:null;newRps[matched.key]={tempoDisplay:fmtT(seg),seg,data:run.data,melhora:diff?fmtT(diff):null};nRP={dist:matched.key,tempo:fmtT(seg),melhora:diff?fmtT(diff):null};}}
+    const rpHits = RP_TRACKED_DISTANCES
+      .filter(d=>km+0.01>=d.km)
+      .map(d=>{
+        // Model for production: when split/stream data is available, replace this
+        // average-pace estimate with the best continuous segment for d.km.
+        const rpSeg = Math.max(1, Math.round(seg*(d.km/km)));
+        const prev = newRps[d.key];
+        if(prev&&rpSeg>=prev.seg) return null;
+        const diff = prev ? prev.seg-rpSeg : null;
+        const hit = {
+          dist:d.label,
+          key:d.key,
+          tempo:fmtT(rpSeg),
+          tempoDisplay:fmtT(rpSeg),
+          seg:rpSeg,
+          pace:calcPace(d.km,rpSeg),
+          data:run.data,
+          melhora:diff?fmtT(diff):null,
+          runId:run.id,
+          checkedAt:now.toISOString(),
+        };
+        newRps[d.key]=hit;
+        return hit;
+      })
+      .filter(Boolean);
+    if(rpHits.length){
+      nRP = rpHits[rpHits.length-1];
+      nRP.total = rpHits.length;
+      nRP.all = rpHits;
+    }
     const newC=[run,...corridas],newXp=xpTotal+run.xp_ganho;
     if(provaAmb){const np={...provaAmb,treinos:[run,...(provaAmb.treinos||[])]};setProvaAmb(np);try{await window.storage.set("tr5_prova",JSON.stringify(np));}catch(e){}}
     try{await Promise.all([window.storage.set("tr5_corridas",JSON.stringify(newC)),window.storage.set("tr5_rps",JSON.stringify(newRps)),window.storage.set("tr5_xp",JSON.stringify(newXp))]);}catch(e){}
@@ -4270,12 +4312,14 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>Coach Tempo</p>
           <p style={{color:C.ts,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>Hoje focamos em velocidade de limiar. Execute em ~5:10/km.</p>
-          <button onClick={()=>{setPlanScreen("form");setSubScreen("plano");}} style={{width:"100%",background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"33",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:8}}>
-            <Ic n="ai" z={14} c={C.cyanB}/>Criar plano com IA
-          </button>
-          <button onClick={()=>setSubScreen("gravacao")} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"12px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 20px "+C.violet+"44",letterSpacing:0.3}}>
-            <Ic n="run" z={18} c="#fff"/>Treino livre
-          </button>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setPlanScreen("form");setSubScreen("plano");}} style={{flex:1,height:48,background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"33",borderRadius:10,padding:"0 8px",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,whiteSpace:"nowrap"}}>
+              <Ic n="ai" z={14} c={C.cyanB}/>Criar plano
+            </button>
+            <button onClick={()=>setSubScreen("gravacao")} style={{flex:1,height:48,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"0 8px",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7,boxShadow:"0 4px 20px "+C.violet+"44",letterSpacing:0.2,whiteSpace:"nowrap"}}>
+              <Ic n="run" z={17} c="#fff"/>Treino livre
+            </button>
+          </div>
         </div>
 
         {/* Chat com Coach */}
@@ -5730,6 +5774,50 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const activeFx = allFx.find(e=>e.id===fxActive) || allFx[0];
     const activeIntensity = fxIntensity[activeFx.id] || "Med";
     const activeFxAmount = activeIntensity==="Off"?0:activeIntensity==="Low"?36:activeIntensity==="Med"?64:92;
+    const RP_DISTANCES = RP_TRACKED_DISTANCES;
+    const activeRp = RP_DISTANCES.find(d=>d.id===rpDistance) || RP_DISTANCES[0];
+    function effortTime(seconds){
+      const h=Math.floor(seconds/3600),m=Math.floor((seconds%3600)/60),s=seconds%60;
+      if(h>0) return h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+      return m+":"+String(s).padStart(2,"0");
+    }
+    function effortPace(seconds, km){
+      const p=Math.round(seconds/km),m=Math.floor(p/60),s=p%60;
+      return m+":"+String(s).padStart(2,"0")+" /km";
+    }
+    const savedFirst = rpsDb[activeRp.key];
+    const bestSeconds = savedFirst?.seg || activeRp.base;
+    const rpEfforts = [0,1,2].map(i=>{
+      const sec = bestSeconds + [0, Math.max(5,Math.round(bestSeconds*0.055)), Math.max(9,Math.round(bestSeconds*0.088))][i];
+      return {rank:i+1,time:i===0&&savedFirst?.tempoDisplay?savedFirst.tempoDisplay:effortTime(sec),pace:effortPace(sec,activeRp.km)};
+    });
+    function MedalSvg({ rank=1, size=72, rays=false }) {
+      const fill = rank===1 ? "#f4bd32" : rank===2 ? "#b9c2c4" : "#c77a43";
+      const edge = rank===1 ? "#f7d95b" : rank===2 ? "#eef2f3" : "#e5a16a";
+      const dark = rank===1 ? "#a96f00" : rank===2 ? "#697174" : "#7f421f";
+      return (
+        <svg width={size} height={size} viewBox="0 0 120 150" fill="none" style={{display:"block",overflow:"visible"}}>
+          <defs>
+            <linearGradient id={"medalG"+rank+size} x1="22" y1="54" x2="102" y2="134">
+              <stop offset="0" stopColor={edge}/><stop offset="0.5" stopColor={fill}/><stop offset="1" stopColor={dark}/>
+            </linearGradient>
+            <filter id={"medalSh"+rank+size}><feDropShadow dx="0" dy="4" stdDeviation="4" floodOpacity="0.35"/></filter>
+          </defs>
+          <path d="M4 0H24L56 78H36L4 0Z" fill={C.violet}/>
+          <path d="M24 0H38L70 78H56L24 0Z" fill="#f8fbff" opacity="0.98"/>
+          <path d="M38 0H58L90 78H70L38 0Z" fill={C.cyanB}/>
+          <path d="M62 0H82L50 78H30L62 0Z" fill={C.cyanB}/>
+          <path d="M82 0H96L64 78H50L82 0Z" fill="#f8fbff" opacity="0.98"/>
+          <path d="M96 0H116L84 78H64L96 0Z" fill={C.violet}/>
+          <circle cx="60" cy="94" r="47" fill={"url(#medalG"+rank+size+")"} stroke={edge} strokeWidth="4" filter={"url(#medalSh"+rank+size+")"}/>
+          <circle cx="60" cy="94" r="39" fill="none" stroke={dark} strokeWidth="2" opacity="0.42"/>
+          <circle cx="60" cy="94" r="35" fill="#fff" opacity={rank===1?0.09:0.16}/>
+          <path d="M60 61l10 21 23 3-17 16 4 23-20-11-20 11 4-23-17-16 23-3 10-21z" fill={edge} stroke={dark} strokeWidth="2" opacity="0.96"/>
+          <path d="M60 61v52l-20 11 4-23-17-16 23-3 10-21z" fill="#fff" opacity="0.22"/>
+          <text x="60" y="102" textAnchor="middle" fill="#151515" fontSize={rank===1?18:22} fontWeight="900" fontFamily="monospace">{rank===1?"PR":rank}</text>
+        </svg>
+      );
+    }
     const FX_OVERLAYS = [
       {id:"pace-floor",icon:"run",name:"Pace no chão",desc:"Pace surgindo como HUD no asfalto.",pro:false,color:C.cyanB,metric:lastRun.pace_medio||"5:30"},
       {id:"pace-heatmap",icon:"chart",name:"Pace heatmap",desc:"Zonas rápidas em cyan e lentas em violeta.",pro:true,color:C.violetB,metric:"heat"},
@@ -5809,17 +5897,52 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         {studioTab==="rps"&&(
           <div>
-            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:17,padding:18,marginBottom:14,border:"1px solid "+C.violet+"44"}}>
-              <div style={{textAlign:"center",marginBottom:14}}>
-                <p style={{color:"#ffffffaa",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 5px"}}>Meus Recordes Pessoais</p>
-                <p style={{color:"#fff",fontWeight:800,fontSize:18,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{dadosForm.nome||session?.strava_athlete?.firstname||"Corredor"}</p>
+            <div style={{background:"linear-gradient(160deg,"+C.s1+","+C.bg2+" 48%,"+C.s2+")",borderRadius:17,overflow:"hidden",marginBottom:14,border:"1px solid "+C.violet+"44",boxShadow:"0 14px 36px #00000055, 0 0 28px "+C.violet+"18"}}>
+              <div style={{padding:"16px 18px 14px",background:"linear-gradient(135deg,"+C.s2+","+C.s1+")",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,borderBottom:"1px solid "+C.cyanB+"22"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+                  <Ic n="medal" z={18} c={C.cyanB}/>
+                  <div style={{minWidth:0}}>
+                    <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontWeight:900,fontSize:22,margin:0,letterSpacing:-0.3}}>Recordes Pessoais</p>
+                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{dadosForm.nome||session?.strava_athlete?.firstname||"Corredor"}</p>
+                  </div>
+                </div>
+                <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 18px "+C.cyan+"33"}}>
+                  <Ic n="trophy" z={16} c="#fff"/>
+                </div>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
-                {rpsExib.map((r,i)=>(
-                  <div key={i} style={{background:"#ffffff10",border:"1px solid "+r.cor+"55",borderRadius:11,padding:"10px 11px",textAlign:"center"}}>
-                    <p style={{color:r.cor,fontWeight:800,fontSize:12,margin:"0 0 3px"}}>{r.dist}</p>
-                    <p style={{color:"#fff",fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>{r.tempo}</p>
-                    {r.melhora&&<p style={{color:C.cyanB,fontSize:9,margin:"3px 0 0",fontWeight:700}}>↓{r.melhora}</p>}
+              <div style={{padding:"12px 14px",background:C.bg+"66",borderBottom:"1px solid "+C.border}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7}}>
+                  {RP_DISTANCES.map(d=>{
+                    const selected = activeRp.id===d.id;
+                    return (
+                      <button key={d.id} onClick={()=>setRpDistance(d.id)}
+                        style={{background:selected?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,border:"1px solid "+(selected?C.cyanB:C.border),borderRadius:10,padding:"8px 2px",color:selected?"#fff":C.ts,fontSize:10,fontWeight:800,fontFamily:"inherit",cursor:"pointer",whiteSpace:"nowrap",boxShadow:selected?"0 0 18px "+C.cyan+"33":"none"}}>
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{background:"radial-gradient(circle at 50% 0%,"+C.violet+"24,transparent 42%),linear-gradient(180deg,"+C.bg+","+C.s1+")",padding:"18px 18px 20px",textAlign:"center",borderBottom:"1px solid "+C.border}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <p style={{color:C.tp,fontSize:15,margin:0,fontWeight:700}}>{activeRp.label} PR</p>
+                </div>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:4}}>
+                  <MedalSvg rank={1} size={118} rays/>
+                </div>
+                <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:34,fontWeight:900,margin:"0 0 2px",lineHeight:1}}>{rpEfforts[0].time}</p>
+                <p style={{color:C.ts,fontSize:18,margin:0}}>{rpEfforts[0].pace}</p>
+              </div>
+              <div style={{background:C.s1,padding:"8px 18px 4px"}}>
+                {rpEfforts.slice(1).map(e=>(
+                  <div key={e.rank} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 0",borderBottom:e.rank===2?"1px solid "+C.border:"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:14}}>
+                      <MedalSvg rank={e.rank} size={68}/>
+                      <div style={{textAlign:"left"}}>
+                        <p style={{color:C.tp,fontSize:18,fontWeight:800,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>{e.time}</p>
+                        <p style={{color:C.ts,fontSize:14,margin:0}}>{e.pace}</p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -5999,6 +6122,32 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     );
   }
 
+  function renderRpCelebration() {
+    const hits = novoRP?.total || 1;
+    return (
+      <div style={{position:"absolute",inset:0,zIndex:360,pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",padding:22}}>
+        <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 35%,"+C.violet+"22,transparent 42%)"}}/>
+        {[0,1,2,3,4,5,6,7].map(i=>(
+          <span key={i} style={{position:"absolute",left:(12+i*11)+"%",top:(18+(i%3)*18)+"%",width:4,height:18,borderRadius:4,background:i%2?C.cyanB:C.violetL,boxShadow:"0 0 14px "+(i%2?C.cyanB:C.violetL),animation:"rpConfetti 1.2s ease both",animationDelay:(i*0.06)+"s",transform:"rotate("+(i*28)+"deg)"}}/>
+        ))}
+        <div style={{pointerEvents:"auto",width:"100%",background:"linear-gradient(145deg,"+C.s1+","+C.bg2+" 48%,"+C.s2+")",border:"1px solid "+C.cyanB+"66",borderRadius:20,padding:"20px 18px",boxShadow:"0 22px 70px #000000aa, 0 0 40px "+C.cyanB+"33",textAlign:"center",animation:"rpCelebrate .42s cubic-bezier(.2,1.2,.2,1) both",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 0%,"+C.cyanB+"24,transparent 42%)",pointerEvents:"none"}}/>
+          <div style={{position:"relative",width:58,height:58,borderRadius:18,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",boxShadow:"0 0 26px "+C.cyanB+"55"}}>
+            <Ic n="trophy" z={29} c="#fff"/>
+          </div>
+          <p style={{position:"relative",color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:900,letterSpacing:1.2,textTransform:"uppercase",margin:"0 0 6px"}}>{hits>1?hits+" recordes detectados":"recorde detectado"}</p>
+          <h2 style={{position:"relative",color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:23,fontWeight:900,margin:"0 0 6px",letterSpacing:-0.4}}>Novo Recorde Pessoal</h2>
+          <p style={{position:"relative",color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:32,fontWeight:900,margin:"0 0 2px",lineHeight:1}}>{novoRP?.tempo}</p>
+          <p style={{position:"relative",color:C.ts,fontSize:14,margin:"0 0 12px"}}>{novoRP?.dist} {novoRP?.pace?(" - "+novoRP.pace+"/km"):""}</p>
+          {novoRP?.melhora&&<p style={{position:"relative",color:C.green,fontSize:12,fontWeight:800,margin:"0 0 14px"}}>Melhorou {novoRP.melhora}</p>}
+          <button onClick={()=>{setNovoRP(null);setTab("studio");setStudioTab("rps");}} style={{position:"relative",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"11px 18px",fontWeight:900,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 8px 24px "+C.violet+"44"}}>
+            Ver recordes
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── FINAL RENDER ─────────────────────────────────────────────────────────────
   const screenKey = tab+(subScreen||"");
   return (
@@ -6009,6 +6158,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         ::-webkit-scrollbar{width:3px;height:3px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:${tema==="light"?"#c8d3ee":"#1e2456"};border-radius:2px}
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+        @keyframes rpCelebrate{from{opacity:0;transform:translateY(18px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes rpConfetti{0%{opacity:0;transform:translateY(-18px) rotate(0deg)}35%{opacity:1}100%{opacity:0;transform:translateY(70px) rotate(220deg)}}
         .sc{animation:fadeIn 0.2s ease}
         button{transition:all 0.15s} button:active{opacity:0.7}
         input::placeholder{color:${tema==="light"?"#9aaad0":"#3a4a78"}}
@@ -6049,6 +6200,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               {loggedIn && showProModal && renderProModal()}
               {loggedIn && showUpgradeModal && renderUpgradeModal()}
               {loggedIn && showAddTreino && renderAddTreinoModal()}
+              {loggedIn && novoRP && renderRpCelebration()}
               {loggedIn && tab==="home"     && renderHome()}
               {loggedIn && tab==="explorar" && renderExplorar()}
               {loggedIn && tab==="treino"   && renderTreino()}
