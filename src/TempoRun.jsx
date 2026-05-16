@@ -5239,10 +5239,10 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{position:"absolute",top:16,left:0,right:0,display:"flex",justifyContent:"center",zIndex:3}}>
             <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #00000088)"}}/>
           </div>
-          {/* Faixa dados */}
-          <div style={{position:"absolute",bottom:0,left:0,right:0,height:155,zIndex:3}}>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,"+(isGradient?"rgba(30,4,60,0.97)":traceStroke==="#ffffff"?"rgba(20,20,20,0.97)":traceStroke==="#22d3ee"?"rgba(0,30,44,0.97)":"rgba(30,4,60,0.97)")+" 0%,"+(isGradient?"rgba(0,20,40,0.92)":traceStroke==="#ffffff"?"rgba(10,10,10,0.9)":traceStroke==="#22d3ee"?"rgba(0,20,35,0.9)":"rgba(20,4,50,0.9)")+" 50%,transparent 100%)"}}/>
-            <div style={{position:"relative",padding:"14px 16px"}}>
+          {/* Faixa dados — largura 42% (linha vermelha), altura 55% (linha verde), opacidade 0.70 */}
+          <div style={{position:"absolute",bottom:0,left:0,width:"42%",height:"55%",zIndex:3}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,"+(isGradient?"rgba(30,4,60,0.70)":traceStroke==="#ffffff"?"rgba(20,20,20,0.70)":traceStroke==="#22d3ee"?"rgba(0,30,44,0.70)":"rgba(30,4,60,0.70)")+" 0%,"+(isGradient?"rgba(0,20,40,0.55)":traceStroke==="#ffffff"?"rgba(10,10,10,0.55)":traceStroke==="#22d3ee"?"rgba(0,20,35,0.55)":"rgba(20,4,50,0.55)")+" 60%,transparent 100%)"}}/>
+            <div style={{position:"relative",padding:"14px 16px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"center"}}>
               {metrics2.map((m,i)=>(
                 <div key={i} style={{marginBottom:i<2?10:0}}>
                   <div style={{display:"flex",alignItems:"baseline",gap:4}}>
