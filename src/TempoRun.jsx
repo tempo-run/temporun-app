@@ -5121,7 +5121,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           </div>
           {/* Faixa dados */}
           <div style={{position:"absolute",bottom:0,left:0,right:0,height:220,zIndex:3}}>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(6,4,20,0.96) 0%,rgba(6,4,20,0.8) 55%,transparent 100%)"}}/>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,"+(isGradient?"rgba(30,4,60,0.96)":traceStroke==="#ffffff"?"rgba(20,20,20,0.96)":traceStroke==="#22d3ee"?"rgba(0,30,40,0.96)":"rgba(30,4,60,0.96)")+" 0%,"+(isGradient?"rgba(0,20,40,0.85)":traceStroke==="#ffffff"?"rgba(10,10,10,0.8)":traceStroke==="#22d3ee"?"rgba(0,20,35,0.8)":"rgba(20,4,50,0.8)")+" 55%,transparent 100%)"}}/>
             <div style={{position:"relative",padding:"18px 18px"}}>
               {metrics2.map((m,i)=>(
                 <div key={i} style={{marginBottom:i<2?18:0}}>
