@@ -1204,6 +1204,10 @@ const MAPBOX_TOKEN  = "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZH
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
+const DELETE_ACCOUNT_FN  = SUPABASE_URL + "/functions/v1/delete-account";
+const TEMPORUN_PRIVACY_URL = "https://temporun.run/privacy";
+const TEMPORUN_TERMS_URL   = "https://temporun.run/terms";
+const TEMPORUN_SUPPORT_EMAIL = "support@temporun.run";
 
 // Strava OAuth
 const STRAVA_CLIENT_ID     = "244639";
@@ -1301,6 +1305,16 @@ const sb = {
       method:"POST",
       headers: { ...this._headers, "Authorization": `Bearer ${token}` }
     });
+  },
+
+  async deleteAccount(token) {
+    const r = await fetch(DELETE_ACCOUNT_FN, {
+      method:"POST",
+      headers: { ...this._headers, "Authorization": `Bearer ${token}` }
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error || data.message || "delete_account_failed");
+    return data;
   },
 
   // Envia OTP de 6 dígitos para o email
@@ -1794,6 +1808,8 @@ export default function TempoRunApp() {
   const [showSaber, setShowSaber]   = useState(false);
   const [showDadosModal, setShowDadosModal]   = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
   const [showProModal, setShowProModal]     = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(()=>{
     try { return !localStorage.getItem("tr_onboarding_done"); } catch { return true; }
@@ -2496,6 +2512,79 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     );
   }
 
+  function openExternal(url) {
+    try { window.open(url, "_blank", "noopener,noreferrer"); } catch { window.location.href = url; }
+  }
+
+  function contactSupport() {
+    const subject = encodeURIComponent("TempoRun support request");
+    const body = encodeURIComponent(`Hi TempoRun team,\n\nI need help with my account.\n\nAccount: ${session?.email || ""}\n`);
+    window.location.href = `mailto:${TEMPORUN_SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+  }
+
+  async function handleDeleteAccount() {
+    const first = window.confirm("Tem certeza que deseja excluir sua conta TempoRun? Essa ação pode apagar seu perfil e dados associados.");
+    if(!first) return;
+    const second = window.confirm("Confirma a exclusão definitiva da conta? Essa ação não pode ser desfeita.");
+    if(!second) return;
+    setDeleteAccountLoading(true);
+    try {
+      await sb.deleteAccount(session?.access_token);
+      clearSession();
+      try {
+        ["tr_onboarding_done","tr_config","tr_ai_usage","tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>localStorage.removeItem(k));
+      } catch {}
+      setSession(null);
+      setShowAboutModal(false);
+      setShowConfigModal(false);
+      setShowPerfil(false);
+      setShowOnboarding(true);
+      setOnboardingStep(0);
+      setTab("home");
+      alert("Conta excluída com sucesso.");
+    } catch(e) {
+      alert("Não foi possível excluir a conta agora. Tente novamente ou fale com o suporte.");
+    } finally {
+      setDeleteAccountLoading(false);
+    }
+  }
+
+  function renderAboutModal() {
+    const item = (label, desc, action, color=C.cyanB) => (
+      <button onClick={action} style={{width:"100%",background:C.s3,border:"1px solid "+color+"33",borderRadius:12,padding:"12px 13px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",fontFamily:"inherit",marginBottom:9}}>
+        <div style={{width:34,height:34,borderRadius:10,background:color+"22",display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid "+color+"44",flexShrink:0}}>
+          <Ic n="link" z={16} c={color}/>
+        </div>
+        <div style={{flex:1}}>
+          <p style={{color:C.tp,fontSize:13,fontWeight:800,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{label}</p>
+          {desc&&<p style={{color:C.tm,fontSize:11,margin:"3px 0 0",lineHeight:1.4}}>{desc}</p>}
+        </div>
+        <Ic n="back" z={13} c={color} st={{transform:"rotate(180deg)"}}/>
+      </button>
+    );
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center",maxWidth:430,margin:"0 auto"}}>
+        <div style={{width:"100%",background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.border,borderRadius:"22px 22px 0 0",padding:"18px 16px max(22px, env(safe-area-inset-bottom, 22px))",boxShadow:"0 -12px 40px #0008"}}>
+          <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:14}}>
+            <div style={{width:42,height:42,borderRadius:14,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 22px "+C.violet+"44"}}>
+              <img src={iconCircle} alt="TempoRun" style={{width:26,height:26,objectFit:"contain"}}/>
+            </div>
+            <div style={{flex:1}}>
+              <p style={{color:C.tp,fontSize:17,fontWeight:900,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>About TempoRun</p>
+              <p style={{color:C.tm,fontSize:12,margin:"3px 0 0"}}>Legal, privacy and support</p>
+            </div>
+          </div>
+          {item("Terms of Service", "Open TempoRun terms in your browser", ()=>openExternal(TEMPORUN_TERMS_URL), C.violetL)}
+          {item("Privacy Policy", "How TempoRun handles your data", ()=>openExternal(TEMPORUN_PRIVACY_URL), C.cyanB)}
+          {item("Contact Support", TEMPORUN_SUPPORT_EMAIL, contactSupport, C.green)}
+          <button onClick={()=>setShowAboutModal(false)} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",cursor:"pointer",color:C.ts,fontWeight:800,fontSize:13,fontFamily:"inherit",marginTop:3}}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── CONFIGURAÇÕES MODAL ───────────────────────────────────────────────────────
   function renderConfigModal() {
     const tog = (key,label,desc) => (
@@ -2617,6 +2706,16 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             {inpCfg("cadenciaAlvo","Cadência alvo","Passos por minuto (spm)","number","180")}
           </>)}
 
+          {section("link","About",C.cyanB,<>
+            <div onClick={()=>setShowAboutModal(true)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",cursor:"pointer"}}>
+              <div>
+                <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:0}}>About TempoRun</p>
+                <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>Terms, privacy, support and cancel</p>
+              </div>
+              <Ic n="back" z={13} c={C.cyanB} st={{transform:"rotate(180deg)"}}/>
+            </div>
+          </>)}
+
           {section("settings","Conta",C.ts,<>
             {selCfg("idioma","Idioma","Idioma do aplicativo",[{v:"pt-BR",l:"🇧🇷 Português (Brasil)"},{v:"en",l:"🇬🇧 English"},{v:"es",l:"🇪🇸 Español"},{v:"fr",l:"🇫🇷 Français"},{v:"de",l:"🇩🇪 Deutsch"}])}
             <div onClick={()=>{setShowConfigModal(false);setShowProModal(true);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid "+C.bsub,cursor:"pointer"}}>
@@ -2631,8 +2730,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </div>
             {tog("backupSync","Backup / Sync","Sincronizar dados na nuvem automaticamente")}
             <div style={{padding:"11px 0"}}>
-              <button style={{width:"100%",background:"#ef444411",border:"1px solid #ef444433",borderRadius:10,padding:"11px 0",cursor:"pointer",color:"#ef4444",fontWeight:700,fontSize:13,fontFamily:"inherit"}}>
-                🗑 Excluir conta
+              <button onClick={handleDeleteAccount} disabled={deleteAccountLoading} style={{width:"100%",background:"#ef444411",border:"1px solid #ef444433",borderRadius:10,padding:"11px 0",cursor:deleteAccountLoading?"default":"pointer",color:"#ef4444",fontWeight:700,fontSize:13,fontFamily:"inherit",opacity:deleteAccountLoading?0.65:1}}>
+                {deleteAccountLoading ? "Excluindo..." : "🗑 Excluir conta"}
               </button>
             </div>
           </>)}
@@ -5708,6 +5807,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               {loggedIn && showOnboarding && renderOnboarding()}
               {loggedIn && showDadosModal && renderDadosModal()}
               {loggedIn && showConfigModal && renderConfigModal()}
+              {loggedIn && showAboutModal && renderAboutModal()}
               {loggedIn && showProModal && renderProModal()}
               {loggedIn && showUpgradeModal && renderUpgradeModal()}
               {loggedIn && showAddTreino && renderAddTreinoModal()}
