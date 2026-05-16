@@ -438,17 +438,15 @@ function RunMap({ polyline, color=C.cyanB, dplus=0 }) {
 // SVG fallback (quando não há API key ou falha de rede)
 function RunMapSvgFallback({ polyline, color=C.cyanB }) {
   const W=300, H=130, pad=18;
-  const safe=( polyline||[]).filter(p=>p&&p[0]!==undefined&&p[1]!==undefined);
-  if(safe.length<2) return null;
-  const lats=safe.map(p=>p[0]), lngs=safe.map(p=>p[1]);
+  const lats=polyline.map(p=>p[0]), lngs=polyline.map(p=>p[1]);
   const minLat=Math.min(...lats), maxLat=Math.max(...lats);
   const minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
   const rLat=maxLat-minLat||0.001, rLng=maxLng-minLng||0.001;
   const scale=Math.min((W-pad*2)/rLng,(H-pad*2)/rLat);
   const tx=lng=>pad+(lng-minLng)*scale;
   const ty=lat=>H-pad-(lat-minLat)*scale;
-  const pts=safe.map(p=>`${tx(p[1]).toFixed(1)},${ty(p[0]).toFixed(1)}`).join(" ");
-  const last=safe[safe.length-1];
+  const pts=polyline.map(p=>`${tx(p[1]).toFixed(1)},${ty(p[0]).toFixed(1)}`).join(" ");
+  const last=polyline[polyline.length-1];
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",background:"#080c20",height:130}}>
       <defs>
@@ -459,7 +457,7 @@ function RunMapSvgFallback({ polyline, color=C.cyanB }) {
       </defs>
       {[0.25,0.5,0.75].map((f,i)=><line key={i} x1={pad} y1={pad+f*(H-pad*2)} x2={W-pad} y2={pad+f*(H-pad*2)} stroke="#1a2050" strokeWidth="0.5"/>)}
       <polyline points={pts} fill="none" stroke="url(#pgr2)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" filter="url(#pglow2)"/>
-      <circle cx={tx(safe[0][1])} cy={ty(safe[0][0])} r={5} fill={C.cyanB}/><circle cx={tx(polyline[0][1])} cy={ty(safe[0][0])} r={9} fill={C.cyanB} opacity="0.2"/>
+      <circle cx={tx(polyline[0][1])} cy={ty(polyline[0][0])} r={5} fill={C.cyanB}/><circle cx={tx(polyline[0][1])} cy={ty(polyline[0][0])} r={9} fill={C.cyanB} opacity="0.2"/>
       <circle cx={tx(last[1])} cy={ty(last[0])} r={5} fill={C.coral}/><circle cx={tx(last[1])} cy={ty(last[0])} r={9} fill={C.coral} opacity="0.2"/>
       <rect x={2} y={H-14} width={72} height={12} rx={3} fill="#06071a" opacity="0.9"/>
       <text x={38} y={H-5} textAnchor="middle" fill={C.td} fontSize="7" fontWeight="700" fontFamily="monospace">sem API key</text>
@@ -828,20 +826,14 @@ function RunDetailModal({ run, onClose }) {
       if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
       // Detectar formato: se p[0] é negativo e |p[0]| < 90 → é lng (Dublin: -6.x)
       // Se p[0] > 10 → é lat (Dublin: 53.x). Normalizar para GeoJSON [lng, lat]
-      // GPS real: [[lat,lng]] → sample[0]=53.x (>10) → isLngLat=false → inverter para [lng,lat]
-      // Demo:     [[lng,lat]] → sample[0]=-6.x (<0)  → isLngLat=true  → manter
       const isLngLat = sample[0] < 0 || (Math.abs(sample[0]) < 10 && Math.abs(sample[1]) > 10);
-      const allCoords = run.polyline
+      const coords = run.polyline
         .filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)
         .map(p => isLngLat ? [p[0], p[1]] : [p[1], p[0]]); // GeoJSON: [lng, lat]
-      if(allCoords.length<2) return null;
-      // Decimação — máx 80 pontos para não exceder limite de URL
-      const step = Math.max(1, Math.floor(allCoords.length/80));
-      const coords = allCoords.filter((_,i)=>i%step===0||i===allCoords.length-1);
+      if(coords.length<2) return null;
       const geoJson = {type:"Feature",properties:{stroke:"#22d3ee","stroke-width":4,"stroke-opacity":1},geometry:{type:"LineString",coordinates:coords}};
       const geoStr = encodeURIComponent(JSON.stringify(geoJson));
-      const url = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${geoStr})/auto/390x260@2x?access_token=${MAPBOX_TOKEN}&padding=50`;
-      return url.length>7500 ? null : url;
+      return `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${geoStr})/auto/390x260@2x?access_token=${MAPBOX_TOKEN}&padding=50`;
     } catch(e) { return null; }
   })();
 
