@@ -4702,36 +4702,23 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const exportCanvasRef = useRef(null);
 
     function handleSave() {
-      const W = 356, SCALE = 3;
-      const cardEl = cardRef.current;
-      const cardH = cardEl ? cardEl.offsetHeight : 500;
-
+      const W = 356, SCALE = 3, CARD_H = 480;
       const off = document.createElement("canvas");
       off.width = W * SCALE;
-      off.height = cardH * SCALE;
+      off.height = CARD_H * SCALE;
       const ctx = off.getContext("2d");
       ctx.scale(SCALE, SCALE);
+      // Fundo transparente para todos os cards
+      ctx.clearRect(0, 0, W, CARD_H);
 
       const mapCanvas = cardIndex === 0 ? canvasRef1.current : cardIndex === 1 ? canvasRef2.current : null;
 
-      // Load real logo then draw everything
       const logoImg = new Image();
       logoImg.crossOrigin = "anonymous";
       logoImg.src = tempoRunLogo;
       logoImg.onload = () => {
         const logoAR = logoImg.naturalWidth / logoImg.naturalHeight;
-
-        // Background — clip all drawing to rounded card shape
-        ctx.save();
-        ctx.beginPath(); ctx.roundRect(0,0,W,cardH,17); ctx.clip();
-        if (cardIndex === 1) {
-          ctx.fillStyle = "#1a1a2e";
-        } else {
-          const grd = ctx.createLinearGradient(0,0,W*0.7,cardH);
-          grd.addColorStop(0,"#0c0830"); grd.addColorStop(1,"#0a1430");
-          ctx.fillStyle = grd;
-        }
-        ctx.fillRect(0,0,W,cardH);
+        const cardH = CARD_H;
 
         if (cardIndex === 0) {
           // CARD 1: logo centered top + stats centered + map + logo watermark bottom
@@ -4782,8 +4769,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             ctx.fillText(col.u.toUpperCase(), cx, y+54);
           });
         }
-
-        ctx.restore(); // end clip region
 
         // CARD 4: export separado com fundo transparente
         if(cardIndex === 3) {
@@ -4873,31 +4858,31 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
     // ── CARD 1: logo + stats + small map ──
     const Card1 = (
-      <div style={{background:cardBg,borderRadius:17,overflow:"hidden",border:cardBorder,boxShadow:cardShadow}}>
-        <div style={{padding:"16px 16px 0",textAlign:"center"}}>
-          <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 14px"}}/>
-          <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 6px"}}>{data}</p>
-          <div style={{borderBottom:"1px solid #ffffff18",padding:"12px 0"}}>
-            <p style={{color:"#f0f4ff",fontSize:44,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}<span style={{fontSize:20,opacity:0.6,fontWeight:600}}> km</span></p>
+      <div style={{background:cardBg,borderRadius:17,overflow:"hidden",border:cardBorder,boxShadow:cardShadow,height:480,display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"16px 16px 0",textAlign:"center",flex:1}}>
+          <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 10px"}}/>
+          <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>{data}</p>
+          <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
+            <p style={{color:"#f0f4ff",fontSize:42,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}<span style={{fontSize:18,opacity:0.6,fontWeight:600}}> km</span></p>
           </div>
-          <div style={{borderBottom:"1px solid #ffffff18",padding:"12px 0"}}>
-            <p style={{color:"#f0f4ff",fontSize:28,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{pace}<span style={{fontSize:13,opacity:0.6,fontWeight:600}}> /km</span></p>
+          <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
+            <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{pace}<span style={{fontSize:12,opacity:0.6,fontWeight:600}}> /km</span></p>
           </div>
-          <div style={{padding:"12px 0"}}>
-            <p style={{color:"#f0f4ff",fontSize:28,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{dur}</p>
+          <div style={{padding:"10px 0"}}>
+            <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{dur}</p>
           </div>
         </div>
-        {mapUrl1 ? <img src={mapUrl1} alt="mapa" style={{width:"100%",height:130,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef1} width={356} height={130} style={{width:"100%",display:"block"}}/>}
-        <div style={{padding:"10px 16px",textAlign:"center"}}>
-          <img src={tempoRunLogo} alt="" style={{width:60,height:"auto",objectFit:"contain",opacity:0.35}}/>
+        {mapUrl1 ? <img src={mapUrl1} alt="mapa" style={{width:"100%",height:120,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef1} width={356} height={120} style={{width:"100%",display:"block"}}/>}
+        <div style={{padding:"8px 16px",textAlign:"center"}}>
+          <img src={tempoRunLogo} alt="" style={{width:50,height:"auto",objectFit:"contain",opacity:0.3}}/>
         </div>
       </div>
     );
 
     // ── CARD 2: full neon map + logo centered top ──
     const Card2 = (
-      <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative"}}>
-        {mapUrl2 ? <img src={mapUrl2} alt="mapa" style={{width:"100%",height:468,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef2} width={356} height={468} style={{width:"100%",display:"block"}}/>}
+      <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative",height:480}}>
+        {mapUrl2 ? <img src={mapUrl2} alt="mapa" style={{width:"100%",height:480,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef2} width={356} height={480} style={{width:"100%",display:"block"}}/>}
         <div style={{position:"absolute",top:12,left:"50%",transform:"translateX(-50%)"}}>
           <img src={tempoRunLogo} alt="TempoRun" style={{width:64,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
         </div>
@@ -4906,7 +4891,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
     // ── CARD 3: logo centered + horizontal stats only ──
     const Card3 = (
-      <div style={{background:cardBg,borderRadius:17,padding:"24px 20px 28px",border:cardBorder,boxShadow:cardShadow,textAlign:"center"}}>
+      <div style={{background:cardBg,borderRadius:17,padding:"24px 20px 28px",border:cardBorder,boxShadow:cardShadow,textAlign:"center",height:480,display:"flex",flexDirection:"column",justifyContent:"center"}}>
         <img src={tempoRunLogo} alt="TempoRun" style={{width:72,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 20px"}}/>
         <p style={{color:"#ffffff44",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",margin:"0 0 20px"}}>{data}</p>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:8,textAlign:"left"}}>
