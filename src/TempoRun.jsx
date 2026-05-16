@@ -1948,6 +1948,7 @@ export default function TempoRunApp() {
   const [cardIdx, setCardIdx]     = useState(0);
   const [cardColor, setCardColor] = useState("gradient");
   const [cardIndex, setCardIndex] = useState(0);
+  const [card2Photo, setCard2Photo] = useState(null); // URL da foto do card 2
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -4541,7 +4542,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
 
   // ── CARD CAROUSEL ────────────────────────────────────────────────────────────
-  function CardCarousel({ run, C, fmtT, traceStroke="#811df2", isGradient=true, cardIndex=0, setCardIndex }) {
+  function CardCarousel({ run, C, fmtT, traceStroke="#811df2", isGradient=true, cardIndex=0, setCardIndex, card2Photo=null, setCard2Photo }) {
     // cardIndex gerido pelo componente pai
     const canvasRef1 = useRef(null); // small map for card 1
     const canvasRef2 = useRef(null); // full map for card 2
@@ -4889,31 +4890,37 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           ctx.globalAlpha = 1;
 
         } else if (cardIndex === 1) {
-          // CARD 2: estilo Garmin — fundo transparente + dados
+          // CARD 2: estilo Garmin — foto + dados
+          const C2H = 420;
+          const barC1 = isGradient?"#811df2":traceStroke;
+          const barC2 = isGradient?"#22d3ee":traceStroke;
+          // Foto de fundo se existir
+          if(card2Photo){
+            const fotoImg=new Image(); fotoImg.src=card2Photo;
+            if(fotoImg.complete) ctx.drawImage(fotoImg,0,0,W,C2H);
+          }
+          // Barra lateral cor do toggle
+          const barG2=ctx.createLinearGradient(0,0,0,C2H);
+          barG2.addColorStop(0,barC1); barG2.addColorStop(0.8,barC2); barG2.addColorStop(1,"rgba(0,0,0,0)");
+          ctx.fillStyle=barG2; ctx.fillRect(0,0,5,C2H);
           // Logo
-          const lWg=90, lHg=lWg/logoAR;
-          ctx.drawImage(logoImg, W/2-lWg/2, 20, lWg, lHg);
-          // Barra lateral
-          const barG=ctx.createLinearGradient(0,0,0,cardH);
-          barG.addColorStop(0,"#811df2"); barG.addColorStop(0.4,"#a855f7");
-          barG.addColorStop(0.8,"#22d3ee"); barG.addColorStop(1,"rgba(34,211,238,0)");
-          ctx.fillStyle=barG; ctx.fillRect(0,0,5,cardH);
+          const lWg=80, lHg=lWg/logoAR;
+          ctx.drawImage(logoImg, W/2-lWg/2, 16, lWg, lHg);
           // Faixa fundo dados
           const dG=ctx.createLinearGradient(0,0,W*0.7,0);
-          dG.addColorStop(0,"rgba(10,8,32,0.95)"); dG.addColorStop(0.55,"rgba(10,8,32,0.8)"); dG.addColorStop(1,"rgba(10,8,32,0)");
-          ctx.fillStyle=dG; ctx.fillRect(0,cardH-240,W,240);
+          dG.addColorStop(0,"rgba(6,4,20,0.96)"); dG.addColorStop(0.55,"rgba(6,4,20,0.8)"); dG.addColorStop(1,"rgba(6,4,20,0)");
+          ctx.fillStyle=dG; ctx.fillRect(0,C2H-220,W,220);
           // Dados
           const mG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
-          let yG=cardH-220;
-          mG.forEach((m,i)=>{
-            ctx.fillStyle="#ffffff"; ctx.font="bold 36px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
-            ctx.fillText(m.v+(m.u?" "+m.u:""), 20, yG+34);
-            ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.font="bold 9px monospace";
-            ctx.fillText(m.l, 20, yG+50); yG+=76;
+          let yG=C2H-200;
+          mG.forEach(m=>{
+            ctx.fillStyle="#fff"; ctx.font="bold 32px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
+            ctx.fillText(m.v+(m.u?" "+m.u:""),18,yG+30);
+            ctx.fillStyle="rgba(255,255,255,0.38)"; ctx.font="bold 8px monospace";
+            ctx.fillText(m.l,18,yG+44); yG+=68;
           });
-          // Data
-          ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.font="bold 9px monospace"; ctx.textAlign="right";
-          ctx.fillText((run?.data||"Hoje").toUpperCase(), W-16, cardH-14);
+          ctx.fillStyle="rgba(255,255,255,0.28)"; ctx.font="bold 8px monospace"; ctx.textAlign="right";
+          ctx.fillText((run?.data||"Hoje").toUpperCase(),W-14,C2H-12);
 
         } else if (cardIndex === 2) {
           // CARD 3: mapa neon
@@ -5089,42 +5096,59 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       );
     })();
 
-    // ── CARD 2: estilo Garmin — fundo transparente, dados + barra gradiente ──
+    // ── CARD 2: estilo Garmin — foto de fundo + dados + barra gradiente ──
     const Card2 = (()=>{
       const metrics2 = [
         {v:dist,  u:"km",  l:"DISTÂNCIA"},
         {v:pace,  u:"/km", l:"PACE MÉDIO"},
         {v:dur,   u:"",    l:"TEMPO TOTAL"},
       ];
+      const barColor1 = isGradient?"#811df2":traceStroke;
+      const barColor2 = isGradient?"#22d3ee":traceStroke;
+      const CARD2_H = 420;
       return (
-        <div style={{position:"relative",borderRadius:17,overflow:"hidden",height:480,border:"1px solid #7c3aed33",boxShadow:cardShadow}}>
-          {/* Fundo xadrez — indica transparência */}
-          <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(45deg,#12122a 25%,transparent 25%),linear-gradient(-45deg,#12122a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#12122a 75%),linear-gradient(-45deg,transparent 75%,#12122a 75%)",backgroundSize:"22px 22px",backgroundPosition:"0 0,0 11px,11px -11px,-11px 0",opacity:0.5}}/>
-          {/* Barra lateral gradiente */}
-          <div style={{position:"absolute",left:0,top:0,bottom:0,width:5,background:"linear-gradient(180deg,#811df2 0%,#a855f7 40%,#22d3ee 80%,transparent 100%)",zIndex:2}}/>
-          {/* Logo centralizada no topo */}
-          <div style={{position:"absolute",top:20,left:0,right:0,display:"flex",justifyContent:"center",zIndex:2}}>
-            <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 10px #7c3aed99)"}}/>
+        <div style={{borderRadius:17,overflow:"hidden",border:"1px solid #7c3aed33",boxShadow:cardShadow,position:"relative",height:CARD2_H}}>
+          {/* Fundo: foto ou xadrez */}
+          {card2Photo
+            ? <img src={card2Photo} alt="fundo" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+            : <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(45deg,#12122a 25%,transparent 25%),linear-gradient(-45deg,#12122a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#12122a 75%),linear-gradient(-45deg,transparent 75%,#12122a 75%)",backgroundSize:"22px 22px",backgroundPosition:"0 0,0 11px,11px -11px,-11px 0",opacity:0.5}}/>
+          }
+          {/* Barra lateral — cor do toggle */}
+          <div style={{position:"absolute",left:0,top:0,bottom:0,width:5,background:"linear-gradient(180deg,"+barColor1+" 0%,"+barColor2+" 80%,transparent 100%)",zIndex:3}}/>
+          {/* Logo no topo */}
+          <div style={{position:"absolute",top:16,left:0,right:0,display:"flex",justifyContent:"center",zIndex:3}}>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #00000088)"}}/>
           </div>
-          {/* Faixa dos dados — gradiente que desbota para a direita */}
-          <div style={{position:"absolute",bottom:0,left:0,right:0,height:240,zIndex:2}}>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(10,8,32,0.95) 0%,rgba(10,8,32,0.8) 55%,transparent 100%)"}}/>
-            <div style={{position:"relative",padding:"20px 20px 20px 20px"}}>
+          {/* Faixa dados */}
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:220,zIndex:3}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(6,4,20,0.96) 0%,rgba(6,4,20,0.8) 55%,transparent 100%)"}}/>
+            <div style={{position:"relative",padding:"18px 18px"}}>
               {metrics2.map((m,i)=>(
-                <div key={i} style={{marginBottom:i<2?22:0}}>
-                  <div style={{display:"flex",alignItems:"baseline",gap:6}}>
-                    <span style={{color:"#ffffff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:36,lineHeight:1,letterSpacing:-1}}>{m.v}</span>
-                    {m.u&&<span style={{color:"rgba(255,255,255,0.55)",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:15}}>{m.u}</span>}
+                <div key={i} style={{marginBottom:i<2?18:0}}>
+                  <div style={{display:"flex",alignItems:"baseline",gap:5}}>
+                    <span style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:32,lineHeight:1,letterSpacing:-1}}>{m.v}</span>
+                    {m.u&&<span style={{color:"rgba(255,255,255,0.5)",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:14}}>{m.u}</span>}
                   </div>
-                  <p style={{color:"rgba(255,255,255,0.4)",fontFamily:"monospace",fontWeight:700,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",margin:"3px 0 0"}}>{m.l}</p>
+                  <p style={{color:"rgba(255,255,255,0.38)",fontFamily:"monospace",fontWeight:700,fontSize:8,letterSpacing:1.5,textTransform:"uppercase",margin:"2px 0 0"}}>{m.l}</p>
                 </div>
               ))}
             </div>
           </div>
-          {/* Data canto inferior direito */}
-          <div style={{position:"absolute",bottom:16,right:16,zIndex:3}}>
-            <p style={{color:"rgba(255,255,255,0.3)",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:0}}>{data}</p>
+          {/* Data */}
+          <div style={{position:"absolute",bottom:14,right:14,zIndex:4}}>
+            <p style={{color:"rgba(255,255,255,0.28)",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:0}}>{data}</p>
           </div>
+          {/* Botão upload foto */}
+          <label style={{position:"absolute",top:12,right:12,zIndex:4,background:"rgba(0,0,0,0.55)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,padding:"5px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,backdropFilter:"blur(4px)"}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span style={{color:"#fff",fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{card2Photo?"Trocar":"Foto"}</span>
+            <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{
+              const file=e.target.files[0]; if(!file) return;
+              const reader=new FileReader();
+              reader.onload=ev=>setCard2Photo(ev.target.result);
+              reader.readAsDataURL(file);
+            }}/>
+          </label>
         </div>
       );
     })();
@@ -5565,7 +5589,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         {studioTab==="card"&&(
           <div>
-            <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient} cardIndex={cardIndex} setCardIndex={setCardIndex}/>
+            <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient} cardIndex={cardIndex} setCardIndex={setCardIndex} card2Photo={card2Photo} setCard2Photo={setCard2Photo}/>
             {/* toggle de cor do traçado */}
             <div style={{display:"flex",gap:6,justifyContent:"center",alignItems:"center",marginTop:12}}>
               {Object.entries(COLOR_PALETTE).map(([key,val])=>{
