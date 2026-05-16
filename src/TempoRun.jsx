@@ -1981,6 +1981,8 @@ export default function TempoRunApp() {
   const [fxOverlay, setFxOverlay] = useState("pace-floor");
   const [fxTemplate, setFxTemplate] = useState("story");
   const [fxReelStatus, setFxReelStatus] = useState("idle");
+  const [fxMood, setFxMood] = useState("night-runner");
+  const [fxBadge, setFxBadge] = useState("legendary-run");
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -5730,11 +5732,32 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       {id:"linkedin",name:"LinkedIn",size:"4:5",icon:"profile"},
       {id:"wallpaper",name:"Wallpaper",size:"19.5:9",icon:"watch"},
     ];
+    const MOOD_PRESETS = [
+      {id:"night-runner",name:"Night Runner",icon:"bolt",fx:"night-run",overlay:"pace-floor",color:C.violetL,desc:"Noite, neon e pace agressivo."},
+      {id:"marathon-day",name:"Marathon Day",icon:"medal",fx:"finish-glow",overlay:"km-splashes",color:"#ffffff",desc:"Energia de prova grande."},
+      {id:"rain-warrior",name:"Rain Warrior",icon:"streak",fx:"rain-sheen",overlay:"hr-pulse",color:C.cyanL,desc:"Chuva, brilho frio e garra."},
+      {id:"sub20-hunter",name:"Sub 20 Hunter",icon:"watch",fx:"split-burn",overlay:"pace-floor",color:C.coral,desc:"Caçada ao pace perfeito."},
+      {id:"mountain-beast",name:"Mountain Beast",icon:"mountain",fx:"trail-mode",overlay:"altimetry",color:C.green,desc:"Subida, trilha e potência."},
+      {id:"neon-city",name:"Neon City",icon:"gps",fx:"route-sparks",overlay:"ghost-runner",color:C.cyanB,desc:"Rota urbana com rastro elétrico."},
+    ];
+    const GAME_BADGES = [
+      {id:"legendary-run",name:"Legendary Run",icon:"trophy",color:C.violetB,desc:"Treino épico pronto para compartilhar."},
+      {id:"vo2-up",name:"VO2 Max Up",icon:"bio",color:C.cyanB,desc:"Performance subindo no visual."},
+      {id:"new-pr",name:"New PR",icon:"medal",color:C.amber,desc:"Recorde pessoal em destaque."},
+      {id:"long-run-hero",name:"Long Run Hero",icon:"flame",color:C.coral,desc:"Volume alto com aura de conquista."},
+    ];
     const activeOverlay = FX_OVERLAYS.find(o=>o.id===fxOverlay) || FX_OVERLAYS[0];
     const activeTemplate = SOCIAL_TEMPLATES.find(t=>t.id===fxTemplate) || SOCIAL_TEMPLATES[0];
+    const activeMood = MOOD_PRESETS.find(m=>m.id===fxMood) || MOOD_PRESETS[0];
+    const activeBadge = GAME_BADGES.find(b=>b.id===fxBadge) || GAME_BADGES[0];
     const startAutoReel = () => {
       setFxReelStatus("rendering");
       setTimeout(()=>setFxReelStatus("ready"), 1200);
+    };
+    const applyMoodPreset = (m) => {
+      setFxMood(m.id);
+      setFxActive(m.fx);
+      setFxOverlay(m.overlay);
     };
     return (
       <div>
@@ -5799,7 +5822,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <div>
                   <Badge text="FX STUDIO" color={activeFx.color}/>
                   <h2 style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:"8px 0 2px",letterSpacing:0}}>Live Preview</h2>
-                  <p style={{color:"#ffffff99",fontSize:11,margin:0,lineHeight:1.35}}>{activeFx.name} · {activeOverlay.name} · {activeTemplate.size}</p>
+                  <p style={{color:"#ffffff99",fontSize:11,margin:0,lineHeight:1.35}}>{activeMood.name} · {activeOverlay.name} · {activeTemplate.size}</p>
                 </div>
                 <div style={{width:42,height:42,borderRadius:12,background:activeFx.color+"22",border:"1px solid "+activeFx.color+"66",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 18px "+activeFx.color+"33"}}>
                   <Ic n={activeFx.icon} z={21} c={activeFx.color}/>
@@ -5816,6 +5839,10 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 {activeOverlay.id==="altimetry"&&<div style={{position:"absolute",left:102,right:30,bottom:52,height:28,borderBottom:"2px solid "+activeOverlay.color,borderLeft:"2px solid "+activeOverlay.color,transform:"skewY(-10deg)",opacity:0.75}}/>}
                 {activeOverlay.id==="km-splashes"&&<div style={{position:"absolute",right:76,top:56,color:"#fff",fontSize:18,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif",textShadow:"0 0 16px "+activeOverlay.color}}>KM</div>}
                 {activeOverlay.id==="ghost-runner"&&<div style={{position:"absolute",right:98,bottom:28,width:24,height:48,borderRadius:13,background:"linear-gradient(180deg,#ffffffaa,#ffffff11)",boxShadow:"0 0 20px #ffffff66",opacity:0.7}}/>}
+                <div style={{position:"absolute",right:12,top:36,background:"linear-gradient(135deg,"+activeBadge.color+"33,#ffffff10)",border:"1px solid "+activeBadge.color+"77",borderRadius:11,padding:"6px 8px",display:"flex",alignItems:"center",gap:6,boxShadow:"0 0 20px "+activeBadge.color+"33",animation:"pulse 1.5s infinite"}}>
+                  <Ic n={activeBadge.icon} z={14} c={activeBadge.color}/>
+                  <span style={{color:"#fff",fontSize:9,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif",whiteSpace:"nowrap"}}>{activeBadge.name}</span>
+                </div>
                 <div style={{display:"flex",justifyContent:"space-between",position:"relative"}}>
                   <span style={{color:"#ffffffcc",fontSize:10,fontFamily:"monospace",fontWeight:800,letterSpacing:0.8}}>TEMPO FX</span>
                   <span style={{color:activeFx.color,fontSize:10,fontFamily:"monospace",fontWeight:800}}>{activeTemplate.name}</span>
@@ -5849,6 +5876,41 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                   </div>
                 ))}
               </div>
+            </div>
+
+            <SL><Ic n="star" z={13} c={activeMood.color}/>Mood presets</SL>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+              {MOOD_PRESETS.map(m=>{
+                const selected = fxMood===m.id;
+                return (
+                  <button key={m.id} onClick={()=>applyMoodPreset(m)} style={{background:selected?"linear-gradient(135deg,"+m.color+"24,"+C.s2+")":C.s1,border:"1px solid "+(selected?m.color+"77":C.border),borderRadius:13,padding:10,textAlign:"left",cursor:"pointer",fontFamily:"inherit",boxShadow:selected?"0 0 18px "+m.color+"22":"none"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+                      <Ic n={m.icon} z={15} c={m.color}/>
+                      <span style={{color:C.tp,fontWeight:900,fontSize:11,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.1}}>{m.name}</span>
+                    </div>
+                    <p style={{color:C.tm,fontSize:10,margin:0,lineHeight:1.3}}>{m.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <SL><Ic n="trophy" z={13} c={activeBadge.color}/>Gamificação visual</SL>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+              {GAME_BADGES.map(b=>{
+                const selected = fxBadge===b.id;
+                return (
+                  <button key={b.id} onClick={()=>setFxBadge(b.id)} style={{background:selected?"linear-gradient(135deg,"+b.color+"24,"+C.s2+")":C.s1,border:"1px solid "+(selected?b.color+"77":C.border),borderRadius:13,padding:10,textAlign:"left",cursor:"pointer",fontFamily:"inherit",boxShadow:selected?"0 0 18px "+b.color+"22":"none",position:"relative",overflow:"hidden"}}>
+                    {selected&&<div style={{position:"absolute",right:-8,top:-8,width:30,height:30,borderRadius:"50%",background:b.color+"33",filter:"blur(2px)",animation:"pulse 1.5s infinite"}}/>}
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,position:"relative"}}>
+                      <div style={{width:24,height:24,borderRadius:8,background:b.color+"22",border:"1px solid "+b.color+"55",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:selected?"0 0 14px "+b.color+"44":"none"}}>
+                        <Ic n={b.icon} z={14} c={b.color}/>
+                      </div>
+                      <span style={{color:C.tp,fontWeight:900,fontSize:11,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.1}}>{b.name}</span>
+                    </div>
+                    <p style={{color:C.tm,fontSize:10,margin:0,lineHeight:1.3,position:"relative"}}>{b.desc}</p>
+                  </button>
+                );
+              })}
             </div>
 
             <SL><Ic n="video" z={13} c={C.cyanB}/>Overlays cinematográficos</SL>
