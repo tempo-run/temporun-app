@@ -1976,6 +1976,8 @@ export default function TempoRunApp() {
   const [cardColor, setCardColor] = useState("gradient");
   const [cardIndex, setCardIndex] = useState(0);
   const [card2Photo, setCard2Photo] = useState(null); // URL da foto do card 2
+  const [fxActive, setFxActive] = useState("night-run");
+  const [fxIntensity, setFxIntensity] = useState({});
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -5685,6 +5687,32 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const isGradient = traceStroke === "gradient";
     const traceColor1 = "#811df2";
     const traceColor2 = "#22d3ee";
+    const FX_GROUPS = [
+      {cat:"Cinematic",accent:C.violetL,items:[
+        {id:"night-run",icon:"bolt",name:"Night Run",desc:"Neon escuro com contraste forte.",pro:true,color:C.violetL},
+        {id:"finish-glow",icon:"star",name:"Finish Glow",desc:"Luz branca no atleta e chegada.",pro:false,color:"#ffffff"},
+      ]},
+      {cat:"Performance",accent:C.cyanB,items:[
+        {id:"pace-pulse",icon:"cadence",name:"Pace Pulse",desc:"Pulso visual sincronizado ao ritmo.",pro:false,color:C.cyanB},
+        {id:"split-burn",icon:"flame",name:"Split Burn",desc:"Realce para parciais mais fortes.",pro:true,color:C.coral},
+      ]},
+      {cat:"Weather",accent:C.cyanL,items:[
+        {id:"rain-sheen",icon:"streak",name:"Rain Sheen",desc:"Brilho frio de treino na chuva.",pro:true,color:C.cyanL},
+        {id:"heat-haze",icon:"warning",name:"Heat Haze",desc:"Camada quente para dias duros.",pro:false,color:C.amber},
+      ]},
+      {cat:"Trail",accent:C.amber,items:[
+        {id:"trail-mode",icon:"mountain",name:"Trail Mode",desc:"Textura outdoor com relevo suave.",pro:false,color:C.amber},
+        {id:"route-sparks",icon:"map",name:"Route Sparks",desc:"Faixas de energia sobre o percurso.",pro:true,color:C.green},
+      ]},
+      {cat:"AI",accent:C.violetB,items:[
+        {id:"ai-reframe",icon:"ai",name:"AI Reframe",desc:"Corte inteligente para stories.",pro:true,color:C.violetB},
+        {id:"auto-caption",icon:"video",name:"Auto Caption",desc:"Legenda curta gerada pelo TEMPO.",pro:true,color:C.cyanB},
+      ]},
+    ];
+    const allFx = FX_GROUPS.flatMap(g=>g.items.map(item=>({...item,cat:g.cat})));
+    const activeFx = allFx.find(e=>e.id===fxActive) || allFx[0];
+    const activeIntensity = fxIntensity[activeFx.id] || "Med";
+    const activeFxAmount = activeIntensity==="Off"?0:activeIntensity==="Low"?36:activeIntensity==="Med"?64:92;
     return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
@@ -5742,19 +5770,60 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         {studioTab==="efeitos"&&(
           <div>
-            <SL><Ic n="bolt" z={13} c={C.ts}/>Efeitos especiais</SL>
-            {[
-              {nome:"Trail Mode",desc:"Filtro com tons terrosos e fontes manuscritas",cor:C.amber},
-              {nome:"Night Run",desc:"Visual noturno com neon e contraste forte",cor:C.violetL},
-              {nome:"Classic",desc:"Estilo minimalista preto e branco",cor:C.ts},
-            ].map((e,i)=>(
-              <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"11px 13px",marginBottom:8,border:"1px solid "+e.cor+"33",display:"flex",alignItems:"center",gap:11}}>
-                <div style={{width:32,height:32,borderRadius:9,background:e.cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="bolt" z={17} c={e.cor}/></div>
-                <div style={{flex:1}}>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>{e.nome}</p>
-                  <p style={{color:C.tm,fontSize:11,margin:"2px 0 0",lineHeight:1.4}}>{e.desc}</p>
+            <div style={{background:"linear-gradient(145deg,#080a24,#10143a 54%,#071927)",border:"1px solid "+activeFx.color+"55",borderRadius:18,padding:15,marginBottom:15,boxShadow:"0 18px 42px #00000055, 0 0 28px "+activeFx.color+"22",overflow:"hidden",position:"relative"}}>
+              <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 18% 18%,"+C.violet+"44,transparent 33%),radial-gradient(circle at 84% 10%,"+C.cyan+"33,transparent 30%)",opacity:0.9,pointerEvents:"none"}}/>
+              <div style={{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:13}}>
+                <div>
+                  <Badge text="FX STUDIO" color={activeFx.color}/>
+                  <h2 style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:"8px 0 2px",letterSpacing:0}}>Live Preview</h2>
+                  <p style={{color:"#ffffff99",fontSize:11,margin:0,lineHeight:1.35}}>{activeFx.name} · {activeIntensity}</p>
                 </div>
-                <Ic n="back" z={14} c={C.td} st={{transform:"rotate(180deg)"}}/>
+                <div style={{width:42,height:42,borderRadius:12,background:activeFx.color+"22",border:"1px solid "+activeFx.color+"66",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 18px "+activeFx.color+"33"}}>
+                  <Ic n={activeFx.icon} z={21} c={activeFx.color}/>
+                </div>
+              </div>
+              <div style={{position:"relative",height:118,borderRadius:14,background:"linear-gradient(135deg,#050617,#121747)",border:"1px solid #ffffff14",overflow:"hidden",padding:14,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
+                <div style={{position:"absolute",left:18,right:18,top:48,height:2,background:"linear-gradient(90deg,transparent,"+activeFx.color+",#fff,"+C.cyanB+",transparent)",boxShadow:"0 0 "+(8+activeFxAmount/5)+"px "+activeFx.color,opacity:activeFxAmount/100}}/>
+                <div style={{position:"absolute",right:18,bottom:16,width:72,height:72,borderRadius:"50%",border:"1px solid "+activeFx.color+"55",boxShadow:"0 0 32px "+activeFx.color+"44",opacity:0.6}}/>
+                <div style={{display:"flex",justifyContent:"space-between",position:"relative"}}>
+                  <span style={{color:"#ffffffcc",fontSize:10,fontFamily:"monospace",fontWeight:800,letterSpacing:0.8}}>TEMPO FX</span>
+                  <span style={{color:activeFx.color,fontSize:10,fontFamily:"monospace",fontWeight:800}}>{Math.round(activeFxAmount)}%</span>
+                </div>
+                <div style={{position:"relative"}}>
+                  <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:24,fontWeight:800,margin:"0 0 2px",textShadow:"0 0 18px "+activeFx.color+"66"}}>{Number(lastRun.distancia_km||0).toFixed(1)}km</p>
+                  <p style={{color:"#ffffffaa",fontSize:11,margin:0}}>{lastRun.pace_medio||"5:30"} pace · {fmtT(lastRun.duracao_seg||3120)}</p>
+                </div>
+              </div>
+            </div>
+
+            {FX_GROUPS.map(group=>(
+              <div key={group.cat} style={{marginBottom:14}}>
+                <SL><Ic n={group.cat==="AI"?"ai":group.cat==="Trail"?"mountain":group.cat==="Weather"?"streak":group.cat==="Performance"?"cadence":"bolt"} z={13} c={group.accent}/>{group.cat}</SL>
+                <div style={{display:"grid",gap:8}}>
+                  {group.items.map(e=>{
+                    const selected = fxActive===e.id;
+                    const intensity = fxIntensity[e.id] || "Med";
+                    return (
+                      <div key={e.id} onClick={()=>setFxActive(e.id)} style={{background:selected?"linear-gradient(135deg,"+e.color+"1f,"+C.s2+")":"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:11,border:"1px solid "+(selected?e.color+"77":e.color+"28"),boxShadow:selected?"0 0 22px "+e.color+"20":"none",cursor:"pointer"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:10}}>
+                          <div style={{width:34,height:34,borderRadius:10,background:e.color+"22",border:"1px solid "+e.color+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <Ic n={e.icon} z={17} c={e.color}/>
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                              <p style={{color:C.tp,fontWeight:800,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{e.name}</p>
+                              {e.pro&&<Badge text="PRO" color={C.violetB}/>}
+                            </div>
+                            <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.35}}>{e.desc}</p>
+                          </div>
+                          <select value={intensity} onClick={ev=>ev.stopPropagation()} onChange={ev=>{setFxActive(e.id);setFxIntensity(v=>({...v,[e.id]:ev.target.value}));}} style={{width:70,background:C.bg,border:"1px solid "+(selected?e.color+"66":C.border),borderRadius:9,padding:"7px 6px",color:selected?C.tp:C.ts,fontSize:11,fontWeight:800,fontFamily:"'DM Sans',system-ui,sans-serif",outline:"none",cursor:"pointer"}}>
+                            {["Off","Low","Med","High"].map(level=><option key={level} value={level}>{level}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>
