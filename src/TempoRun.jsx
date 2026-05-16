@@ -1204,11 +1204,6 @@ const MAPBOX_TOKEN  = "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZH
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
-const DELETE_ACCOUNT_FN  = SUPABASE_URL + "/functions/v1/delete-account";
-const TEMPORUN_PRIVACY_URL = "https://temporun.run/privacy";
-const TEMPORUN_TERMS_URL   = "https://temporun.run/terms";
-const TEMPORUN_CANCELLATION_URL = "https://www.temporun.run/cancel";
-const TEMPORUN_SUPPORT_EMAIL = "support@temporun.run";
 
 // Strava OAuth
 const STRAVA_CLIENT_ID     = "244639";
@@ -1261,29 +1256,19 @@ const sb = {
     window.location.href = url;
   },
 
-  // Troca code Strava por token via Supabase Edge Function.
-  // IMPORTANTE: o client_secret fica protegido no Supabase Secrets, não no frontend.
+  // Troca code Strava por token (chamado quando volta do OAuth Strava)
   async exchangeStravaCode(code) {
-    const r = await fetch(STRAVA_TOKEN_FN, {
+    const r = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_ANON,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        client_id:     STRAVA_CLIENT_ID,
+        client_secret: STRAVA_CLIENT_SECRET,
         code,
-        redirect_uri: STRAVA_REDIRECT_URI,
+        grant_type:    "authorization_code",
       }),
     });
-
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      return {
-        error: data.error || "strava_token_exchange_failed",
-        details: data.details || data,
-      };
-    }
-    return data;
+    return r.json();
   },
 
   // Detecta se voltou do callback Strava (?code=...&scope=...)
@@ -1306,16 +1291,6 @@ const sb = {
       method:"POST",
       headers: { ...this._headers, "Authorization": `Bearer ${token}` }
     });
-  },
-
-  async deleteAccount(token) {
-    const r = await fetch(DELETE_ACCOUNT_FN, {
-      method:"POST",
-      headers: { ...this._headers, "Authorization": `Bearer ${token}` }
-    });
-    const data = await r.json().catch(()=>({}));
-    if(!r.ok) throw new Error(data.error || data.message || "delete_account_failed");
-    return data;
   },
 
   // Envia OTP de 6 dígitos para o email
@@ -1809,8 +1784,6 @@ export default function TempoRunApp() {
   const [showSaber, setShowSaber]   = useState(false);
   const [showDadosModal, setShowDadosModal]   = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const [showAboutModal, setShowAboutModal] = useState(false);
-  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
   const [showProModal, setShowProModal]     = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(()=>{
     try { return !localStorage.getItem("tr_onboarding_done"); } catch { return true; }
@@ -1974,15 +1947,8 @@ export default function TempoRunApp() {
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
   const [cardColor, setCardColor] = useState("gradient");
+  const [card2Photo, setCard2Photo] = useState(null);
   const [cardIndex, setCardIndex] = useState(0);
-  const [card2Photo, setCard2Photo] = useState(null); // URL da foto do card 2
-  const [fxActive, setFxActive] = useState("night-run");
-  const [fxIntensity, setFxIntensity] = useState({});
-  const [fxOverlay, setFxOverlay] = useState("pace-floor");
-  const [fxTemplate, setFxTemplate] = useState("story");
-  const [fxReelStatus, setFxReelStatus] = useState("idle");
-  const [fxMood, setFxMood] = useState("night-runner");
-  const [fxBadge, setFxBadge] = useState("legendary-run");
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -2520,80 +2486,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     );
   }
 
-  function openExternal(url) {
-    try { window.open(url, "_blank", "noopener,noreferrer"); } catch { window.location.href = url; }
-  }
-
-  function contactSupport() {
-    const subject = encodeURIComponent("TempoRun support request");
-    const body = encodeURIComponent(`Hi TempoRun team,\n\nI need help with my account.\n\nAccount: ${session?.email || ""}\n`);
-    window.location.href = `mailto:${TEMPORUN_SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
-  }
-
-  async function handleDeleteAccount() {
-    const first = window.confirm("Tem certeza que deseja excluir sua conta TempoRun? Essa ação pode apagar seu perfil e dados associados.");
-    if(!first) return;
-    const second = window.confirm("Confirma a exclusão definitiva da conta? Essa ação não pode ser desfeita.");
-    if(!second) return;
-    setDeleteAccountLoading(true);
-    try {
-      await sb.deleteAccount(session?.access_token);
-      clearSession();
-      try {
-        ["tr_onboarding_done","tr_config","tr_ai_usage","tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>localStorage.removeItem(k));
-      } catch {}
-      setSession(null);
-      setShowAboutModal(false);
-      setShowConfigModal(false);
-      setShowPerfil(false);
-      setShowOnboarding(true);
-      setOnboardingStep(0);
-      setTab("home");
-      alert("Conta excluída com sucesso.");
-    } catch(e) {
-      alert("Não foi possível excluir a conta agora. Tente novamente ou fale com o suporte.");
-    } finally {
-      setDeleteAccountLoading(false);
-    }
-  }
-
-  function renderAboutModal() {
-    const item = (label, desc, action, color=C.cyanB) => (
-      <button onClick={action} style={{width:"100%",background:C.s3,border:"1px solid "+color+"33",borderRadius:12,padding:"12px 13px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",fontFamily:"inherit",marginBottom:9}}>
-        <div style={{width:34,height:34,borderRadius:10,background:color+"22",display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid "+color+"44",flexShrink:0}}>
-          <Ic n="link" z={16} c={color}/>
-        </div>
-        <div style={{flex:1}}>
-          <p style={{color:C.tp,fontSize:13,fontWeight:800,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{label}</p>
-          {desc&&<p style={{color:C.tm,fontSize:11,margin:"3px 0 0",lineHeight:1.4}}>{desc}</p>}
-        </div>
-        <Ic n="back" z={13} c={color} st={{transform:"rotate(180deg)"}}/>
-      </button>
-    );
-    return (
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:260,display:"flex",alignItems:"flex-end",justifyContent:"center",maxWidth:430,margin:"0 auto"}}>
-        <div style={{width:"100%",background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.border,borderRadius:"22px 22px 0 0",padding:"18px 16px max(22px, env(safe-area-inset-bottom, 22px))",boxShadow:"0 -12px 40px #0008"}}>
-          <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:14}}>
-            <div style={{width:42,height:42,borderRadius:14,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 22px "+C.violet+"44"}}>
-              <img src={iconCircle} alt="TempoRun" style={{width:26,height:26,objectFit:"contain"}}/>
-            </div>
-            <div style={{flex:1}}>
-              <p style={{color:C.tp,fontSize:17,fontWeight:900,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>About TempoRun</p>
-              <p style={{color:C.tm,fontSize:12,margin:"3px 0 0"}}>Legal, privacy and support</p>
-            </div>
-          </div>
-          {item("Terms of Service", "Open TempoRun terms in your browser", ()=>openExternal(TEMPORUN_TERMS_URL), C.violetL)}
-          {item("Cancellation Terms", "Subscription and cancellation policy", ()=>openExternal(TEMPORUN_CANCELLATION_URL), C.amber)}
-          {item("Privacy Policy", "How TempoRun handles your data", ()=>openExternal(TEMPORUN_PRIVACY_URL), C.cyanB)}
-          {item("Contact Support", TEMPORUN_SUPPORT_EMAIL, contactSupport, C.green)}
-          <button onClick={()=>setShowAboutModal(false)} style={{width:"100%",background:C.s2,border:"1px solid "+C.border,borderRadius:12,padding:"12px 0",cursor:"pointer",color:C.ts,fontWeight:800,fontSize:13,fontFamily:"inherit",marginTop:3}}>
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // ── CONFIGURAÇÕES MODAL ───────────────────────────────────────────────────────
   function renderConfigModal() {
     const tog = (key,label,desc) => (
@@ -2715,16 +2607,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             {inpCfg("cadenciaAlvo","Cadência alvo","Passos por minuto (spm)","number","180")}
           </>)}
 
-          {section("link","About",C.cyanB,<>
-            <div onClick={()=>setShowAboutModal(true)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",cursor:"pointer"}}>
-              <div>
-                <p style={{color:C.tp,fontSize:13,fontWeight:600,margin:0}}>About TempoRun</p>
-                <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>Terms, privacy, support and cancel</p>
-              </div>
-              <Ic n="back" z={13} c={C.cyanB} st={{transform:"rotate(180deg)"}}/>
-            </div>
-          </>)}
-
           {section("settings","Conta",C.ts,<>
             {selCfg("idioma","Idioma","Idioma do aplicativo",[{v:"pt-BR",l:"🇧🇷 Português (Brasil)"},{v:"en",l:"🇬🇧 English"},{v:"es",l:"🇪🇸 Español"},{v:"fr",l:"🇫🇷 Français"},{v:"de",l:"🇩🇪 Deutsch"}])}
             <div onClick={()=>{setShowConfigModal(false);setShowProModal(true);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",borderBottom:"1px solid "+C.bsub,cursor:"pointer"}}>
@@ -2739,8 +2621,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             </div>
             {tog("backupSync","Backup / Sync","Sincronizar dados na nuvem automaticamente")}
             <div style={{padding:"11px 0"}}>
-              <button onClick={handleDeleteAccount} disabled={deleteAccountLoading} style={{width:"100%",background:"#ef444411",border:"1px solid #ef444433",borderRadius:10,padding:"11px 0",cursor:deleteAccountLoading?"default":"pointer",color:"#ef4444",fontWeight:700,fontSize:13,fontFamily:"inherit",opacity:deleteAccountLoading?0.65:1}}>
-                {deleteAccountLoading ? "Excluindo..." : "🗑 Excluir conta"}
+              <button style={{width:"100%",background:"#ef444411",border:"1px solid #ef444433",borderRadius:10,padding:"11px 0",cursor:"pointer",color:"#ef4444",fontWeight:700,fontSize:13,fontFamily:"inherit"}}>
+                🗑 Excluir conta
               </button>
             </div>
           </>)}
@@ -3471,7 +3353,17 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
             <KmChart corridas={corridas} slice={chartSlice} setSlice={setChartSlice}/>
 
-
+            <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:16,padding:14,marginBottom:12,border:"1px solid "+C.violet+"33",position:"relative",overflow:"hidden"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7,position:"relative"}}>
+                <div><p style={{color:C.ts,fontFamily:"monospace",fontSize:10,margin:0,textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Treino de hoje</p><h3 style={{color:C.tp,margin:"3px 0 0",fontSize:17,fontFamily:"'Space Grotesk',sans-serif"}}>Intervalado 6×800m</h3></div>
+                <Badge text="55 min" color={C.cyan}/>
+              </div>
+              <p style={{color:C.tm,fontSize:12,margin:"0 0 11px"}}>Moderado · 10,4 km · Foco em limiar</p>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <button onClick={()=>setTab("treino")} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>Ver treino</button>
+                <button onClick={()=>{setTab("treino");setPlanScreen("form");setSubScreen("plano");}} style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Ic n="ai" z={14} c={C.cyanB}/>Criar plano</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -4660,7 +4552,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
 
   // ── CARD CAROUSEL ────────────────────────────────────────────────────────────
-  function CardCarousel({ run, C, fmtT, traceStroke="#811df2", isGradient=true, cardIndex=0, setCardIndex, card2Photo=null, setCard2Photo }) {
+  function CardCarousel({ run, C, fmtT, traceStroke="gradient", isGradient=true, cardIndex=0, setCardIndex, card2Photo=null, setCard2Photo }) {
     // cardIndex gerido pelo componente pai
     const canvasRef1 = useRef(null); // small map for card 1
     const canvasRef2 = useRef(null); // full map for card 2
@@ -5008,48 +4900,45 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           ctx.globalAlpha = 1;
 
         } else if (cardIndex === 1) {
-          // CARD 2: estilo Garmin — foto + dados
+          // CARD 2: estilo Garmin — foto + dados + barra
           const C2H = 420;
           const barC1 = isGradient?"#811df2":traceStroke;
           const barC2 = isGradient?"#22d3ee":traceStroke;
-          // Foto de fundo se existir
-          if(card2Photo){
-            const fotoImg=new Image(); fotoImg.src=card2Photo;
-            if(fotoImg.complete) ctx.drawImage(fotoImg,0,0,W,C2H);
-          }
-          // Barra lateral cor do toggle
-          const barG2=ctx.createLinearGradient(0,0,0,C2H);
-          barG2.addColorStop(0,barC1); barG2.addColorStop(0.8,barC2); barG2.addColorStop(1,"rgba(0,0,0,0)");
-          ctx.fillStyle=barG2; ctx.fillRect(0,0,5,C2H);
-          // Logo
-          const lWg=80, lHg=lWg/logoAR;
-          ctx.drawImage(logoImg, W/2-lWg/2, 16, lWg, lHg);
-          // Faixa fundo dados
           const c2r = isGradient?"30,4,60":traceStroke==="#ffffff"?"20,20,20":traceStroke==="#22d3ee"?"0,30,44":"30,4,60";
           const c2b = isGradient?"0,20,40":traceStroke==="#ffffff"?"10,10,10":traceStroke==="#22d3ee"?"0,20,35":"20,4,50";
-          const dG=ctx.createLinearGradient(0,0,W*0.55,0);
-          dG.addColorStop(0,"rgba("+c2r+",0.97)"); dG.addColorStop(0.5,"rgba("+c2b+",0.92)"); dG.addColorStop(1,"rgba(0,0,0,0)");
-          ctx.fillStyle=dG; ctx.fillRect(0,C2H-155,W,155);
+          // Foto de fundo
+          if(card2Photo){
+            await new Promise(res=>{const fi=new Image();fi.onload=()=>{ctx.drawImage(fi,0,0,W,C2H);res();};fi.src=card2Photo;});
+          }
+          // Barra lateral
+          const bG2=ctx.createLinearGradient(0,0,0,C2H);
+          bG2.addColorStop(0,barC1);bG2.addColorStop(0.8,barC2);bG2.addColorStop(1,"rgba(0,0,0,0)");
+          ctx.fillStyle=bG2;ctx.fillRect(0,0,5,C2H);
+          // Logo
+          const lWg=80,lHg=lWg/logoAR;
+          ctx.drawImage(logoImg,W/2-lWg/2,16,lWg,lHg);
+          // Faixa dados 42% x 45%
+          const fW=Math.round(W*0.42),fH=Math.round(C2H*0.45);
+          const dG=ctx.createLinearGradient(0,0,fW,fH);
+          dG.addColorStop(0,"rgba("+c2r+",0.75)");dG.addColorStop(0.65,"rgba("+c2b+",0.6)");dG.addColorStop(1,"rgba(0,0,0,0)");
+          ctx.fillStyle=dG;ctx.fillRect(0,C2H-fH,fW,fH);
           // Dados
           const mG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
-          let yG=C2H-145;
+          let yG=C2H-Math.round(fH*0.95);
           mG.forEach(m=>{
-            ctx.fillStyle="#fff"; ctx.font="bold 24px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
+            ctx.fillStyle="#fff";ctx.font="bold 24px 'Space Grotesk',sans-serif";ctx.textAlign="left";
             ctx.fillText(m.v+(m.u?" "+m.u:""),16,yG+22);
-            ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.font="bold 7px monospace";
-            ctx.fillText(m.l,16,yG+33); yG+=48;
+            ctx.fillStyle="rgba(255,255,255,0.4)";ctx.font="bold 7px monospace";
+            ctx.fillText(m.l,16,yG+33);yG+=48;
           });
-          ctx.fillStyle="rgba(255,255,255,0.28)"; ctx.font="bold 8px monospace"; ctx.textAlign="right";
+          ctx.fillStyle="rgba(255,255,255,0.28)";ctx.font="bold 8px monospace";ctx.textAlign="right";
           ctx.fillText((run?.data||"Hoje").toUpperCase(),W-14,C2H-12);
 
         } else if (cardIndex === 2) {
           // CARD 3: mapa neon
-          if (mapCanvas) { ctx.drawImage(mapCanvas, 0, 0, W, cardH); }
-          const lW = 90, lH = lW / logoAR;
-          ctx.drawImage(logoImg, W/2 - lW/2, 12, lW, lH);
 
-        } else if (cardIndex === 3) {
-          // CARD 4: logo centered + date + 3 col horizontal stats
+        } else if (cardIndex === 2) {
+          // CARD 3: logo centered + date + 3 col horizontal stats
           let y = 24;
           const lW = 72, lH = lW / logoAR;
           ctx.drawImage(logoImg, W/2 - lW/2, y, lW, lH);
@@ -5069,7 +4958,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         }
 
         // CARD 4: export separado com fundo transparente
-        if(cardIndex === 4) {
+        if(cardIndex === 3) {
           // Novo canvas sem fundo
           const off4 = document.createElement("canvas");
           off4.width = W * SCALE; off4.height = cardH * SCALE;
@@ -5184,13 +5073,11 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <svg width="100%" height={H1} viewBox={`0 0 ${W1} ${H1}`} style={{position:"absolute",top:0,left:0}}>
             <defs>
               <linearGradient id={g1id} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={isGradient?traceColor1:traceStroke}/>
-                <stop offset="50%" stopColor={isGradient?"#a855f7":traceStroke}/>
-                <stop offset="100%" stopColor={isGradient?traceColor2:traceStroke}/>
+                <stop offset="0%" stopColor="#7c3aed"/><stop offset="50%" stopColor="#a855f7"/><stop offset="100%" stopColor="#22d3ee"/>
               </linearGradient>
               <filter id={gw1id}><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
-            {pathD1&&<path d={pathD1} fill="none" stroke={isGradient?traceColor1:traceStroke} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
+            {pathD1&&<path d={pathD1} fill="none" stroke="#7c3aed" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
             {pathD1&&<path d={pathD1} fill="none" stroke={`url(#${g1id})`} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${gw1id})`}/>}
             {pts1.length>0&&<><circle cx={pts1[0].x} cy={pts1[0].y} r="5" fill="#06071a" stroke="#22c55e" strokeWidth="2"/><circle cx={pts1[0].x} cy={pts1[0].y} r="2.5" fill="#22c55e"/></>}
             {pts1.length>1&&<><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="5" fill="#06071a" stroke="#22d3ee" strokeWidth="2"/><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="2.5" fill="#22d3ee"/></>}
@@ -5225,10 +5112,10 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       ];
       const barColor1 = isGradient?"#811df2":traceStroke;
       const barColor2 = isGradient?"#22d3ee":traceStroke;
-      const CARD2_H = 420;
+      const fadeRgb = isGradient?"30,4,60":traceStroke==="#ffffff"?"20,20,20":traceStroke==="#22d3ee"?"0,30,44":"30,4,60";
+      const fadeRgb2 = isGradient?"0,20,40":traceStroke==="#ffffff"?"10,10,10":traceStroke==="#22d3ee"?"0,20,35":"20,4,50";
       return (
-        <div style={{borderRadius:17,overflow:"hidden",border:"1px solid #7c3aed33",boxShadow:cardShadow,position:"relative",height:CARD2_H}}>
-          {/* Fundo: foto ou xadrez */}
+        <div style={{borderRadius:17,overflow:"hidden",border:"1px solid #7c3aed33",boxShadow:cardShadow,position:"relative",height:420}}>
           {card2Photo
             ? <img src={card2Photo} alt="fundo" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
             : <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(45deg,#12122a 25%,transparent 25%),linear-gradient(-45deg,#12122a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#12122a 75%),linear-gradient(-45deg,transparent 75%,#12122a 75%)",backgroundSize:"22px 22px",backgroundPosition:"0 0,0 11px,11px -11px,-11px 0",opacity:0.5}}/>
@@ -5239,10 +5126,10 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <div style={{position:"absolute",top:16,left:0,right:0,display:"flex",justifyContent:"center",zIndex:3}}>
             <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #00000088)"}}/>
           </div>
-          {/* Faixa dados */}
-          <div style={{position:"absolute",bottom:0,left:0,right:0,height:155,zIndex:3}}>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,"+(isGradient?"rgba(30,4,60,0.97)":traceStroke==="#ffffff"?"rgba(20,20,20,0.97)":traceStroke==="#22d3ee"?"rgba(0,30,44,0.97)":"rgba(30,4,60,0.97)")+" 0%,"+(isGradient?"rgba(0,20,40,0.92)":traceStroke==="#ffffff"?"rgba(10,10,10,0.9)":traceStroke==="#22d3ee"?"rgba(0,20,35,0.9)":"rgba(20,4,50,0.9)")+" 50%,transparent 100%)"}}/>
-            <div style={{position:"relative",padding:"14px 16px"}}>
+          {/* Faixa dados — largura 42%, altura 45% */}
+          <div style={{position:"absolute",bottom:0,left:0,width:"42%",height:"45%",zIndex:3}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,rgba("+fadeRgb+",0.75) 0%,rgba("+fadeRgb2+",0.6) 65%,transparent 100%)"}}/>
+            <div style={{position:"relative",padding:"14px 16px",height:"100%",display:"flex",flexDirection:"column",justifyContent:"center"}}>
               {metrics2.map((m,i)=>(
                 <div key={i} style={{marginBottom:i<2?10:0}}>
                   <div style={{display:"flex",alignItems:"baseline",gap:4}}>
@@ -5336,9 +5223,9 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
             <defs>
               <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={isGradient?traceColor1:traceStroke}/>
-                <stop offset="50%" stopColor={isGradient?"#a855f7":traceStroke}/>
-                <stop offset="100%" stopColor={isGradient?traceColor2:traceStroke}/>
+                <stop offset="0%" stopColor="#7c3aed"/>
+                <stop offset="50%" stopColor="#a855f7"/>
+                <stop offset="100%" stopColor="#22d3ee"/>
               </linearGradient>
               <filter id={glowId}>
                 <feGaussianBlur stdDeviation="3" result="blur"/>
@@ -5346,7 +5233,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               </filter>
             </defs>
             {/* Glow layer */}
-            {pathD&&<path d={pathD} fill="none" stroke={isGradient?traceColor1:traceStroke} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.25"/>}
+            {pathD&&<path d={pathD} fill="none" stroke="#7c3aed" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.25"/>}
             {/* Main trace */}
             {pathD&&<path d={pathD} fill="none" stroke={`url(#${gradId})`} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${glowId})`}/>}
             {/* Start dot */}
@@ -5397,7 +5284,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <button onClick={handleSave} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
             <Ic n="save" z={15} c="#fff"/>PNG
           </button>
-          {(cardIndex===0||cardIndex===1||cardIndex===3||cardIndex===4)&&(
+          {(cardIndex===0||cardIndex===2||cardIndex===3)&&(
             <button onClick={handleCopy} style={{flex:1,background:copied?"#22c55e22":C.s2,color:copied?"#22c55e":C.cyanB,border:"1px solid "+(copied?"#22c55e44":C.cyanB+"44"),borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
               <Ic n="save" z={15} c={copied?"#22c55e":C.cyanB}/>{copied?"Copiado ✓":"Copiar"}
             </button>
@@ -5692,78 +5579,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const isGradient = traceStroke === "gradient";
     const traceColor1 = "#811df2";
     const traceColor2 = "#22d3ee";
-    const FX_GROUPS = [
-      {cat:"Cinematic",accent:C.violetL,items:[
-        {id:"night-run",icon:"bolt",name:"Night Run",desc:"Neon escuro com contraste forte.",pro:true,color:C.violetL},
-        {id:"motion-blur",icon:"video",name:"Cinematic Motion Blur",desc:"Rastro de velocidade estilo filme.",pro:true,color:C.cyanB},
-        {id:"finish-glow",icon:"star",name:"Finish Glow",desc:"Luz branca no atleta e chegada.",pro:false,color:"#ffffff"},
-      ]},
-      {cat:"Performance",accent:C.cyanB,items:[
-        {id:"pace-pulse",icon:"cadence",name:"Pace Pulse",desc:"Pulso visual sincronizado ao ritmo.",pro:false,color:C.cyanB},
-        {id:"split-burn",icon:"flame",name:"Split Burn",desc:"Realce para parciais mais fortes.",pro:true,color:C.coral},
-        {id:"split-flash",icon:"bolt",name:"Split Flash Transitions",desc:"Cortes rápidos a cada split.",pro:true,color:C.amber},
-        {id:"pr-explosion",icon:"trophy",name:"PR Explosion Effect",desc:"Explosão visual para novo recorde.",pro:true,color:C.violetB},
-      ]},
-      {cat:"Weather",accent:C.cyanL,items:[
-        {id:"rain-sheen",icon:"streak",name:"Rain / Fog",desc:"Chuva fina, névoa e brilho frio.",pro:true,color:C.cyanL},
-        {id:"heat-haze",icon:"warning",name:"Heat Haze",desc:"Camada quente para dias duros.",pro:false,color:C.amber},
-      ]},
-      {cat:"Trail",accent:C.amber,items:[
-        {id:"trail-mode",icon:"mountain",name:"Trail Mode",desc:"Textura outdoor com relevo suave.",pro:false,color:C.amber},
-        {id:"route-sparks",icon:"map",name:"Glow Route Animation",desc:"Rota animada com glow elétrico.",pro:true,color:C.green},
-      ]},
-      {cat:"AI",accent:C.violetB,items:[
-        {id:"ai-reframe",icon:"ai",name:"AI Reframe",desc:"Corte inteligente para stories.",pro:true,color:C.violetB},
-        {id:"auto-caption",icon:"video",name:"Auto Caption",desc:"Legenda curta gerada pelo TEMPO.",pro:true,color:C.cyanB},
-      ]},
-    ];
-    const allFx = FX_GROUPS.flatMap(g=>g.items.map(item=>({...item,cat:g.cat})));
-    const activeFx = allFx.find(e=>e.id===fxActive) || allFx[0];
-    const activeIntensity = fxIntensity[activeFx.id] || "Med";
-    const activeFxAmount = activeIntensity==="Off"?0:activeIntensity==="Low"?36:activeIntensity==="Med"?64:92;
-    const FX_OVERLAYS = [
-      {id:"pace-floor",icon:"run",name:"Pace no chão",desc:"Pace surgindo como HUD no asfalto.",pro:false,color:C.cyanB,metric:lastRun.pace_medio||"5:30"},
-      {id:"pace-heatmap",icon:"chart",name:"Pace heatmap",desc:"Zonas rápidas em cyan e lentas em violeta.",pro:true,color:C.violetB,metric:"heat"},
-      {id:"hr-pulse",icon:"heart",name:"Heartbeat pulse",desc:"Batimento com glow sincronizado.",pro:false,color:C.coral,metric:(lastRun.bpm_medio||158)+" bpm"},
-      {id:"altimetry",icon:"chart",name:"Altimetry wave animation",desc:"Onda de altimetria acompanhando a rota.",pro:true,color:C.green,metric:"D+ "+(lastRun.dplus||128)+"m"},
-      {id:"km-splashes",icon:"gps",name:"Km splashes",desc:"Marcos de km com impacto visual.",pro:true,color:C.violetB,metric:Number(lastRun.distancia_km||10.4).toFixed(1)+"km"},
-      {id:"glow-route",icon:"map",name:"Glow route animation",desc:"Traçado vivo com rastro neon.",pro:true,color:C.cyanB,metric:"route"},
-      {id:"ghost-runner",icon:"run",name:"Ghost runner",desc:"Silhueta comparando ritmo alvo.",pro:true,color:"#ffffff",metric:"vs alvo"},
-    ];
-    const SOCIAL_TEMPLATES = [
-      {id:"story",name:"Instagram Story",size:"9:16",icon:"photo"},
-      {id:"reel",name:"Reel",size:"9:16",icon:"video"},
-      {id:"tiktok",name:"TikTok",size:"9:16",icon:"streak"},
-      {id:"linkedin",name:"LinkedIn",size:"4:5",icon:"profile"},
-      {id:"wallpaper",name:"Wallpaper",size:"19.5:9",icon:"watch"},
-    ];
-    const MOOD_PRESETS = [
-      {id:"night-runner",name:"Night Runner",icon:"bolt",fx:"night-run",overlay:"pace-floor",color:C.violetL,desc:"Noite, neon e pace agressivo."},
-      {id:"marathon-day",name:"Marathon Day",icon:"medal",fx:"finish-glow",overlay:"km-splashes",color:"#ffffff",desc:"Energia de prova grande."},
-      {id:"rain-warrior",name:"Rain Warrior",icon:"streak",fx:"rain-sheen",overlay:"hr-pulse",color:C.cyanL,desc:"Chuva, brilho frio e garra."},
-      {id:"sub20-hunter",name:"Sub 20 Hunter",icon:"watch",fx:"split-burn",overlay:"pace-floor",color:C.coral,desc:"Caçada ao pace perfeito."},
-      {id:"mountain-beast",name:"Mountain Beast",icon:"mountain",fx:"trail-mode",overlay:"altimetry",color:C.green,desc:"Subida, trilha e potência."},
-      {id:"neon-city",name:"Neon City",icon:"gps",fx:"route-sparks",overlay:"ghost-runner",color:C.cyanB,desc:"Rota urbana com rastro elétrico."},
-    ];
-    const GAME_BADGES = [
-      {id:"legendary-run",name:"Legendary Run",icon:"trophy",color:C.violetB,desc:"Treino épico pronto para compartilhar."},
-      {id:"vo2-up",name:"VO2 Max Up",icon:"bio",color:C.cyanB,desc:"Performance subindo no visual."},
-      {id:"new-pr",name:"New PR",icon:"medal",color:C.amber,desc:"Recorde pessoal em destaque."},
-      {id:"long-run-hero",name:"Long Run Hero",icon:"flame",color:C.coral,desc:"Volume alto com aura de conquista."},
-    ];
-    const activeOverlay = FX_OVERLAYS.find(o=>o.id===fxOverlay) || FX_OVERLAYS[0];
-    const activeTemplate = SOCIAL_TEMPLATES.find(t=>t.id===fxTemplate) || SOCIAL_TEMPLATES[0];
-    const activeMood = MOOD_PRESETS.find(m=>m.id===fxMood) || MOOD_PRESETS[0];
-    const activeBadge = GAME_BADGES.find(b=>b.id===fxBadge) || GAME_BADGES[0];
-    const startAutoReel = () => {
-      setFxReelStatus("rendering");
-      setTimeout(()=>setFxReelStatus("ready"), 1200);
-    };
-    const applyMoodPreset = (m) => {
-      setFxMood(m.id);
-      setFxActive(m.fx);
-      setFxOverlay(m.overlay);
-    };
     return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
@@ -5782,15 +5597,14 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         {studioTab==="card"&&(
           <div>
             <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient} cardIndex={cardIndex} setCardIndex={setCardIndex} card2Photo={card2Photo} setCard2Photo={setCard2Photo}/>
-            {/* toggle de cor do traçado */}
             <div style={{display:"flex",gap:6,justifyContent:"center",alignItems:"center",marginTop:12}}>
               {Object.entries(COLOR_PALETTE).map(([key,val])=>{
-                const isSelected = cardColor===key;
-                const previewBg = key==="gradient"?"linear-gradient(135deg,#811df2,#22d3ee)":key==="white"?"#e0e0e0":key==="cyan"?"#22d3ee":"#811df2";
+                const isSel=cardColor===key;
+                const bg=key==="gradient"?"linear-gradient(135deg,#811df2,#22d3ee)":key==="white"?"#e0e0e0":key==="cyan"?"#22d3ee":"#811df2";
                 return (
                   <button key={key} onClick={()=>setCardColor(key)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 8px"}}>
-                    <div style={{width:26,height:26,borderRadius:"50%",background:previewBg,border:isSelected?"2.5px solid #fff":"2px solid #ffffff33",boxShadow:isSelected?"0 0 8px #ffffff66":"none"}}/>
-                    <span style={{color:isSelected?C.tp:C.td,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{val.label}</span>
+                    <div style={{width:26,height:26,borderRadius:"50%",background:bg,border:isSel?"2.5px solid #fff":"2px solid #ffffff33",boxShadow:isSel?"0 0 8px #ffffff66":"none"}}/>
+                    <span style={{color:isSel?C.tp:C.td,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase"}}>{val.label}</span>
                   </button>
                 );
               })}
@@ -5821,167 +5635,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         {studioTab==="efeitos"&&(
           <div>
-            <div style={{background:"linear-gradient(145deg,#080a24,#10143a 54%,#071927)",border:"1px solid "+activeFx.color+"55",borderRadius:18,padding:15,marginBottom:15,boxShadow:"0 18px 42px #00000055, 0 0 28px "+activeFx.color+"22",overflow:"hidden",position:"relative"}}>
-              <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 18% 18%,"+C.violet+"44,transparent 33%),radial-gradient(circle at 84% 10%,"+C.cyan+"33,transparent 30%)",opacity:0.9,pointerEvents:"none"}}/>
-              <div style={{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:13}}>
-                <div>
-                  <Badge text="FX STUDIO" color={activeFx.color}/>
-                  <h2 style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:"8px 0 2px",letterSpacing:0}}>Live Preview</h2>
-                  <p style={{color:"#ffffff99",fontSize:11,margin:0,lineHeight:1.35}}>{activeMood.name} · {activeOverlay.name} · {activeTemplate.size}</p>
+            <SL><Ic n="bolt" z={13} c={C.ts}/>Efeitos especiais</SL>
+            {[
+              {nome:"Trail Mode",desc:"Filtro com tons terrosos e fontes manuscritas",cor:C.amber},
+              {nome:"Night Run",desc:"Visual noturno com neon e contraste forte",cor:C.violetL},
+              {nome:"Classic",desc:"Estilo minimalista preto e branco",cor:C.ts},
+            ].map((e,i)=>(
+              <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"11px 13px",marginBottom:8,border:"1px solid "+e.cor+"33",display:"flex",alignItems:"center",gap:11}}>
+                <div style={{width:32,height:32,borderRadius:9,background:e.cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="bolt" z={17} c={e.cor}/></div>
+                <div style={{flex:1}}>
+                  <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>{e.nome}</p>
+                  <p style={{color:C.tm,fontSize:11,margin:"2px 0 0",lineHeight:1.4}}>{e.desc}</p>
                 </div>
-                <div style={{width:42,height:42,borderRadius:12,background:activeFx.color+"22",border:"1px solid "+activeFx.color+"66",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 18px "+activeFx.color+"33"}}>
-                  <Ic n={activeFx.icon} z={21} c={activeFx.color}/>
-                </div>
-              </div>
-              <div style={{position:"relative",height:136,borderRadius:14,background:"linear-gradient(135deg,#050617,#121747)",border:"1px solid #ffffff14",overflow:"hidden",padding:14,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
-                <div style={{position:"absolute",left:18,right:18,top:48,height:2,background:"linear-gradient(90deg,transparent,"+activeFx.color+",#fff,"+C.cyanB+",transparent)",boxShadow:"0 0 "+(8+activeFxAmount/5)+"px "+activeFx.color,opacity:activeFxAmount/100}}/>
-                <div style={{position:"absolute",right:18,bottom:16,width:72,height:72,borderRadius:"50%",border:"1px solid "+activeFx.color+"55",boxShadow:"0 0 32px "+activeFx.color+"44",opacity:0.6}}/>
-                <div style={{position:"absolute",left:20,right:20,bottom:38,height:18,background:"linear-gradient(90deg,transparent,"+activeOverlay.color+"77,transparent)",transform:"skewX(-18deg)",filter:"blur(0.3px)",opacity:activeFxAmount/110}}/>
-                {(activeFx.id==="motion-blur"||activeFx.id==="split-flash")&&<div style={{position:"absolute",left:28,right:66,top:62,height:26,background:"linear-gradient(90deg,"+activeFx.color+"88,transparent)",transform:"skewX(-24deg)",filter:"blur(1px)",opacity:0.58}}/>}
-                {activeFx.id==="rain-sheen"&&<div style={{position:"absolute",inset:0,background:"repeating-linear-gradient(115deg,transparent 0 10px,"+C.cyanL+"22 11px 12px)",opacity:0.55}}/>}
-                {activeFx.id==="pr-explosion"&&<div style={{position:"absolute",right:44,top:44,width:58,height:58,borderRadius:"50%",background:"radial-gradient(circle,#ffffffaa,"+activeFx.color+"55 42%,transparent 70%)",boxShadow:"0 0 30px "+activeFx.color+"77",opacity:0.8}}/>}
-                <div style={{position:"absolute",left:22,bottom:35,color:activeOverlay.color,fontSize:10,fontFamily:"monospace",fontWeight:900,textShadow:"0 0 12px "+activeOverlay.color}}>
-                  {activeOverlay.metric}
-                </div>
-                {activeOverlay.id==="hr-pulse"&&<div style={{position:"absolute",right:30,top:47,width:34,height:34,borderRadius:"50%",border:"1px solid "+activeOverlay.color,boxShadow:"0 0 22px "+activeOverlay.color,opacity:0.9}}/>}
-                {activeOverlay.id==="pace-heatmap"&&<div style={{position:"absolute",left:22,right:22,bottom:58,height:10,borderRadius:99,background:"linear-gradient(90deg,"+C.cyanB+","+C.violetB+","+C.coral+","+C.cyanB+")",boxShadow:"0 0 18px "+activeOverlay.color+"66",opacity:0.8}}/>}
-                {activeOverlay.id==="altimetry"&&<div style={{position:"absolute",left:102,right:30,bottom:52,height:28,borderBottom:"2px solid "+activeOverlay.color,borderLeft:"2px solid "+activeOverlay.color,transform:"skewY(-10deg)",opacity:0.75}}/>}
-                {activeOverlay.id==="km-splashes"&&<div style={{position:"absolute",right:76,top:56,color:"#fff",fontSize:18,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif",textShadow:"0 0 16px "+activeOverlay.color}}>KM</div>}
-                {activeOverlay.id==="glow-route"&&<div style={{position:"absolute",left:48,right:46,top:74,height:3,borderRadius:99,background:"linear-gradient(90deg,"+C.violet+","+C.cyanB+",#fff)",boxShadow:"0 0 20px "+C.cyanB,transform:"rotate(-7deg)",opacity:0.9}}/>}
-                {activeOverlay.id==="ghost-runner"&&<div style={{position:"absolute",right:98,bottom:28,width:24,height:48,borderRadius:13,background:"linear-gradient(180deg,#ffffffaa,#ffffff11)",boxShadow:"0 0 20px #ffffff66",opacity:0.7}}/>}
-                <div style={{position:"absolute",right:12,top:36,background:"linear-gradient(135deg,"+activeBadge.color+"33,#ffffff10)",border:"1px solid "+activeBadge.color+"77",borderRadius:11,padding:"6px 8px",display:"flex",alignItems:"center",gap:6,boxShadow:"0 0 20px "+activeBadge.color+"33",animation:"pulse 1.5s infinite"}}>
-                  <Ic n={activeBadge.icon} z={14} c={activeBadge.color}/>
-                  <span style={{color:"#fff",fontSize:9,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif",whiteSpace:"nowrap"}}>{activeBadge.name}</span>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",position:"relative"}}>
-                  <span style={{color:"#ffffffcc",fontSize:10,fontFamily:"monospace",fontWeight:800,letterSpacing:0.8}}>TEMPO FX</span>
-                  <span style={{color:activeFx.color,fontSize:10,fontFamily:"monospace",fontWeight:800}}>{activeTemplate.name}</span>
-                </div>
-                <div style={{position:"relative"}}>
-                  <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:24,fontWeight:800,margin:"0 0 2px",textShadow:"0 0 18px "+activeFx.color+"66"}}>{Number(lastRun.distancia_km||0).toFixed(1)}km</p>
-                  <p style={{color:"#ffffffaa",fontSize:11,margin:0}}>{lastRun.pace_medio||"5:30"} pace · {fmtT(lastRun.duracao_seg||3120)}</p>
-                </div>
-              </div>
-            </div>
-
-            <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.violet+"33",borderRadius:16,padding:12,marginBottom:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:10}}>
-                <div>
-                  <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:14,margin:"0 0 2px"}}>AI Auto Reel</p>
-                  <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.35}}>Melhores momentos, cortes, música e FX em uma sequência pronta.</p>
-                </div>
-                <button onClick={startAutoReel} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",border:"none",borderRadius:11,color:"#fff",padding:"10px 11px",fontSize:11,fontWeight:900,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",whiteSpace:"nowrap",boxShadow:"0 0 18px "+C.cyan+"33"}}>
-                  {fxReelStatus==="rendering"?"Gerando...":fxReelStatus==="ready"?"Reel pronto":"Generate Reel"}
-                </button>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
-                {[
-                  {l:"Moments",v:fxReelStatus==="idle"?"Auto":"5 cortes",c:C.cyanB},
-                  {l:"Music",v:fxReelStatus==="idle"?"Beat sync":"128 bpm",c:C.violetB},
-                  {l:"Cuts",v:fxReelStatus==="idle"?"Smart":"0:24",c:C.green},
-                ].map(item=>(
-                  <div key={item.l} style={{background:C.bg,border:"1px solid "+item.c+"33",borderRadius:11,padding:"8px 7px"}}>
-                    <p style={{color:item.c,fontSize:9,fontWeight:900,margin:"0 0 2px",fontFamily:"monospace",textTransform:"uppercase"}}>{item.l}</p>
-                    <p style={{color:C.tp,fontSize:12,fontWeight:800,margin:0}}>{item.v}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <SL><Ic n="star" z={13} c={activeMood.color}/>Mood presets</SL>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-              {MOOD_PRESETS.map(m=>{
-                const selected = fxMood===m.id;
-                return (
-                  <button key={m.id} onClick={()=>applyMoodPreset(m)} style={{background:selected?"linear-gradient(135deg,"+m.color+"24,"+C.s2+")":C.s1,border:"1px solid "+(selected?m.color+"77":C.border),borderRadius:13,padding:10,textAlign:"left",cursor:"pointer",fontFamily:"inherit",boxShadow:selected?"0 0 18px "+m.color+"22":"none"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-                      <Ic n={m.icon} z={15} c={m.color}/>
-                      <span style={{color:C.tp,fontWeight:900,fontSize:11,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.1}}>{m.name}</span>
-                    </div>
-                    <p style={{color:C.tm,fontSize:10,margin:0,lineHeight:1.3}}>{m.desc}</p>
-                  </button>
-                );
-              })}
-            </div>
-
-            <SL><Ic n="trophy" z={13} c={activeBadge.color}/>Gamificação visual</SL>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-              {GAME_BADGES.map(b=>{
-                const selected = fxBadge===b.id;
-                return (
-                  <button key={b.id} onClick={()=>setFxBadge(b.id)} style={{background:selected?"linear-gradient(135deg,"+b.color+"24,"+C.s2+")":C.s1,border:"1px solid "+(selected?b.color+"77":C.border),borderRadius:13,padding:10,textAlign:"left",cursor:"pointer",fontFamily:"inherit",boxShadow:selected?"0 0 18px "+b.color+"22":"none",position:"relative",overflow:"hidden"}}>
-                    {selected&&<div style={{position:"absolute",right:-8,top:-8,width:30,height:30,borderRadius:"50%",background:b.color+"33",filter:"blur(2px)",animation:"pulse 1.5s infinite"}}/>}
-                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5,position:"relative"}}>
-                      <div style={{width:24,height:24,borderRadius:8,background:b.color+"22",border:"1px solid "+b.color+"55",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:selected?"0 0 14px "+b.color+"44":"none"}}>
-                        <Ic n={b.icon} z={14} c={b.color}/>
-                      </div>
-                      <span style={{color:C.tp,fontWeight:900,fontSize:11,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.1}}>{b.name}</span>
-                    </div>
-                    <p style={{color:C.tm,fontSize:10,margin:0,lineHeight:1.3,position:"relative"}}>{b.desc}</p>
-                  </button>
-                );
-              })}
-            </div>
-
-            <SL><Ic n="video" z={13} c={C.cyanB}/>Overlays cinematográficos</SL>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-              {FX_OVERLAYS.map(o=>{
-                const selected = fxOverlay===o.id;
-                return (
-                  <button key={o.id} onClick={()=>setFxOverlay(o.id)} style={{background:selected?"linear-gradient(135deg,"+o.color+"22,"+C.s2+")":C.s1,border:"1px solid "+(selected?o.color+"77":C.border),borderRadius:13,padding:10,textAlign:"left",cursor:"pointer",fontFamily:"inherit",boxShadow:selected?"0 0 18px "+o.color+"22":"none"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:6}}>
-                      <Ic n={o.icon} z={15} c={o.color}/>
-                      <span style={{color:C.tp,fontWeight:900,fontSize:11,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.1}}>{o.name}</span>
-                      {o.pro&&<span style={{marginLeft:"auto",color:C.violetB,fontSize:8,fontWeight:900,border:"1px solid "+C.violetB+"55",borderRadius:5,padding:"1px 4px"}}>PRO</span>}
-                    </div>
-                    <p style={{color:C.tm,fontSize:10,margin:0,lineHeight:1.3}}>{o.desc}</p>
-                  </button>
-                );
-              })}
-            </div>
-
-            <SL><Ic n="share" z={13} c={C.violetB}/>Templates sociais</SL>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:14}}>
-              {SOCIAL_TEMPLATES.map(t=>{
-                const selected = fxTemplate===t.id;
-                return (
-                  <button key={t.id} onClick={()=>setFxTemplate(t.id)} style={{background:selected?"linear-gradient(135deg,"+C.violet+"30,"+C.cyan+"18)":C.s1,border:"1px solid "+(selected?C.cyanB+"77":C.border),borderRadius:12,padding:"9px 6px",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:70}}>
-                    <Ic n={t.icon} z={16} c={selected?C.cyanB:C.tm}/>
-                    <span style={{color:selected?C.tp:C.ts,fontSize:10,fontWeight:900,textAlign:"center",lineHeight:1.15}}>{t.name}</span>
-                    <span style={{color:selected?C.cyanB:C.td,fontSize:9,fontFamily:"monospace",fontWeight:800}}>{t.size}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {FX_GROUPS.map(group=>(
-              <div key={group.cat} style={{marginBottom:14}}>
-                <SL><Ic n={group.cat==="AI"?"ai":group.cat==="Trail"?"mountain":group.cat==="Weather"?"streak":group.cat==="Performance"?"cadence":"bolt"} z={13} c={group.accent}/>{group.cat}</SL>
-                <div style={{display:"grid",gap:8}}>
-                  {group.items.map(e=>{
-                    const selected = fxActive===e.id;
-                    const intensity = fxIntensity[e.id] || "Med";
-                    return (
-                      <div key={e.id} onClick={()=>setFxActive(e.id)} style={{background:selected?"linear-gradient(135deg,"+e.color+"1f,"+C.s2+")":"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:11,border:"1px solid "+(selected?e.color+"77":e.color+"28"),boxShadow:selected?"0 0 22px "+e.color+"20":"none",cursor:"pointer"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:10}}>
-                          <div style={{width:34,height:34,borderRadius:10,background:e.color+"22",border:"1px solid "+e.color+"44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            <Ic n={e.icon} z={17} c={e.color}/>
-                          </div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                              <p style={{color:C.tp,fontWeight:800,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{e.name}</p>
-                              {e.pro&&<Badge text="PRO" color={C.violetB}/>}
-                            </div>
-                            <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.35}}>{e.desc}</p>
-                          </div>
-                          <select value={intensity} onClick={ev=>ev.stopPropagation()} onChange={ev=>{setFxActive(e.id);setFxIntensity(v=>({...v,[e.id]:ev.target.value}));}} style={{width:70,background:C.bg,border:"1px solid "+(selected?e.color+"66":C.border),borderRadius:9,padding:"7px 6px",color:selected?C.tp:C.ts,fontSize:11,fontWeight:800,fontFamily:"'DM Sans',system-ui,sans-serif",outline:"none",cursor:"pointer"}}>
-                            {["Off","Low","Med","High"].map(level=><option key={level} value={level}>{level}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <Ic n="back" z={14} c={C.td} st={{transform:"rotate(180deg)"}}/>
               </div>
             ))}
           </div>
@@ -6036,7 +5702,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               {loggedIn && showOnboarding && renderOnboarding()}
               {loggedIn && showDadosModal && renderDadosModal()}
               {loggedIn && showConfigModal && renderConfigModal()}
-              {loggedIn && showAboutModal && renderAboutModal()}
               {loggedIn && showProModal && renderProModal()}
               {loggedIn && showUpgradeModal && renderUpgradeModal()}
               {loggedIn && showAddTreino && renderAddTreinoModal()}
