@@ -4700,6 +4700,17 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
     const cardRef = useRef(null);
     const exportCanvasRef = useRef(null);
+    const touchStartX = useRef(null);
+
+    function onTouchStart(e){ touchStartX.current = e.touches[0].clientX; }
+    function onTouchEnd(e){
+      if(touchStartX.current===null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      touchStartX.current = null;
+      if(Math.abs(dx) < 40) return; // ignorar swipes pequenos
+      if(dx < 0) setCardIndex(i=>(i+1)%TOTAL);      // swipe left → próximo
+      else        setCardIndex(i=>(i-1+TOTAL)%TOTAL); // swipe right → anterior
+    }
 
     function handleSave() {
       const W = 356, SCALE = 3, CARD_H = 480;
@@ -4976,7 +4987,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       <div>
         {/* card + arrows */}
         <div style={{position:"relative",marginBottom:14}}>
-          <div ref={cardRef}>
+          <div ref={cardRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{touchAction:"pan-y"}}>
             {CARDS[cardIndex]}
           </div>
           {/* left arrow */}
