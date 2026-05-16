@@ -4540,7 +4540,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
 
   // ── CARD CAROUSEL ────────────────────────────────────────────────────────────
-  function CardCarousel({ run, C, fmtT }) {
+  function CardCarousel({ run, C, fmtT, traceStroke="#811df2", isGradient=true }) {
     const [cardIndex, setCardIndex] = useState(0);
     const canvasRef1 = useRef(null); // small map for card 1
     const canvasRef2 = useRef(null); // full map for card 2
@@ -5023,6 +5023,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     );
 
     const cardBg = "linear-gradient(160deg,#0c0830,#0a1430)";
+    const traceColor1 = "#811df2";
+    const traceColor2 = "#22d3ee";
     const cardBorder = "1px solid #a855f744";
     const cardShadow = "0 8px 32px rgba(0,0,0,0.6)";
 
@@ -5579,7 +5581,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </div>
 
         {studioTab==="card"&&(
-          <CardCarousel run={lastRun} C={C} fmtT={fmtT}/>
+          <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient}/>
         )}
 
         {studioTab==="rps"&&(
