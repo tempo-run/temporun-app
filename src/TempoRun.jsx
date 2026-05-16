@@ -1450,7 +1450,7 @@ function LoginScreen({ onLogin }) {
           <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErro("");}} placeholder="seu@email.com" autoFocus style={{width:"100%",background:C.s2,border:"1px solid "+(erro?C.coral:C.border),borderRadius:12,padding:"14px",color:C.tp,fontSize:15,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
         </div>
         {erro&&<p style={{color:C.coral,fontSize:12,margin:0}}>{erro}</p>}
-        <button type="submit" disabled={legendaLoading} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"14px 0",fontWeight:800,fontSize:15,cursor:legendaLoading?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44",opacity:legendaLoading?0.7:1,marginTop:4}}>
+        <button type="submit" disabled={loading} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"14px 0",fontWeight:800,fontSize:15,cursor:loading?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44",opacity:loading?0.7:1,marginTop:4}}>
           {loading?"Enviando...":"Enviar código"}
         </button>
       </form>
@@ -1943,72 +1943,10 @@ export default function TempoRunApp() {
   const [routeTick, setRouteTick]=useState(0);  // força re-render do LiveMap
   const [explTab, setExplTab] = useState("rotas");
   const [studioTab, setStudioTab] = useState("card");
-  const [rpDistState, setRpDistState] = useState("5km");
-  // Efeitos — Mapa Artístico
-  const [artColor, setArtColor] = useState("#811df2");
-  const [artBg, setArtBg] = useState("#06071a");
-  const [artSaved, setArtSaved] = useState(false);
-  const artCanRef = useRef(null);
-  const artEfeitoRun = studioRun || corridas[0] || null;
-  useEffect(()=>{
-    const canvas = artCanRef.current; if(!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const W=canvas.width, H=canvas.height;
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle = artBg; ctx.fillRect(0,0,W,H);
-    const efDist2 = artEfeitoRun?.distancia_km?.toFixed(2)||"8.50";
-    const efPace2 = artEfeitoRun?.pace_medio||"5:41";
-    const efDur2  = artEfeitoRun ? fmtT(artEfeitoRun.duracao_seg) : "48:00";
-    const poly = artEfeitoRun?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
-    let raw=[];
-    if(poly.length>2){
-      const s=poly[0]; const isLL=s[0]<0||(Math.abs(s[0])<10&&Math.abs(s[1])>10);
-      raw=poly.map(p=>({x:isLL?p[0]:p[1],y:isLL?-p[1]:-p[0]}));
-    } else {
-      const seed=artEfeitoRun?.distancia_km||8.5; let rx=0,ry=0; raw=[{x:rx,y:ry}];
-      for(let i=0;i<60;i++){rx+=Math.sin(i*1.1+seed)*0.003+0.001;ry+=Math.cos(i*0.8+seed)*0.0025;raw.push({x:rx,y:ry});}
-    }
-    const pad=40;
-    const minX=Math.min(...raw.map(p=>p.x)),maxX=Math.max(...raw.map(p=>p.x));
-    const minY=Math.min(...raw.map(p=>p.y)),maxY=Math.max(...raw.map(p=>p.y));
-    const rX=maxX-minX||1,rY=maxY-minY||1;
-    const sc=Math.min((W-pad*2)/rX,(H-80-pad*2)/rY);
-    const oX=(W-rX*sc)/2,oY=(H-80-rY*sc)/2+30;
-    const pts=raw.map(p=>({x:oX+(p.x-minX)*sc,y:oY+(p.y-minY)*sc}));
-    if(pts.length>1){
-      ctx.strokeStyle=artBg==="#06071a"?"#1a2050":"#d0d8f0"; ctx.lineWidth=0.5; ctx.globalAlpha=0.3;
-      for(let i=0;i<W;i+=20){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
-      for(let i=0;i<H;i+=20){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
-      ctx.globalAlpha=1;
-      ctx.shadowColor=artColor; ctx.shadowBlur=18;
-      ctx.strokeStyle=artColor+"44"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round";
-      ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-      pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
-      ctx.shadowBlur=6; ctx.strokeStyle=artColor; ctx.lineWidth=3;
-      ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-      pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
-      ctx.shadowBlur=0;
-      ctx.fillStyle="#22c55e"; ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,6,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(pts[pts.length-1].x,pts[pts.length-1].y,6,0,Math.PI*2); ctx.fill();
-    }
-    ctx.fillStyle=artBg==="#06071a"?"#ffffff22":"#00000022"; ctx.fillRect(0,H-72,W,72);
-    ctx.fillStyle=artBg==="#06071a"?"#fff":"#111";
-    ctx.font="bold 28px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
-    ctx.fillText(efDist2+" km",18,H-42);
-    ctx.font="bold 13px monospace"; ctx.fillStyle=artBg==="#06071a"?"#ffffff88":"#00000066";
-    ctx.fillText(efPace2+" /km  ·  "+efDur2,18,H-20);
-  },[artColor,artBg,artEfeitoRun]);
-  // Efeitos — Overlay Vídeo
-  const [oSaved, setOSaved] = useState(false);
-  // Efeitos — Legenda IA
-  const [legenda, setLegenda] = useState("");
-  const [legendaLoading, setLegendaLoading] = useState(false);
-  const [legendaCopiado, setLegendaCopiado] = useState(false);
-  const [legendaEstilo, setLegendaEstilo] = useState("motivacional");
   const [studioRun, setStudioRun] = useState(null);
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
-  const [cardColor, setCardColor] = useState("gradient");
+  const [cardColor, setCardColor] = useState("blue");
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -4149,7 +4087,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </div>
 
 
-                {/* Coach Tempo */}
+        {/* Coach Tempo */}
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>Coach Tempo</p>
           <p style={{color:C.ts,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>Hoje focamos em velocidade de limiar. Execute em ~5:10/km.</p>
@@ -4547,7 +4485,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const [cardIndex, setCardIndex] = useState(0);
     const canvasRef1 = useRef(null); // small map for card 1
     const canvasRef2 = useRef(null); // full map for card 2
-    const TOTAL = 5;
+    const TOTAL = 4;
 
     const dist  = run ? run.distancia_km.toFixed(1) : "10.4";
     const pace  = run?.pace_medio  || "5:30";
@@ -4874,7 +4812,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             pts1e.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
             // Gradiente roxo→cyan
             const gr1e=ctx.createLinearGradient(pts1e[0].x,pts1e[0].y,pts1e[pts1e.length-1].x,pts1e[pts1e.length-1].y);
-            if(cardColor==="gradient"){gr1e.addColorStop(0,"#811df2");gr1e.addColorStop(0.5,"#a855f7");gr1e.addColorStop(1,"#22d3ee");}else{gr1e.addColorStop(0,COLOR_PALETTE[cardColor]?.stroke||"#811df2");gr1e.addColorStop(1,COLOR_PALETTE[cardColor]?.stroke||"#22d3ee");}
+            gr1e.addColorStop(0,"#7c3aed"); gr1e.addColorStop(0.5,"#a855f7"); gr1e.addColorStop(1,"#22d3ee");
             ctx.shadowBlur=5; ctx.strokeStyle=gr1e; ctx.lineWidth=3;
             ctx.beginPath(); ctx.moveTo(pts1e[0].x,pts1e[0].y);
             pts1e.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
@@ -4891,43 +4829,13 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           ctx.globalAlpha = 1;
 
         } else if (cardIndex === 1) {
-          // CARD 2: estilo Garmin — fundo transparente, dados + barra gradiente
-          // Logo centralizada
-          const lW2g=90, lH2g=lW2g/logoAR;
-          ctx.drawImage(logoImg, W/2-lW2g/2, 18, lW2g, lH2g);
-          // Barra lateral
-          const barGrad=ctx.createLinearGradient(0,0,0,cardH);
-          barGrad.addColorStop(0,"#811df2"); barGrad.addColorStop(0.4,"#a855f7");
-          barGrad.addColorStop(0.8,"#22d3ee"); barGrad.addColorStop(1,"rgba(34,211,238,0)");
-          ctx.fillStyle=barGrad; ctx.fillRect(0,0,6,cardH);
-          // Faixa de fundo dos dados
-          const dataGrad=ctx.createLinearGradient(0,0,220,0);
-          dataGrad.addColorStop(0,"rgba(13,10,40,0.92)");
-          dataGrad.addColorStop(0.6,"rgba(13,10,40,0.75)");
-          dataGrad.addColorStop(1,"rgba(13,10,40,0)");
-          ctx.fillStyle=dataGrad; ctx.fillRect(0,cardH-220,260,220);
-          // Dados
-          const metricsG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
-          let yG=cardH-200;
-          metricsG.forEach(m=>{
-            ctx.fillStyle="#ffffff"; ctx.font="bold 34px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
-            ctx.fillText(m.v+(m.u?" "+m.u:""), 22, yG+32);
-            ctx.fillStyle="rgba(255,255,255,0.45)"; ctx.font="bold 9px monospace";
-            ctx.fillText(m.l, 22, yG+48);
-            yG+=68;
-          });
-          // Data
-          ctx.fillStyle="rgba(255,255,255,0.35)"; ctx.font="bold 9px monospace"; ctx.textAlign="right";
-          ctx.fillText((run?.data||"Hoje").toUpperCase(), W-16, cardH-12);
-
-        } else if (cardIndex === 2) {
-          // CARD 3: mapa neon
+          // CARD 2: map fills full card, logo centered on top
           if (mapCanvas) { ctx.drawImage(mapCanvas, 0, 0, W, cardH); }
           const lW = 90, lH = lW / logoAR;
           ctx.drawImage(logoImg, W/2 - lW/2, 12, lW, lH);
 
-        } else if (cardIndex === 3) {
-          // CARD 4: logo centered + date + 3 col horizontal stats
+        } else if (cardIndex === 2) {
+          // CARD 3: logo centered + date + 3 col horizontal stats
           let y = 24;
           const lW = 72, lH = lW / logoAR;
           ctx.drawImage(logoImg, W/2 - lW/2, y, lW, lH);
@@ -4947,7 +4855,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         }
 
         // CARD 4: export separado com fundo transparente
-if(cardIndex === 4) {
+        if(cardIndex === 3) {
           // Novo canvas sem fundo
           const off4 = document.createElement("canvas");
           off4.width = W * SCALE; off4.height = cardH * SCALE;
@@ -5060,20 +4968,18 @@ if(cardIndex === 4) {
           <svg width="100%" height={H1} viewBox={`0 0 ${W1} ${H1}`} style={{position:"absolute",top:0,left:0}}>
             <defs>
               <linearGradient id={g1id} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={isGradient?traceColor1:traceStroke}/>
-                <stop offset="50%" stopColor={isGradient?"#a855f7":traceStroke}/>
-                <stop offset="100%" stopColor={isGradient?traceColor2:traceStroke}/>
+                <stop offset="0%" stopColor="#7c3aed"/><stop offset="50%" stopColor="#a855f7"/><stop offset="100%" stopColor="#22d3ee"/>
               </linearGradient>
               <filter id={gw1id}><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
-            {pathD1&&<path d={pathD1} fill="none" stroke={isGradient?traceColor1:traceStroke} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
+            {pathD1&&<path d={pathD1} fill="none" stroke="#7c3aed" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
             {pathD1&&<path d={pathD1} fill="none" stroke={`url(#${g1id})`} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${gw1id})`}/>}
             {pts1.length>0&&<><circle cx={pts1[0].x} cy={pts1[0].y} r="5" fill="#06071a" stroke="#22c55e" strokeWidth="2"/><circle cx={pts1[0].x} cy={pts1[0].y} r="2.5" fill="#22c55e"/></>}
             {pts1.length>1&&<><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="5" fill="#06071a" stroke="#22d3ee" strokeWidth="2"/><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="2.5" fill="#22d3ee"/></>}
           </svg>
           {/* Conteúdo por cima */}
           <div style={{position:"relative",zIndex:1,padding:"16px 16px 0",textAlign:"center"}}>
-            <img src={tempoRunLogo} alt="TempoRun" style={{width:100,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 12px"}}/>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 10px"}}/>
             <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>{data}</p>
             <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
               <p style={{color:"#f0f4ff",fontSize:42,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}<span style={{fontSize:18,opacity:0.6,fontWeight:600}}> km</span></p>
@@ -5085,25 +4991,27 @@ if(cardIndex === 4) {
               <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{dur}</p>
             </div>
           </div>
-
+          <div style={{position:"absolute",bottom:10,left:0,right:0,textAlign:"center",zIndex:1}}>
+            <img src={tempoRunLogo} alt="" style={{width:50,height:"auto",objectFit:"contain",opacity:0.25}}/>
+          </div>
         </div>
       );
     })();
 
-    // ── CARD 3: full neon map + logo centered top ──
-    const Card4 = (
+    // ── CARD 2: full neon map + logo centered top ──
+    const Card2 = (
       <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative",height:480}}>
         {mapUrl2 ? <img src={mapUrl2} alt="mapa" style={{width:"100%",height:480,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef2} width={356} height={480} style={{width:"100%",display:"block"}}/>}
         <div style={{position:"absolute",top:12,left:"50%",transform:"translateX(-50%)"}}>
-          <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
+          <img src={tempoRunLogo} alt="TempoRun" style={{width:64,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
         </div>
       </div>
     );
 
-    // ── CARD 4: logo centered + horizontal stats only ──
+    // ── CARD 3: logo centered + horizontal stats only ──
     const Card3 = (
       <div style={{background:cardBg,borderRadius:17,padding:"24px 20px 28px",border:cardBorder,boxShadow:cardShadow,textAlign:"center",height:480,display:"flex",flexDirection:"column",justifyContent:"center"}}>
-        <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 20px"}}/>
+        <img src={tempoRunLogo} alt="TempoRun" style={{width:72,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 20px"}}/>
         <p style={{color:"#ffffff44",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",margin:"0 0 20px"}}>{data}</p>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:8,textAlign:"left"}}>
           <div style={{flex:1,borderTop:"1px solid #a855f744",paddingTop:10}}>
@@ -5122,8 +5030,8 @@ if(cardIndex === 4) {
       </div>
     );
 
-    // ── CARD 5: traçado minimalista — só a linha da rota ──
-    const Card5 = (()=>{
+    // ── CARD 4: traçado minimalista — só a linha da rota ──
+    const Card4 = (()=>{
       const W=356, H=480, pad=48;
       const poly = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
       // Gera pontos sintéticos se não há polyline
@@ -5153,9 +5061,9 @@ if(cardIndex === 4) {
           <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
             <defs>
               <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={isGradient?traceColor1:traceStroke}/>
-                <stop offset="50%" stopColor={isGradient?"#a855f7":traceStroke}/>
-                <stop offset="100%" stopColor={isGradient?traceColor2:traceStroke}/>
+                <stop offset="0%" stopColor="#7c3aed"/>
+                <stop offset="50%" stopColor="#a855f7"/>
+                <stop offset="100%" stopColor="#22d3ee"/>
               </linearGradient>
               <filter id={glowId}>
                 <feGaussianBlur stdDeviation="3" result="blur"/>
@@ -5163,7 +5071,7 @@ if(cardIndex === 4) {
               </filter>
             </defs>
             {/* Glow layer */}
-            {pathD&&<path d={pathD} fill="none" stroke={isGradient?traceColor1:traceStroke} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
+            {pathD&&<path d={pathD} fill="none" stroke="#7c3aed" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.25"/>}
             {/* Main trace */}
             {pathD&&<path d={pathD} fill="none" stroke={`url(#${gradId})`} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${glowId})`}/>}
             {/* Start dot */}
@@ -5173,59 +5081,15 @@ if(cardIndex === 4) {
           </svg>
           {/* Logo e dados sobrepostos */}
           <div style={{position:"absolute",top:16,left:0,right:0,display:"flex",justifyContent:"center",alignItems:"center"}}>
-            <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",opacity:0.85,filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:56,height:"auto",objectFit:"contain",opacity:0.75,filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
           </div>
 
         </div>
       );
     })();
 
-
-    // ── CARD 2: estilo Garmin — fundo transparente, dados + barra gradiente ──
-    const Card2 = (()=>{
-      const W2=356, H2=480;
-      const metrics = [
-        {v:dist,   u:"km",   l:"DISTÂNCIA"},
-        {v:pace,   u:"/km",  l:"PACE MÉDIO"},
-        {v:dur,    u:"",     l:"TEMPO TOTAL"},
-      ];
-      return (
-        <div style={{position:"relative",borderRadius:17,overflow:"hidden",height:H2,border:cardBorder,boxShadow:cardShadow,background:"rgba(0,0,0,0.18)"}}>
-          {/* Fundo xadrez (indica transparência para o utilizador) */}
-          <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(45deg,#1a1a2e 25%,transparent 25%),linear-gradient(-45deg,#1a1a2e 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1a2e 75%),linear-gradient(-45deg,transparent 75%,#1a1a2e 75%)",backgroundSize:"24px 24px",backgroundPosition:"0 0,0 12px,12px -12px,-12px 0",opacity:0.35,borderRadius:17}}/>
-
-          {/* Logo centralizada no topo */}
-          <div style={{position:"absolute",top:18,left:0,right:0,display:"flex",justifyContent:"center",zIndex:2}}>
-            <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 10px #7c3aed99)"}}/>
-          </div>
-
-          {/* Barra lateral gradiente — da esquerda, desbota para a direita */}
-          <div style={{position:"absolute",left:0,top:0,bottom:0,width:6,background:"linear-gradient(180deg,#811df2 0%,#a855f7 40%,#22d3ee 80%,transparent 100%)",zIndex:2,borderRadius:"17px 0 0 17px"}}/>
-
-          {/* Área de dados — canto inferior esquerdo */}
-          <div style={{position:"absolute",bottom:40,left:0,zIndex:3,paddingLeft:22}}>
-            {/* Faixa gradiente atrás dos dados */}
-            <div style={{position:"absolute",inset:"-12px -20px -12px -22px",background:"linear-gradient(90deg,rgba(13,10,40,0.92) 0%,rgba(13,10,40,0.75) 50%,transparent 100%)",backdropFilter:"blur(2px)"}}/>
-            {metrics.map((m,i)=>(
-              <div key={i} style={{position:"relative",marginBottom:i<metrics.length-1?18:0}}>
-                <div style={{display:"flex",alignItems:"baseline",gap:5}}>
-                  <span style={{color:"#ffffff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:34,lineHeight:1,letterSpacing:-1}}>{m.v}</span>
-                  {m.u&&<span style={{color:"rgba(255,255,255,0.6)",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:14}}>{m.u}</span>}
-                </div>
-                <p style={{color:"rgba(255,255,255,0.45)",fontFamily:"monospace",fontWeight:700,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",margin:"2px 0 0"}}>{m.l}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Data no canto inferior direito */}
-          <div style={{position:"absolute",bottom:18,right:16,zIndex:3}}>
-            <p style={{color:"rgba(255,255,255,0.35)",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:0,textAlign:"right"}}>{data}</p>
-          </div>
-        </div>
-      );
-    })();
-    const CARDS = [Card1, Card2, Card3, Card4, Card5];
-    const LABELS = ["Card 1 de 5","Card 2 de 5","Card 3 de 5","Card 4 de 5","Card 5 de 5"];
+    const CARDS = [Card1, Card2, Card3, Card4];
+    const LABELS = ["Card 1 de 4","Card 2 de 4","Card 3 de 4","Card 4 de 4"];
 
     return (
       <div>
@@ -5253,38 +5117,12 @@ if(cardIndex === 4) {
           ))}
         </div>
 
-        {/* toggle de cor do traçado */}
-        <div style={{display:"flex",gap:6,marginBottom:12,justifyContent:"center"}}>
-          {Object.entries(COLOR_PALETTE).map(([key,val])=>{
-            const isSelected = cardColor===key;
-            const previewBg = key==="gradient"
-              ? "linear-gradient(135deg,#811df2,#22d3ee)"
-              : key==="white" ? "#fff"
-              : key==="cyan" ? "#22d3ee"
-              : "#811df2";
-            return (
-              <button key={key} onClick={()=>setCardColor(key)} style={{
-                display:"flex",flexDirection:"column",alignItems:"center",gap:4,
-                background:"transparent",border:"none",cursor:"pointer",padding:"4px 6px"
-              }}>
-                <div style={{
-                  width:28,height:28,borderRadius:"50%",
-                  background:previewBg,
-                  border:isSelected?"2px solid #fff":"2px solid transparent",
-                  boxShadow:isSelected?"0 0 8px #ffffff66":"none",
-                }}/>
-                <span style={{color:isSelected?C.tp:C.td,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{val.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* actions */}
         <div style={{display:"flex",gap:8}}>
           <button onClick={handleSave} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
             <Ic n="save" z={15} c="#fff"/>PNG
           </button>
-          {(cardIndex===0||cardIndex===1||cardIndex===3||cardIndex===4)&&(
+          {(cardIndex===0||cardIndex===2||cardIndex===3)&&(
             <button onClick={handleCopy} style={{flex:1,background:copied?"#22c55e22":C.s2,color:copied?"#22c55e":C.cyanB,border:"1px solid "+(copied?"#22c55e44":C.cyanB+"44"),borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
               <Ic n="save" z={15} c={copied?"#22c55e":C.cyanB}/>{copied?"Copiado ✓":"Copiar"}
             </button>
@@ -5568,18 +5406,12 @@ if(cardIndex === 4) {
       {name:"Trail",bg:"linear-gradient(135deg,#1a0e00,#221500)"},
     ];
     const COLOR_PALETTE = {
-      violet:   {accent:"#811df2", label:"Roxo",     stroke:"#811df2", glow:"#811df288"},
-      cyan:     {accent:"#22d3ee", label:"Cyan",     stroke:"#22d3ee", glow:"#22d3ee88"},
-      white:    {accent:"#ffffff", label:"Branco",   stroke:"#ffffff", glow:"#ffffff44"},
-      gradient: {accent:"#811df2", label:"Gradiente",stroke:"gradient",glow:"#811df266"},
+      blue: {accent:C.cyanB, label:"Azul"},
+      violet: {accent:C.violetL, label:"Violeta"},
+      amber: {accent:C.amber, label:"Âmbar"},
     };
     const lastRun = studioRun || corridas[0] || {distancia_km:10.4, pace_medio:"5:30", duracao_seg:3120, dplus:128, bpm_medio:158, data:"Hoje"};
     const accent = COLOR_PALETTE[cardColor].accent;
-    const traceStroke = COLOR_PALETTE[cardColor].stroke;
-    const traceGlow = COLOR_PALETTE[cardColor].glow;
-    const isGradient = traceStroke === "gradient";
-    const traceColor1 = "#811df2";
-    const traceColor2 = "#22d3ee";
     return (
       <div>
         <div style={{paddingTop:8,paddingBottom:12}}>
@@ -5599,342 +5431,46 @@ if(cardIndex === 4) {
           <CardCarousel run={lastRun} C={C} fmtT={fmtT}/>
         )}
 
-        {studioTab==="rps"&&(()=>{
-          // 12 distâncias de referência
-          const DISTS = [
-            {id:"400m",  label:"400m"},
-            {id:"800m",  label:"800m"},
-            {id:"1km",   label:"1 km"},
-            {id:"1_6km", label:"1.6 km"},
-            {id:"3_2km", label:"3.2 km"},
-            {id:"5km",   label:"5 km"},
-            {id:"10km",  label:"10 km"},
-            {id:"15km",  label:"15 km"},
-            {id:"21km",  label:"Meia"},
-            {id:"42km",  label:"Maratona"},
-            {id:"50km",  label:"50 km"},
-            {id:"100km", label:"100 km"},
-          ];
-          const [rpDist, setRpDist] = [rpDistState, setRpDistState];
-          const cur = DISTS.find(d=>d.id===rpDist)||DISTS[4];
-
-          // RPs para a distância selecionada (top 3 das corridas)
-          const getRPs = (distId) => {
-            // Simulado com base nas corridas reais — em produção viria do storage
-            const base = {
-              "400m":  [{t:"1:28",p:"3:42"},  {t:"1:32",p:"3:50"},  {t:"1:35",p:"3:57"}],
-              "800m":  [{t:"3:12",p:"4:00"},  {t:"3:18",p:"4:07"},  {t:"3:24",p:"4:15"}],
-              "1km":   [{t:"4:05",p:"4:05"},  {t:"4:12",p:"4:12"},  {t:"4:20",p:"4:20"}],
-              "1_6km": [{t:"6:55",p:"4:20"},  {t:"7:10",p:"4:29"},  {t:"7:25",p:"4:38"}],
-              "3_2km": [{t:"14:20",p:"4:29"}, {t:"14:55",p:"4:40"}, {t:"15:20",p:"4:47"}],
-              "5km":   [{t:"22:10",p:"4:26"}, {t:"23:05",p:"4:37"}, {t:"24:00",p:"4:48"}],
-              "10km":  [{t:"46:30",p:"4:39"}, {t:"48:00",p:"4:48"}, {t:"49:30",p:"4:57"}],
-              "15km":  [{t:"1:12:00",p:"4:48"},{t:"1:14:30",p:"4:58"},{t:"1:17:00",p:"5:08"}],
-              "21km":  [{t:"1:42:00",p:"4:51"},{t:"1:46:00",p:"5:01"},{t:"1:50:00",p:"5:12"}],
-              "42km":  [{t:"3:35:00",p:"5:06"},{t:"3:44:00",p:"5:19"},{t:"3:52:00",p:"5:31"}],
-              "50km":  [{t:"4:30:00",p:"5:24"},{t:"4:45:00",p:"5:42"},{t:"5:00:00",p:"6:00"}],
-              "100km": [{t:"9:45:00",p:"5:51"},{t:"10:20:00",p:"6:12"},{t:"11:00:00",p:"6:36"}],
-            };
-            return base[distId]||[{t:"--:--",p:"--:--"}];
-          };
-          const rps = getRPs(rpDist);
-
-          // SVGs das medalhas
-          const MedalOuro = () => (
-            <svg width="52" height="52" viewBox="0 0 52 52">
-              <defs>
-                <radialGradient id="mg1" cx="40%" cy="35%">
-                  <stop offset="0%" stopColor="#ffe066"/>
-                  <stop offset="60%" stopColor="#f5a800"/>
-                  <stop offset="100%" stopColor="#b87800"/>
-                </radialGradient>
-                <radialGradient id="ms1" cx="40%" cy="35%">
-                  <stop offset="0%" stopColor="#ffd700"/>
-                  <stop offset="100%" stopColor="#a06000"/>
-                </radialGradient>
-              </defs>
-              {/* Fita */}
-              <path d="M17 2 L26 18 L35 2" fill="none" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round"/>
-              <path d="M20 2 L26 16 L32 2" fill="none" stroke="#22d3ee" strokeWidth="2.5" strokeLinecap="round"/>
-              {/* Medalha */}
-              <circle cx="26" cy="35" r="16" fill="url(#mg1)" stroke="#c8900088" strokeWidth="1.5"/>
-              <circle cx="26" cy="35" r="12.5" fill="none" stroke="#ffd70066" strokeWidth="1"/>
-              {/* Estrela */}
-              <polygon points="26,24 28.4,31.3 36,31.3 29.8,35.7 32.2,43 26,38.6 19.8,43 22.2,35.7 16,31.3 23.6,31.3" fill="url(#ms1)" stroke="#a0700044" strokeWidth="0.5"/>
-            </svg>
-          );
-          const MedalPrata = () => (
-            <svg width="44" height="44" viewBox="0 0 52 52">
-              <defs>
-                <radialGradient id="mg2" cx="40%" cy="35%">
-                  <stop offset="0%" stopColor="#f0f0f0"/>
-                  <stop offset="60%" stopColor="#b0b8c8"/>
-                  <stop offset="100%" stopColor="#7a8898"/>
-                </radialGradient>
-                <radialGradient id="ms2" cx="40%" cy="35%">
-                  <stop offset="0%" stopColor="#e8e8e8"/>
-                  <stop offset="100%" stopColor="#8090a0"/>
-                </radialGradient>
-              </defs>
-              <path d="M17 2 L26 18 L35 2" fill="none" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round"/>
-              <path d="M20 2 L26 16 L32 2" fill="none" stroke="#22d3ee" strokeWidth="2.5" strokeLinecap="round"/>
-              <circle cx="26" cy="35" r="16" fill="url(#mg2)" stroke="#90a0b088" strokeWidth="1.5"/>
-              <circle cx="26" cy="35" r="12.5" fill="none" stroke="#d0d8e066" strokeWidth="1"/>
-              <polygon points="26,24 28.4,31.3 36,31.3 29.8,35.7 32.2,43 26,38.6 19.8,43 22.2,35.7 16,31.3 23.6,31.3" fill="url(#ms2)" stroke="#80909844" strokeWidth="0.5"/>
-            </svg>
-          );
-          const MedalBronze = () => (
-            <svg width="40" height="40" viewBox="0 0 52 52">
-              <defs>
-                <radialGradient id="mg3" cx="40%" cy="35%">
-                  <stop offset="0%" stopColor="#e8a060"/>
-                  <stop offset="60%" stopColor="#c07038"/>
-                  <stop offset="100%" stopColor="#804820"/>
-                </radialGradient>
-                <radialGradient id="ms3" cx="40%" cy="35%">
-                  <stop offset="0%" stopColor="#d09060"/>
-                  <stop offset="100%" stopColor="#804020"/>
-                </radialGradient>
-              </defs>
-              <path d="M17 2 L26 18 L35 2" fill="none" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round"/>
-              <path d="M20 2 L26 16 L32 2" fill="none" stroke="#22d3ee" strokeWidth="2.5" strokeLinecap="round"/>
-              <circle cx="26" cy="35" r="16" fill="url(#mg3)" stroke="#90602088" strokeWidth="1.5"/>
-              <circle cx="26" cy="35" r="12.5" fill="none" stroke="#c0804066" strokeWidth="1"/>
-              <polygon points="26,24 28.4,31.3 36,31.3 29.8,35.7 32.2,43 26,38.6 19.8,43 22.2,35.7 16,31.3 23.6,31.3" fill="url(#ms3)" stroke="#70401844" strokeWidth="0.5"/>
-            </svg>
-          );
-
-          const medals = [MedalOuro, MedalPrata, MedalBronze];
-          const medalBg = ["linear-gradient(135deg,#1a1200,#2a1e00)","linear-gradient(135deg,#0e1118,#151c24)","linear-gradient(135deg,#180e06,#221408)"];
-          const medalBorder = ["#f5a80044","#b0b8c844","#c0703844"];
-
-          return (
-            <div>
-              {/* Selector de distâncias — grid 4 colunas */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:14}}>
-                {DISTS.map(d=>(
-                  <button key={d.id} onClick={()=>setRpDistState(d.id)} style={{background:rpDist===d.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:rpDist===d.id?"#fff":C.ts,border:rpDist===d.id?"none":"1px solid "+C.border,borderRadius:9,padding:"8px 4px",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                    {d.label}
-                  </button>
+        {studioTab==="rps"&&(
+          <div>
+            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:17,padding:18,marginBottom:14,border:"1px solid "+C.violet+"44"}}>
+              <div style={{textAlign:"center",marginBottom:14}}>
+                <p style={{color:"#ffffffaa",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 5px"}}>Meus Recordes Pessoais</p>
+                <p style={{color:"#fff",fontWeight:800,fontSize:18,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{dadosForm.nome||session?.strava_athlete?.firstname||"Corredor"}</p>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+                {rpsExib.map((r,i)=>(
+                  <div key={i} style={{background:"#ffffff10",border:"1px solid "+r.cor+"55",borderRadius:11,padding:"10px 11px",textAlign:"center"}}>
+                    <p style={{color:r.cor,fontWeight:800,fontSize:12,margin:"0 0 3px"}}>{r.dist}</p>
+                    <p style={{color:"#fff",fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>{r.tempo}</p>
+                    {r.melhora&&<p style={{color:C.cyanB,fontSize:9,margin:"3px 0 0",fontWeight:700}}>↓{r.melhora}</p>}
+                  </div>
                 ))}
               </div>
-
-              {/* PR destaque — ouro com raios */}
-              {rps[0]&&(
-                <div style={{background:"linear-gradient(135deg,#1a1200,#2a1e00)",borderRadius:17,padding:"24px 16px",marginBottom:10,border:"1px solid #f5a80033",textAlign:"center",position:"relative",overflow:"hidden"}}>
-                  {/* Raios decorativos */}
-                  <svg style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",opacity:0.15}} viewBox="0 0 356 160">
-                    {[0,30,60,90,120,150,210,240,270,300,330].map((a,i)=>(
-                      <line key={i} x1="178" y1="80" x2={178+Math.cos(a*Math.PI/180)*160} y2={80+Math.sin(a*Math.PI/180)*160} stroke="#f5a800" strokeWidth="1.5"/>
-                    ))}
-                  </svg>
-                  <p style={{color:"#f5a80088",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",margin:"0 0 12px",position:"relative"}}>{cur.label} PR</p>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:10,position:"relative"}}>
-                    <MedalOuro/>
-                  </div>
-                  <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:42,margin:"0 0 4px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{rps[0].t}</p>
-                  <p style={{color:"#f5a80099",fontFamily:"monospace",fontSize:14,fontWeight:700,margin:0,position:"relative"}}>{rps[0].p} /km</p>
-                </div>
-              )}
-
-              {/* 2º e 3º lugar */}
-              {rps.slice(1).map((r,i)=>{
-                const Medal = medals[i+1];
-                return (
-                  <div key={i} style={{background:medalBg[i+1],borderRadius:14,padding:"14px 16px",marginBottom:8,border:"1px solid "+medalBorder[i+1],display:"flex",alignItems:"center",gap:14}}>
-                    <Medal/>
-                    <div>
-                      <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:24,margin:0,letterSpacing:-1,lineHeight:1}}>{r.t}</p>
-                      <p style={{color:"rgba(255,255,255,0.5)",fontFamily:"monospace",fontSize:12,fontWeight:700,margin:"4px 0 0"}}>{r.p} /km</p>
-                    </div>
-                  </div>
-                );
-              })}
-
-              <button style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7,marginTop:6}}>
-                <Ic n="share" z={15} c="#fff"/>Compartilhar RP
-              </button>
             </div>
-          );
-        })()}
+            <button style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Ic n="share" z={15} c="#fff"/>Compartilhar RPs</button>
+          </div>
+        )}
 
-        {studioTab==="efeitos"&&(()=>{
-          const efeitoRun = studioRun || corridas[0] || null;
-          const efDist = efeitoRun?.distancia_km?.toFixed(2)||"8.50";
-          const efPace = efeitoRun?.pace_medio||"5:41";
-          const efDur  = efeitoRun ? fmtT(efeitoRun.duracao_seg) : "48:00";
-          const efNome = efeitoRun?.nome||"Corrida livre";
-
-          // ── 1. MAPA ARTÍSTICO ─────────────────────────────────────────────
-          const MapaArt = () => {
-            const canRef = artCanRef;
-            return (
-            return (
-              <div style={{marginBottom:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>🗺️ Mapa Artístico</p>
-                  <p style={{color:C.tm,fontSize:11,margin:0}}>Sem satélite, só o traçado</p>
+        {studioTab==="efeitos"&&(
+          <div>
+            <SL><Ic n="bolt" z={13} c={C.ts}/>Efeitos especiais</SL>
+            {[
+              {nome:"Trail Mode",desc:"Filtro com tons terrosos e fontes manuscritas",cor:C.amber},
+              {nome:"Night Run",desc:"Visual noturno com neon e contraste forte",cor:C.violetL},
+              {nome:"Classic",desc:"Estilo minimalista preto e branco",cor:C.ts},
+            ].map((e,i)=>(
+              <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"11px 13px",marginBottom:8,border:"1px solid "+e.cor+"33",display:"flex",alignItems:"center",gap:11}}>
+                <div style={{width:32,height:32,borderRadius:9,background:e.cor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="bolt" z={17} c={e.cor}/></div>
+                <div style={{flex:1}}>
+                  <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0}}>{e.nome}</p>
+                  <p style={{color:C.tm,fontSize:11,margin:"2px 0 0",lineHeight:1.4}}>{e.desc}</p>
                 </div>
-                <canvas ref={canRef} width={324} height={300} style={{width:"100%",borderRadius:14,display:"block",marginBottom:10}}/>
-                {/* Cor do traçado */}
-                <div style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
-                  <span style={{color:C.td,fontSize:10,fontFamily:"monospace",fontWeight:700}}>COR</span>
-                  {[["#811df2","Roxo"],["#22d3ee","Cyan"],["#ffffff","Branco"],["#22c55e","Verde"],["#f59e0b","Âmbar"]].map(([c,l])=>(
-                    <button key={c} onClick={()=>setArtColor(c)} style={{width:22,height:22,borderRadius:"50%",background:c,border:artColor===c?"2.5px solid #fff":"2px solid transparent",cursor:"pointer"}}/>
-                  ))}
-                  <span style={{color:C.td,fontSize:10,fontFamily:"monospace",fontWeight:700,marginLeft:8}}>FUNDO</span>
-                  {[["#06071a","Dark"],["#ffffff","Light"],["#0a1628","Navy"]].map(([c,l])=>(
-                    <button key={c} onClick={()=>setArtBg(c)} style={{width:22,height:22,borderRadius:6,background:c,border:artBg===c?"2.5px solid "+C.cyanB:"2px solid "+C.border,cursor:"pointer"}}/>
-                  ))}
-                </div>
-                <button onClick={()=>{
-                  const canvas=canRef.current; if(!canvas) return;
-                  const link=document.createElement("a"); link.download="temporun_mapa_art.png";
-                  link.href=canvas.toDataURL("image/png"); link.click();
-                  setArtSaved(true); setTimeout(()=>setArtSaved(false),2000);
-                }} style={{width:"100%",background:artSaved?"#22c55e22":"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:artSaved?"#22c55e":"#fff",border:artSaved?"1px solid #22c55e44":"none",borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
-                  <Ic n="save" z={15} c={artSaved?"#22c55e":"#fff"}/>{artSaved?"Salvo! ✓":"Salvar PNG"}
-                </button>
+                <Ic n="back" z={14} c={C.td} st={{transform:"rotate(180deg)"}}/>
               </div>
-            );
-          };
-
-          // ── 2. OVERLAY PARA VÍDEO ─────────────────────────────────────────
-          const OverlayVideo = () => {
-            const handleOverlay = () => {
-              const W=356, H=200, SCALE=3;
-              const off=document.createElement("canvas");
-              off.width=W*SCALE; off.height=H*SCALE;
-              const ctx=off.getContext("2d",{alpha:true});
-              ctx.clearRect(0,0,W*SCALE,H*SCALE);
-              ctx.scale(SCALE,SCALE);
-              // Faixa esquerda gradiente
-              const bg=ctx.createLinearGradient(0,0,W*0.65,0);
-              bg.addColorStop(0,"rgba(6,7,26,0.88)");
-              bg.addColorStop(0.7,"rgba(6,7,26,0.55)");
-              bg.addColorStop(1,"rgba(6,7,26,0)");
-              ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-              // Barra lateral roxa
-              const barG=ctx.createLinearGradient(0,0,0,H);
-              barG.addColorStop(0,"#811df2"); barG.addColorStop(1,"#22d3ee");
-              ctx.fillStyle=barG; ctx.fillRect(0,0,5,H);
-              // Logo
-              const logoImg2=new Image(); logoImg2.crossOrigin="anonymous";
-              logoImg2.src=tempoRunLogo;
-              logoImg2.onload=()=>{
-                const lAR=logoImg2.naturalWidth/logoImg2.naturalHeight;
-                const lW=70,lH=lW/lAR;
-                ctx.globalAlpha=0.9; ctx.drawImage(logoImg2,14,12,lW,lH); ctx.globalAlpha=1;
-                // Dados
-                ctx.fillStyle="#fff"; ctx.font="bold 36px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
-                ctx.fillText(efDist+" km",14,H-60);
-                ctx.fillStyle="rgba(255,255,255,0.6)"; ctx.font="bold 12px monospace";
-                ctx.fillText(efPace+" /km  ·  "+efDur,14,H-40);
-                ctx.fillStyle="rgba(255,255,255,0.35)"; ctx.font="bold 9px monospace";
-                ctx.fillText(efNome.toUpperCase(),14,H-20);
-                setOSaved(true); setTimeout(()=>setOSaved(false),2000);
-                const link=document.createElement("a"); link.download="temporun_overlay.png";
-                link.href=off.toDataURL("image/png"); link.click();
-              };
-            };
-            return (
-              <div style={{marginBottom:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>🎬 Overlay para Vídeo</p>
-                  <p style={{color:C.tm,fontSize:11,margin:0}}>PNG transparente</p>
-                </div>
-                {/* Preview */}
-                <div style={{borderRadius:14,overflow:"hidden",marginBottom:10,position:"relative",height:120,background:"linear-gradient(135deg,#1a1a3e,#0a0a1a)",border:"1px solid "+C.border}}>
-                  <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(6,7,26,0.88) 0%,rgba(6,7,26,0.55) 65%,transparent 100%)"}}>
-                    <div style={{position:"absolute",top:0,left:0,bottom:0,width:5,background:"linear-gradient(180deg,#811df2,#22d3ee)"}}/>
-                    <div style={{padding:"12px 14px 12px 18px"}}>
-                      <img src={tempoRunLogo} alt="" style={{width:50,height:"auto",opacity:0.9,marginBottom:6,display:"block"}}/>
-                      <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:22,margin:"0 0 2px",letterSpacing:-0.5}}>{efDist} km</p>
-                      <p style={{color:"rgba(255,255,255,0.6)",fontFamily:"monospace",fontSize:10,margin:0}}>{efPace} /km · {efDur}</p>
-                    </div>
-                  </div>
-                  <div style={{position:"absolute",top:8,right:10,color:"rgba(255,255,255,0.25)",fontSize:9,fontFamily:"monospace",fontWeight:700}}>[ fundo transparente ]</div>
-                </div>
-                <p style={{color:C.td,fontSize:11,margin:"0 0 8px",lineHeight:1.5}}>Exporta um PNG com fundo transparente. Sobrepõe num vídeo de corrida no CapCut ou Premiere.</p>
-                <button onClick={handleOverlay} style={{width:"100%",background:oSaved?"#22c55e22":"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:oSaved?"#22c55e":"#fff",border:oSaved?"1px solid #22c55e44":"none",borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
-                  <Ic n="save" z={15} c={oSaved?"#22c55e":"#fff"}/>{oSaved?"Salvo! ✓":"Exportar Overlay PNG"}
-                </button>
-              </div>
-            );
-          };
-
-          // ── 3. LEGENDA COM IA ─────────────────────────────────────────────
-          const LegendaIA = () => {
-            const gerarLegenda = async () => {
-              setLegendaLoading(true); setLegenda("");
-              try {
-                const prompt = `Gera uma legenda para Instagram de uma corrida com esses dados:
-Distância: ${efDist}km | Pace: ${efPace}/km | Tempo: ${efDur} | Nome: ${efNome}
-Estilo: ${legendaEstilo}
-Inclui emojis relevantes e 5-8 hashtags de corrida em português no final.
-Máximo 150 palavras. Responde só com a legenda, sem introdução.`;
-                const res = await fetch("https://api.anthropic.com/v1/messages",{
-                  method:"POST",
-                  headers:{"Content-Type":"application/json"},
-                  body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,messages:[{role:"user",content:prompt}]})
-                });
-                const data = await res.json();
-                setLegenda(data.content?.[0]?.text||"Erro ao gerar legenda.");
-              } catch(e){ setLegenda("Erro ao conectar com a IA."); }
-              setLegendaLoading(false);
-            };
-            return (
-              <div style={{marginBottom:4}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>✍️ Legenda com IA</p>
-                  <p style={{color:C.tm,fontSize:11,margin:0}}>Para Instagram</p>
-                </div>
-                {/* Estilo selector */}
-                <div style={{display:"flex",gap:6,marginBottom:10}}>
-                  {[["motivacional","🔥 Motivacional"],["tecnico","📊 Técnico"],["casual","😎 Casual"]].map(([id,label])=>(
-                    <button key={id} onClick={()=>setLegendaEstilo(id)} style={{flex:1,background:legendaEstilo===id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:estilo===id?"#fff":C.ts,border:"none",borderRadius:9,padding:"8px 4px",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {/* Legenda gerada */}
-                {legenda?(
-                  <div style={{background:C.s1,borderRadius:12,padding:"12px 14px",marginBottom:10,border:"1px solid "+C.border,minHeight:80}}>
-                    <p style={{color:C.tp,fontSize:13,margin:0,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{legenda}</p>
-                  </div>
-                ):(
-                  <div style={{background:C.s1,borderRadius:12,padding:"16px 14px",marginBottom:10,border:"1px solid "+C.border,textAlign:"center"}}>
-                    <p style={{color:C.td,fontSize:12,margin:0}}>Clica em gerar para criar uma legenda personalizada</p>
-                  </div>
-                )}
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={gerarLegenda} disabled={loading} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:loading?"default":"pointer",opacity:loading?0.7:1,fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
-                    <Ic n="ai" z={15} c="#fff"/>{legendaLoading?"Gerando...":"Gerar Legenda"}
-                  </button>
-                  {legenda&&(
-                    <button onClick={async()=>{
-                      try{await navigator.clipboard.writeText(legenda);setLegendaCopiado(true);setTimeout(()=>setLegendaCopiado(false),2000);}catch{}
-                    }} style={{flex:1,background:legendaCopiado?"#22c55e22":C.s2,color:legendaCopiado?"#22c55e":C.cyanB,border:"1px solid "+(legendaCopiado?"#22c55e44":C.cyanB+"44"),borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                      {legendaCopiado?"✓ Copiado":"Copiar"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          };
-
-          return (
-            <div>
-              <div style={{borderBottom:"1px solid "+C.border,paddingBottom:14,marginBottom:14}}>
-                <MapaArt/>
-              </div>
-              <div style={{borderBottom:"1px solid "+C.border,paddingBottom:14,marginBottom:14}}>
-                <OverlayVideo/>
-              </div>
-              <LegendaIA/>
-            </div>
-          );
-        })()}
+            ))}
+          </div>
+        )}
       </div>
     );
   }
