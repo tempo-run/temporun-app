@@ -5843,7 +5843,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     }
     function exportRpMedal(rank, effort) {
       const SCALE = 8;
-      const W = 180, H = 230;
+      const W = 180, H = 260;
       const medalX = 30;
       const canvas = document.createElement("canvas");
       canvas.width = W*SCALE;
@@ -5883,15 +5883,18 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       ctx.shadowBlur = 5;
       ctx.shadowOffsetY = 3;
       ctx.fillStyle = "#f0f4ff";
-      ctx.font = "900 30px 'Space Grotesk', Arial, sans-serif";
+      ctx.font = "900 27px 'Space Grotesk', Arial, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.fillText(effort?.time || "--:--", W/2, 190);
+      const distanceLabel = String(activeRp?.label || activeRp?.key || activeRp?.id || "--");
+      ctx.fillText(distanceLabel, W/2, 180);
+      ctx.font = "800 22px 'Space Grotesk', Arial, sans-serif";
+      ctx.fillText(effort?.time || "--:--", W/2, 214);
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
-      ctx.fillStyle = "#8b9ec7";
-      ctx.font = "600 18px 'DM Sans', Arial, sans-serif";
-      ctx.fillText(effort?.pace || "--:-- /km", W/2, 216);
+      ctx.fillStyle = "#f0f4ff";
+      ctx.font = "500 14px 'DM Sans', Arial, sans-serif";
+      ctx.fillText(effort?.pace || "--:-- /km", W/2, 240);
       const link = document.createElement("a");
       link.download = `temporun_rp_${activeRp.id}_${rank===1?"ouro":rank===2?"prata":"bronze"}.png`;
       link.href = canvas.toDataURL("image/png");
