@@ -5695,19 +5695,22 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const FX_GROUPS = [
       {cat:"Cinematic",accent:C.violetL,items:[
         {id:"night-run",icon:"bolt",name:"Night Run",desc:"Neon escuro com contraste forte.",pro:true,color:C.violetL},
+        {id:"motion-blur",icon:"video",name:"Cinematic Motion Blur",desc:"Rastro de velocidade estilo filme.",pro:true,color:C.cyanB},
         {id:"finish-glow",icon:"star",name:"Finish Glow",desc:"Luz branca no atleta e chegada.",pro:false,color:"#ffffff"},
       ]},
       {cat:"Performance",accent:C.cyanB,items:[
         {id:"pace-pulse",icon:"cadence",name:"Pace Pulse",desc:"Pulso visual sincronizado ao ritmo.",pro:false,color:C.cyanB},
         {id:"split-burn",icon:"flame",name:"Split Burn",desc:"Realce para parciais mais fortes.",pro:true,color:C.coral},
+        {id:"split-flash",icon:"bolt",name:"Split Flash Transitions",desc:"Cortes rápidos a cada split.",pro:true,color:C.amber},
+        {id:"pr-explosion",icon:"trophy",name:"PR Explosion Effect",desc:"Explosão visual para novo recorde.",pro:true,color:C.violetB},
       ]},
       {cat:"Weather",accent:C.cyanL,items:[
-        {id:"rain-sheen",icon:"streak",name:"Rain Sheen",desc:"Brilho frio de treino na chuva.",pro:true,color:C.cyanL},
+        {id:"rain-sheen",icon:"streak",name:"Rain / Fog",desc:"Chuva fina, névoa e brilho frio.",pro:true,color:C.cyanL},
         {id:"heat-haze",icon:"warning",name:"Heat Haze",desc:"Camada quente para dias duros.",pro:false,color:C.amber},
       ]},
       {cat:"Trail",accent:C.amber,items:[
         {id:"trail-mode",icon:"mountain",name:"Trail Mode",desc:"Textura outdoor com relevo suave.",pro:false,color:C.amber},
-        {id:"route-sparks",icon:"map",name:"Route Sparks",desc:"Faixas de energia sobre o percurso.",pro:true,color:C.green},
+        {id:"route-sparks",icon:"map",name:"Glow Route Animation",desc:"Rota animada com glow elétrico.",pro:true,color:C.green},
       ]},
       {cat:"AI",accent:C.violetB,items:[
         {id:"ai-reframe",icon:"ai",name:"AI Reframe",desc:"Corte inteligente para stories.",pro:true,color:C.violetB},
@@ -5720,9 +5723,11 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const activeFxAmount = activeIntensity==="Off"?0:activeIntensity==="Low"?36:activeIntensity==="Med"?64:92;
     const FX_OVERLAYS = [
       {id:"pace-floor",icon:"run",name:"Pace no chão",desc:"Pace surgindo como HUD no asfalto.",pro:false,color:C.cyanB,metric:lastRun.pace_medio||"5:30"},
-      {id:"hr-pulse",icon:"heart",name:"FC pulsando",desc:"Batimento com glow sincronizado.",pro:false,color:C.coral,metric:(lastRun.bpm_medio||158)+" bpm"},
-      {id:"altimetry",icon:"chart",name:"Altimetria animada",desc:"Linha de subida acompanhando a rota.",pro:true,color:C.green,metric:"D+ "+(lastRun.dplus||128)+"m"},
+      {id:"pace-heatmap",icon:"chart",name:"Pace heatmap",desc:"Zonas rápidas em cyan e lentas em violeta.",pro:true,color:C.violetB,metric:"heat"},
+      {id:"hr-pulse",icon:"heart",name:"Heartbeat pulse",desc:"Batimento com glow sincronizado.",pro:false,color:C.coral,metric:(lastRun.bpm_medio||158)+" bpm"},
+      {id:"altimetry",icon:"chart",name:"Altimetry wave animation",desc:"Onda de altimetria acompanhando a rota.",pro:true,color:C.green,metric:"D+ "+(lastRun.dplus||128)+"m"},
       {id:"km-splashes",icon:"gps",name:"Km splashes",desc:"Marcos de km com impacto visual.",pro:true,color:C.violetB,metric:Number(lastRun.distancia_km||10.4).toFixed(1)+"km"},
+      {id:"glow-route",icon:"map",name:"Glow route animation",desc:"Traçado vivo com rastro neon.",pro:true,color:C.cyanB,metric:"route"},
       {id:"ghost-runner",icon:"run",name:"Ghost runner",desc:"Silhueta comparando ritmo alvo.",pro:true,color:"#ffffff",metric:"vs alvo"},
     ];
     const SOCIAL_TEMPLATES = [
@@ -5832,12 +5837,17 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <div style={{position:"absolute",left:18,right:18,top:48,height:2,background:"linear-gradient(90deg,transparent,"+activeFx.color+",#fff,"+C.cyanB+",transparent)",boxShadow:"0 0 "+(8+activeFxAmount/5)+"px "+activeFx.color,opacity:activeFxAmount/100}}/>
                 <div style={{position:"absolute",right:18,bottom:16,width:72,height:72,borderRadius:"50%",border:"1px solid "+activeFx.color+"55",boxShadow:"0 0 32px "+activeFx.color+"44",opacity:0.6}}/>
                 <div style={{position:"absolute",left:20,right:20,bottom:38,height:18,background:"linear-gradient(90deg,transparent,"+activeOverlay.color+"77,transparent)",transform:"skewX(-18deg)",filter:"blur(0.3px)",opacity:activeFxAmount/110}}/>
+                {(activeFx.id==="motion-blur"||activeFx.id==="split-flash")&&<div style={{position:"absolute",left:28,right:66,top:62,height:26,background:"linear-gradient(90deg,"+activeFx.color+"88,transparent)",transform:"skewX(-24deg)",filter:"blur(1px)",opacity:0.58}}/>}
+                {activeFx.id==="rain-sheen"&&<div style={{position:"absolute",inset:0,background:"repeating-linear-gradient(115deg,transparent 0 10px,"+C.cyanL+"22 11px 12px)",opacity:0.55}}/>}
+                {activeFx.id==="pr-explosion"&&<div style={{position:"absolute",right:44,top:44,width:58,height:58,borderRadius:"50%",background:"radial-gradient(circle,#ffffffaa,"+activeFx.color+"55 42%,transparent 70%)",boxShadow:"0 0 30px "+activeFx.color+"77",opacity:0.8}}/>}
                 <div style={{position:"absolute",left:22,bottom:35,color:activeOverlay.color,fontSize:10,fontFamily:"monospace",fontWeight:900,textShadow:"0 0 12px "+activeOverlay.color}}>
                   {activeOverlay.metric}
                 </div>
                 {activeOverlay.id==="hr-pulse"&&<div style={{position:"absolute",right:30,top:47,width:34,height:34,borderRadius:"50%",border:"1px solid "+activeOverlay.color,boxShadow:"0 0 22px "+activeOverlay.color,opacity:0.9}}/>}
+                {activeOverlay.id==="pace-heatmap"&&<div style={{position:"absolute",left:22,right:22,bottom:58,height:10,borderRadius:99,background:"linear-gradient(90deg,"+C.cyanB+","+C.violetB+","+C.coral+","+C.cyanB+")",boxShadow:"0 0 18px "+activeOverlay.color+"66",opacity:0.8}}/>}
                 {activeOverlay.id==="altimetry"&&<div style={{position:"absolute",left:102,right:30,bottom:52,height:28,borderBottom:"2px solid "+activeOverlay.color,borderLeft:"2px solid "+activeOverlay.color,transform:"skewY(-10deg)",opacity:0.75}}/>}
                 {activeOverlay.id==="km-splashes"&&<div style={{position:"absolute",right:76,top:56,color:"#fff",fontSize:18,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif",textShadow:"0 0 16px "+activeOverlay.color}}>KM</div>}
+                {activeOverlay.id==="glow-route"&&<div style={{position:"absolute",left:48,right:46,top:74,height:3,borderRadius:99,background:"linear-gradient(90deg,"+C.violet+","+C.cyanB+",#fff)",boxShadow:"0 0 20px "+C.cyanB,transform:"rotate(-7deg)",opacity:0.9}}/>}
                 {activeOverlay.id==="ghost-runner"&&<div style={{position:"absolute",right:98,bottom:28,width:24,height:48,borderRadius:13,background:"linear-gradient(180deg,#ffffffaa,#ffffff11)",boxShadow:"0 0 20px #ffffff66",opacity:0.7}}/>}
                 <div style={{position:"absolute",right:12,top:36,background:"linear-gradient(135deg,"+activeBadge.color+"33,#ffffff10)",border:"1px solid "+activeBadge.color+"77",borderRadius:11,padding:"6px 8px",display:"flex",alignItems:"center",gap:6,boxShadow:"0 0 20px "+activeBadge.color+"33",animation:"pulse 1.5s infinite"}}>
                   <Ic n={activeBadge.icon} z={14} c={activeBadge.color}/>
