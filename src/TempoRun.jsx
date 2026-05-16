@@ -1986,6 +1986,7 @@ export default function TempoRunApp() {
   const [studioTab, setStudioTab] = useState("card");
   const [studioRun, setStudioRun] = useState(null);
   const [rpDistance, setRpDistance] = useState("400m");
+  const [rpShareOpen, setRpShareOpen] = useState(false);
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
   const [cardColor, setCardColor] = useState("gradient");
@@ -5840,6 +5841,63 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </svg>
       );
     }
+    function exportRpMedal(rank, effort) {
+      const SCALE = 8;
+      const W = 180, H = 230;
+      const medalX = 30;
+      const canvas = document.createElement("canvas");
+      canvas.width = W*SCALE;
+      canvas.height = H*SCALE;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(SCALE,SCALE);
+      ctx.translate(medalX,0);
+      const fill = rank===1 ? "#f4bd32" : rank===2 ? "#b9c2c4" : "#c77a43";
+      const edge = rank===1 ? "#f7d95b" : rank===2 ? "#eef2f3" : "#e5a16a";
+      const dark = rank===1 ? "#a96f00" : rank===2 ? "#697174" : "#7f421f";
+      const ribbon = (d,color)=>{ctx.fillStyle=color;ctx.beginPath();d.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fill();};
+      ribbon([[4,0],[24,0],[56,78],[36,78]], C.violet);
+      ribbon([[24,0],[38,0],[70,78],[56,78]], "#f8fbff");
+      ribbon([[38,0],[58,0],[90,78],[70,78]], C.cyanB);
+      ribbon([[62,0],[82,0],[50,78],[30,78]], C.cyanB);
+      ribbon([[82,0],[96,0],[64,78],[50,78]], "#f8fbff");
+      ribbon([[96,0],[116,0],[84,78],[64,78]], C.violet);
+      const grad = ctx.createLinearGradient(22,54,102,134);
+      grad.addColorStop(0, edge); grad.addColorStop(0.5, fill); grad.addColorStop(1, dark);
+      ctx.shadowColor = "rgba(0,0,0,.35)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 4;
+      ctx.beginPath(); ctx.arc(60,94,47,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.strokeStyle=edge; ctx.lineWidth=4; ctx.stroke();
+      ctx.beginPath(); ctx.arc(60,94,39,0,Math.PI*2); ctx.strokeStyle=dark; ctx.lineWidth=2; ctx.globalAlpha=.42; ctx.stroke(); ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.arc(60,94,35,0,Math.PI*2); ctx.fillStyle="#fff"; ctx.globalAlpha=rank===1 ? .09 : .16; ctx.fill(); ctx.globalAlpha=1;
+      const star = [[60,61],[70,82],[93,85],[76,101],[80,124],[60,113],[40,124],[44,101],[27,85],[50,82]];
+      ctx.beginPath(); star.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
+      ctx.fillStyle=edge; ctx.fill(); ctx.strokeStyle=dark; ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); [[60,61],[60,113],[40,124],[44,101],[27,85],[50,82]].forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
+      ctx.fillStyle="rgba(255,255,255,.22)"; ctx.fill();
+      ctx.fillStyle="#151515"; ctx.font=(rank===1?"900 18px monospace":"900 22px monospace"); ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(rank===1?"PR":String(rank),60,99);
+      ctx.translate(-medalX,0);
+      ctx.shadowColor = "rgba(0,0,0,.38)";
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetY = 3;
+      ctx.fillStyle = "#f0f4ff";
+      ctx.font = "900 30px 'Space Grotesk', Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(effort?.time || "--:--", W/2, 190);
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = "#8b9ec7";
+      ctx.font = "600 18px 'DM Sans', Arial, sans-serif";
+      ctx.fillText(effort?.pace || "--:-- /km", W/2, 216);
+      const link = document.createElement("a");
+      link.download = `temporun_rp_${activeRp.id}_${rank===1?"ouro":rank===2?"prata":"bronze"}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      setRpShareOpen(false);
+    }
     const FX_OVERLAYS = [
       {id:"pace-floor",icon:"run",name:"Pace no chão",desc:"Pace surgindo como HUD no asfalto.",pro:false,color:C.cyanB,metric:lastRun.pace_medio||"5:30"},
       {id:"pace-heatmap",icon:"chart",name:"Pace heatmap",desc:"Zonas rápidas em cyan e lentas em violeta.",pro:true,color:C.violetB,metric:"heat"},
@@ -5969,7 +6027,21 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 ))}
               </div>
             </div>
-            <button style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Ic n="share" z={15} c="#fff"/>Compartilhar RPs</button>
+            {rpShareOpen&&(
+              <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"33",borderRadius:14,padding:12,marginBottom:10,animation:"fadeIn .2s ease"}}>
+                <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:800,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 9px"}}>Escolha o RP para compartilhar</p>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                  {rpEfforts.map(e=>(
+                    <button key={e.rank} onClick={()=>exportRpMedal(e.rank,e)} style={{background:C.bg,border:"1px solid "+(e.rank===1?C.amber:e.rank===2?"#cfd8dc":"#c77a43")+"55",borderRadius:12,padding:"9px 4px",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                      <MedalSvg rank={e.rank} size={45}/>
+                      <span style={{color:C.tp,fontSize:11,fontWeight:900,fontFamily:"'Space Grotesk',sans-serif"}}>{e.rank===1?"Ouro":e.rank===2?"Prata":"Bronze"}</span>
+                      <span style={{color:C.tm,fontSize:9,fontFamily:"monospace"}}>{e.time}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button onClick={()=>setRpShareOpen(v=>!v)} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><Ic n="share" z={15} c="#fff"/>Compartilhar</button>
           </div>
         )}
 
