@@ -4701,6 +4701,90 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const cardRef = useRef(null);
     const exportCanvasRef = useRef(null);
     const touchStartX = useRef(null);
+    const [copied, setCopied] = useState(false);
+
+    async function handleCopy() {
+      // Gerar o canvas igual ao handleSave mas copiar para clipboard
+      // Só disponível para cards 1 e 4 (fundo transparente com traçado)
+      const W = 356, SCALE = 3, CARD_H = 480;
+      const off = document.createElement("canvas");
+      off.width = W * SCALE; off.height = CARD_H * SCALE;
+      const ctx = off.getContext("2d");
+      ctx.scale(SCALE, SCALE);
+      ctx.clearRect(0, 0, W, CARD_H);
+
+      const logoImg = new Image();
+      logoImg.crossOrigin = "anonymous";
+      logoImg.src = tempoRunLogo;
+      logoImg.onload = async () => {
+        const logoAR = logoImg.naturalWidth / logoImg.naturalHeight;
+        // Reusar a mesma lógica de desenho do card atual
+        // Chamar handleSave internamente mas copiar em vez de download
+        const drawCard = (cardIdx) => {
+          const poly = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
+          let rawPts=[];
+          if(poly.length>2){
+            const s=poly[0];
+            const isLL=s[0]<0||(Math.abs(s[0])<10&&Math.abs(s[1])>10);
+            rawPts=poly.map(p=>({x:isLL?p[0]:p[1],y:isLL?-p[1]:-p[0]}));
+          } else {
+            const seed=run?run.distancia_km:10; let rx=0,ry=0; rawPts=[{x:rx,y:ry}];
+            for(let i=0;i<28;i++){rx+=Math.sin(i*1.3+seed)*0.003+0.002;ry+=Math.cos(i*0.9+seed)*0.0025;rawPts.push({x:rx,y:ry});}
+          }
+          const pad=cardIdx===0?28:60;
+          const trH=cardIdx===0?160:CARD_H-80;
+          const trY=cardIdx===0?(CARD_H-trH-48):40;
+          const minX=Math.min(...rawPts.map(p=>p.x)),maxX=Math.max(...rawPts.map(p=>p.x));
+          const minY=Math.min(...rawPts.map(p=>p.y)),maxY=Math.max(...rawPts.map(p=>p.y));
+          const rX=maxX-minX||1,rY=maxY-minY||1;
+          const sc=Math.min((W-pad*2)/rX,(trH-pad)/rY);
+          const oX=(W-rX*sc)/2,oY=trY+(trH-rY*sc)/2;
+          const pts=rawPts.map(p=>({x:oX+(p.x-minX)*sc,y:oY+(p.y-minY)*sc}));
+          if(pts.length>1){
+            ctx.shadowColor="#7c3aed"; ctx.shadowBlur=16;
+            ctx.strokeStyle="#7c3aed33"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round";
+            ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+            pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+            const gr=ctx.createLinearGradient(pts[0].x,pts[0].y,pts[pts.length-1].x,pts[pts.length-1].y);
+            gr.addColorStop(0,"#7c3aed"); gr.addColorStop(0.5,"#a855f7"); gr.addColorStop(1,"#22d3ee");
+            ctx.shadowBlur=6; ctx.strokeStyle=gr; ctx.lineWidth=4;
+            ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+            pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+            ctx.shadowBlur=0;
+            ctx.fillStyle="#22c55e"; ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,7,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(pts[pts.length-1].x,pts[pts.length-1].y,7,0,Math.PI*2); ctx.fill();
+          }
+          // Logo
+          const lW=cardIdx===0?50:80, lH=lW/logoAR;
+          const lY=cardIdx===0?CARD_H-lH-10:14;
+          ctx.globalAlpha=cardIdx===0?0.25:0.8;
+          ctx.drawImage(logoImg,W/2-lW/2,lY,lW,lH);
+          ctx.globalAlpha=1;
+          if(cardIdx===0){
+            // Dados por cima
+            let y=16;
+            const lW2=80,lH2=lW2/logoAR;
+            ctx.drawImage(logoImg,W/2-lW2/2,y,lW2,lH2); y+=lH2+10;
+            ctx.fillStyle="#ffffff55"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
+            ctx.fillText((run?.data||"Hoje").toUpperCase(),W/2,y); y+=20;
+            ctx.fillStyle="#f0f4ff"; ctx.font="bold 42px 'Space Grotesk',sans-serif";
+            ctx.fillText(dist+" km",W/2,y+38); y+=58;
+            ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
+            ctx.fillText(pace+" /km",W/2,y+26); y+=44;
+            ctx.fillStyle="#f0f4ff"; ctx.font="bold 26px 'Space Grotesk',sans-serif";
+            ctx.fillText(dur,W/2,y+26);
+          }
+        };
+        drawCard(cardIndex);
+        try {
+          off.toBlob(async (blob)=>{
+            await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
+            setCopied(true);
+            setTimeout(()=>setCopied(false),2000);
+          },"image/png");
+        } catch(e){ alert("Clipboard não suportado neste browser"); }
+      };
+    }
 
     function onTouchStart(e){ touchStartX.current = e.touches[0].clientX; }
     function onTouchEnd(e){
@@ -5084,8 +5168,13 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         {/* actions */}
         <div style={{display:"flex",gap:8}}>
           <button onClick={handleSave} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
-            <Ic n="save" z={15} c="#fff"/>Salvar PNG
+            <Ic n="save" z={15} c="#fff"/>PNG
           </button>
+          {(cardIndex===0||cardIndex===3)&&(
+            <button onClick={handleCopy} style={{flex:1,background:copied?"#22c55e22":C.s2,color:copied?"#22c55e":C.cyanB,border:"1px solid "+(copied?"#22c55e44":C.cyanB+"44"),borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+              <Ic n="save" z={15} c={copied?"#22c55e":C.cyanB}/>{copied?"Copiado ✓":"Copiar"}
+            </button>
+          )}
           <button style={{background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"44",borderRadius:12,padding:"12px 13px",cursor:"pointer",display:"flex",alignItems:"center"}}>
             <Ic n="share" z={15} c={C.cyanB}/>
           </button>
