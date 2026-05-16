@@ -1450,7 +1450,7 @@ function LoginScreen({ onLogin }) {
           <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErro("");}} placeholder="seu@email.com" autoFocus style={{width:"100%",background:C.s2,border:"1px solid "+(erro?C.coral:C.border),borderRadius:12,padding:"14px",color:C.tp,fontSize:15,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
         </div>
         {erro&&<p style={{color:C.coral,fontSize:12,margin:0}}>{erro}</p>}
-        <button type="submit" disabled={loading} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"14px 0",fontWeight:800,fontSize:15,cursor:loading?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44",opacity:loading?0.7:1,marginTop:4}}>
+        <button type="submit" disabled={legendaLoading} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"14px 0",fontWeight:800,fontSize:15,cursor:legendaLoading?"default":"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44",opacity:legendaLoading?0.7:1,marginTop:4}}>
           {loading?"Enviando...":"Enviar código"}
         </button>
       </form>
@@ -1944,6 +1944,67 @@ export default function TempoRunApp() {
   const [explTab, setExplTab] = useState("rotas");
   const [studioTab, setStudioTab] = useState("card");
   const [rpDistState, setRpDistState] = useState("5km");
+  // Efeitos — Mapa Artístico
+  const [artColor, setArtColor] = useState("#811df2");
+  const [artBg, setArtBg] = useState("#06071a");
+  const [artSaved, setArtSaved] = useState(false);
+  const artCanRef = useRef(null);
+  const artEfeitoRun = studioRun || corridas[0] || null;
+  useEffect(()=>{
+    const canvas = artCanRef.current; if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W=canvas.width, H=canvas.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = artBg; ctx.fillRect(0,0,W,H);
+    const efDist2 = artEfeitoRun?.distancia_km?.toFixed(2)||"8.50";
+    const efPace2 = artEfeitoRun?.pace_medio||"5:41";
+    const efDur2  = artEfeitoRun ? fmtT(artEfeitoRun.duracao_seg) : "48:00";
+    const poly = artEfeitoRun?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
+    let raw=[];
+    if(poly.length>2){
+      const s=poly[0]; const isLL=s[0]<0||(Math.abs(s[0])<10&&Math.abs(s[1])>10);
+      raw=poly.map(p=>({x:isLL?p[0]:p[1],y:isLL?-p[1]:-p[0]}));
+    } else {
+      const seed=artEfeitoRun?.distancia_km||8.5; let rx=0,ry=0; raw=[{x:rx,y:ry}];
+      for(let i=0;i<60;i++){rx+=Math.sin(i*1.1+seed)*0.003+0.001;ry+=Math.cos(i*0.8+seed)*0.0025;raw.push({x:rx,y:ry});}
+    }
+    const pad=40;
+    const minX=Math.min(...raw.map(p=>p.x)),maxX=Math.max(...raw.map(p=>p.x));
+    const minY=Math.min(...raw.map(p=>p.y)),maxY=Math.max(...raw.map(p=>p.y));
+    const rX=maxX-minX||1,rY=maxY-minY||1;
+    const sc=Math.min((W-pad*2)/rX,(H-80-pad*2)/rY);
+    const oX=(W-rX*sc)/2,oY=(H-80-rY*sc)/2+30;
+    const pts=raw.map(p=>({x:oX+(p.x-minX)*sc,y:oY+(p.y-minY)*sc}));
+    if(pts.length>1){
+      ctx.strokeStyle=artBg==="#06071a"?"#1a2050":"#d0d8f0"; ctx.lineWidth=0.5; ctx.globalAlpha=0.3;
+      for(let i=0;i<W;i+=20){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
+      for(let i=0;i<H;i+=20){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
+      ctx.globalAlpha=1;
+      ctx.shadowColor=artColor; ctx.shadowBlur=18;
+      ctx.strokeStyle=artColor+"44"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round";
+      ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+      pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+      ctx.shadowBlur=6; ctx.strokeStyle=artColor; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+      pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.fillStyle="#22c55e"; ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(pts[pts.length-1].x,pts[pts.length-1].y,6,0,Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle=artBg==="#06071a"?"#ffffff22":"#00000022"; ctx.fillRect(0,H-72,W,72);
+    ctx.fillStyle=artBg==="#06071a"?"#fff":"#111";
+    ctx.font="bold 28px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
+    ctx.fillText(efDist2+" km",18,H-42);
+    ctx.font="bold 13px monospace"; ctx.fillStyle=artBg==="#06071a"?"#ffffff88":"#00000066";
+    ctx.fillText(efPace2+" /km  ·  "+efDur2,18,H-20);
+  },[artColor,artBg,artEfeitoRun]);
+  // Efeitos — Overlay Vídeo
+  const [oSaved, setOSaved] = useState(false);
+  // Efeitos — Legenda IA
+  const [legenda, setLegenda] = useState("");
+  const [legendaLoading, setLegendaLoading] = useState(false);
+  const [legendaCopiado, setLegendaCopiado] = useState(false);
+  const [legendaEstilo, setLegendaEstilo] = useState("motivacional");
   const [studioRun, setStudioRun] = useState(null);
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
@@ -5706,65 +5767,8 @@ if(cardIndex === 4) {
 
           // ── 1. MAPA ARTÍSTICO ─────────────────────────────────────────────
           const MapaArt = () => {
-            const canRef = useRef(null);
-            const [artColor, setArtColor] = useState("#811df2");
-            const [artBg, setArtBg] = useState("#06071a");
-            const [artSaved, setArtSaved] = useState(false);
-            useEffect(()=>{
-              const canvas = canRef.current; if(!canvas) return;
-              const ctx = canvas.getContext("2d");
-              const W=canvas.width, H=canvas.height;
-              ctx.clearRect(0,0,W,H);
-              ctx.fillStyle = artBg; ctx.fillRect(0,0,W,H);
-              const poly = efeitoRun?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
-              let raw=[];
-              if(poly.length>2){
-                const s=poly[0];
-                const isLL=s[0]<0||(Math.abs(s[0])<10&&Math.abs(s[1])>10);
-                raw=poly.map(p=>({x:isLL?p[0]:p[1],y:isLL?-p[1]:-p[0]}));
-              } else {
-                const seed=efeitoRun?.distancia_km||8.5; let rx=0,ry=0; raw=[{x:rx,y:ry}];
-                for(let i=0;i<60;i++){rx+=Math.sin(i*1.1+seed)*0.003+0.001;ry+=Math.cos(i*0.8+seed)*0.0025;raw.push({x:rx,y:ry});}
-              }
-              const pad=40;
-              const minX=Math.min(...raw.map(p=>p.x)),maxX=Math.max(...raw.map(p=>p.x));
-              const minY=Math.min(...raw.map(p=>p.y)),maxY=Math.max(...raw.map(p=>p.y));
-              const rX=maxX-minX||1,rY=maxY-minY||1;
-              const sc=Math.min((W-pad*2)/rX,(H-80-pad*2)/rY);
-              const oX=(W-rX*sc)/2,oY=(H-80-rY*sc)/2+30;
-              const pts=raw.map(p=>({x:oX+(p.x-minX)*sc,y:oY+(p.y-minY)*sc}));
-              if(pts.length>1){
-                // Grid de fundo tipo mapa
-                ctx.strokeStyle=artBg==="#06071a"?"#1a2050":"#d0d8f0"; ctx.lineWidth=0.5; ctx.globalAlpha=0.3;
-                for(let i=0;i<W;i+=20){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke();}
-                for(let i=0;i<H;i+=20){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke();}
-                ctx.globalAlpha=1;
-                // Glow
-                ctx.shadowColor=artColor; ctx.shadowBlur=18;
-                ctx.strokeStyle=artColor+"44"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round";
-                ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-                pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
-                // Linha principal
-                const gr=ctx.createLinearGradient(pts[0].x,pts[0].y,pts[pts.length-1].x,pts[pts.length-1].y);
-                gr.addColorStop(0,artColor); gr.addColorStop(1,artColor==="gradient"?"#22d3ee":artColor+"cc");
-                ctx.shadowBlur=6; ctx.strokeStyle=artColor; ctx.lineWidth=3;
-                ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-                pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
-                ctx.shadowBlur=0;
-                // Dots
-                ctx.fillStyle="#22c55e"; ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,6,0,Math.PI*2); ctx.fill();
-                ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(pts[pts.length-1].x,pts[pts.length-1].y,6,0,Math.PI*2); ctx.fill();
-              }
-              // Dados no rodapé
-              ctx.fillStyle=artBg==="#06071a"?"#ffffff22":"#00000022";
-              ctx.fillRect(0,H-72,W,72);
-              ctx.fillStyle=artBg==="#06071a"?"#fff":"#111";
-              ctx.font="bold 28px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
-              ctx.fillText(efDist+" km", 18, H-42);
-              ctx.font="bold 13px monospace"; ctx.fillStyle=artBg==="#06071a"?"#ffffff88":"#00000066";
-              ctx.fillText(efPace+" /km  ·  "+efDur, 18, H-20);
-            },[artColor,artBg,efeitoRun]);
-
+            const canRef = artCanRef;
+            return (
             return (
               <div style={{marginBottom:14}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -5797,7 +5801,6 @@ if(cardIndex === 4) {
 
           // ── 2. OVERLAY PARA VÍDEO ─────────────────────────────────────────
           const OverlayVideo = () => {
-            const [oSaved, setOSaved] = useState(false);
             const handleOverlay = () => {
               const W=356, H=200, SCALE=3;
               const off=document.createElement("canvas");
@@ -5862,16 +5865,12 @@ if(cardIndex === 4) {
 
           // ── 3. LEGENDA COM IA ─────────────────────────────────────────────
           const LegendaIA = () => {
-            const [legenda, setLegenda] = useState("");
-            const [loading, setLoading] = useState(false);
-            const [copiado, setCopiado] = useState(false);
-            const [estilo, setEstilo] = useState("motivacional");
             const gerarLegenda = async () => {
-              setLoading(true); setLegenda("");
+              setLegendaLoading(true); setLegenda("");
               try {
                 const prompt = `Gera uma legenda para Instagram de uma corrida com esses dados:
 Distância: ${efDist}km | Pace: ${efPace}/km | Tempo: ${efDur} | Nome: ${efNome}
-Estilo: ${estilo}
+Estilo: ${legendaEstilo}
 Inclui emojis relevantes e 5-8 hashtags de corrida em português no final.
 Máximo 150 palavras. Responde só com a legenda, sem introdução.`;
                 const res = await fetch("https://api.anthropic.com/v1/messages",{
@@ -5882,7 +5881,7 @@ Máximo 150 palavras. Responde só com a legenda, sem introdução.`;
                 const data = await res.json();
                 setLegenda(data.content?.[0]?.text||"Erro ao gerar legenda.");
               } catch(e){ setLegenda("Erro ao conectar com a IA."); }
-              setLoading(false);
+              setLegendaLoading(false);
             };
             return (
               <div style={{marginBottom:4}}>
@@ -5893,7 +5892,7 @@ Máximo 150 palavras. Responde só com a legenda, sem introdução.`;
                 {/* Estilo selector */}
                 <div style={{display:"flex",gap:6,marginBottom:10}}>
                   {[["motivacional","🔥 Motivacional"],["tecnico","📊 Técnico"],["casual","😎 Casual"]].map(([id,label])=>(
-                    <button key={id} onClick={()=>setEstilo(id)} style={{flex:1,background:estilo===id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:estilo===id?"#fff":C.ts,border:"none",borderRadius:9,padding:"8px 4px",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
+                    <button key={id} onClick={()=>setLegendaEstilo(id)} style={{flex:1,background:legendaEstilo===id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:estilo===id?"#fff":C.ts,border:"none",borderRadius:9,padding:"8px 4px",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
                       {label}
                     </button>
                   ))}
@@ -5910,13 +5909,13 @@ Máximo 150 palavras. Responde só com a legenda, sem introdução.`;
                 )}
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={gerarLegenda} disabled={loading} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:loading?"default":"pointer",opacity:loading?0.7:1,fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
-                    <Ic n="ai" z={15} c="#fff"/>{loading?"Gerando...":"Gerar Legenda"}
+                    <Ic n="ai" z={15} c="#fff"/>{legendaLoading?"Gerando...":"Gerar Legenda"}
                   </button>
                   {legenda&&(
                     <button onClick={async()=>{
-                      try{await navigator.clipboard.writeText(legenda);setCopiado(true);setTimeout(()=>setCopiado(false),2000);}catch{}
-                    }} style={{flex:1,background:copiado?"#22c55e22":C.s2,color:copiado?"#22c55e":C.cyanB,border:"1px solid "+(copiado?"#22c55e44":C.cyanB+"44"),borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                      {copiado?"✓ Copiado":"Copiar"}
+                      try{await navigator.clipboard.writeText(legenda);setLegendaCopiado(true);setTimeout(()=>setLegendaCopiado(false),2000);}catch{}
+                    }} style={{flex:1,background:legendaCopiado?"#22c55e22":C.s2,color:legendaCopiado?"#22c55e":C.cyanB,border:"1px solid "+(legendaCopiado?"#22c55e44":C.cyanB+"44"),borderRadius:11,padding:"11px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
+                      {legendaCopiado?"✓ Copiado":"Copiar"}
                     </button>
                   )}
                 </div>
