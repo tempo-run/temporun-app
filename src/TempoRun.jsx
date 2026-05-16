@@ -1207,9 +1207,9 @@ const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
 
 // Strava OAuth
 const STRAVA_CLIENT_ID     = "244639";
-const STRAVA_CLIENT_SECRET = "a81632ae1af89b86ca1d95643669a653423f030a";
 const STRAVA_REDIRECT_URI  = "https://app.temporun.run";
 const STRAVA_SCOPES        = "read,activity:read_all,profile:read_all";
+const STRAVA_TOKEN_FN     = SUPABASE_URL + "/functions/v1/strava-token";
 
 // Cliente Supabase mínimo (sem SDK, usa fetch direto para não precisar de npm)
 const sb = {
@@ -1256,19 +1256,29 @@ const sb = {
     window.location.href = url;
   },
 
-  // Troca code Strava por token (chamado quando volta do OAuth Strava)
+  // Troca code Strava por token via Supabase Edge Function.
+  // IMPORTANTE: o client_secret fica protegido no Supabase Secrets, não no frontend.
   async exchangeStravaCode(code) {
-    const r = await fetch("https://www.strava.com/oauth/token", {
+    const r = await fetch(STRAVA_TOKEN_FN, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON,
+      },
       body: JSON.stringify({
-        client_id:     STRAVA_CLIENT_ID,
-        client_secret: STRAVA_CLIENT_SECRET,
         code,
-        grant_type:    "authorization_code",
+        redirect_uri: STRAVA_REDIRECT_URI,
       }),
     });
-    return r.json();
+
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      return {
+        error: data.error || "strava_token_exchange_failed",
+        details: data.details || data,
+      };
+    }
+    return data;
   },
 
   // Detecta se voltou do callback Strava (?code=...&scope=...)
