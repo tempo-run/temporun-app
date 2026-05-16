@@ -4493,10 +4493,13 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
   function renderAnalise() {
     if(anStep==="upload") return (
       <div>
-        <div style={{paddingTop:8,paddingBottom:12}}>
+        <div style={{paddingTop:8,paddingBottom:12,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+          <div>
           <Badge text="ANÁLISE TÉCNICA · IA" color={C.violet}/>
           <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>Análise biomecânica</h1>
           <p style={{color:C.tm,fontSize:12,margin:0}}>Envie um vídeo de até 20 segundos em movimento</p>
+          </div>
+          <button onClick={()=>setAnStep("result")} title="Fechar" style={{width:34,height:34,borderRadius:10,background:C.s2,border:"1px solid "+C.cyanB+"66",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.cyanB,fontSize:20,fontWeight:700,lineHeight:1,flexShrink:0}}>×</button>
         </div>
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
           <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ai" z={17} c="#fff"/></div>
@@ -4569,7 +4572,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <Badge text={anData.isPro?"ANÁLISE PRO":"ANÁLISE PRÉVIA"} color={anData.isPro?C.violet:C.amber}/>
             <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:20}}>Relatório biomecânico</h1>
           </div>
-          <button onClick={()=>setAnStep("upload")} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="upload" z={13} c={C.ts}/></button>
+          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:C.cyanB,fontSize:12,fontWeight:700,fontFamily:"\'Space Grotesk\',sans-serif",whiteSpace:"nowrap"}}>Envie seu vídeo</span><button onClick={()=>setAnStep("upload")} style={{background:C.s2,border:"1px solid "+C.cyanB+"66",borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="upload" z={13} c={C.cyanB}/></button></div>
         </div>
 
         {/* Score — visível para todos */}
