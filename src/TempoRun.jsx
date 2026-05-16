@@ -1477,7 +1477,6 @@ const TR_I18N = {
     "home.goodMorning": "Good morning",
     "home.runnerFallback": "Runner",
     "home.knowledge": "Learn",
-    "home.language": "Language",
     "home.profile": "Profile",
     "home.connectStravaTitle": "Connect your Strava",
     "home.connectStravaDesc": "Import your workouts automatically",
@@ -3749,23 +3748,6 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               </div>
               <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>{tt("home.knowledge", "Saber")}</span>
             </button>
-            <div title={tt("home.language", "Idioma")} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px"}}>
-              <div style={{height:44,minWidth:56,borderRadius:22,background:C.s2,border:"2px solid "+C.border,display:"flex",alignItems:"center",justifyContent:"center",padding:3,boxSizing:"border-box"}}>
-                {["pt-BR","en"].map(lang=>{
-                  const active = appLang===lang;
-                  return (
-                    <button key={lang} onClick={()=>{
-                      const next={...configForm,idioma:lang};
-                      setConfigForm(next);
-                      try{localStorage.setItem("tr_config",JSON.stringify(next));}catch{}
-                    }} style={{height:32,minWidth:24,borderRadius:16,border:"none",background:active?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"transparent",color:active?"#fff":C.tm,fontSize:10,fontWeight:900,fontFamily:"monospace",cursor:"pointer",padding:"0 5px",boxShadow:active?"0 0 10px "+C.cyan+"44":"none"}}>
-                      {lang==="pt-BR"?"PT":"EN"}
-                    </button>
-                  );
-                })}
-              </div>
-              <span style={{color:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>{appLang==="en"?"EN":"PT"}</span>
-            </div>
             <button onClick={()=>{setShowPerfil(!showPerfil);setShowSaber(false);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px"}}>
               <div style={{position:"relative"}}>
                 <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":C.violet+"44"),boxShadow:isPro?"0 0 12px "+C.violet+"55":showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={dadosForm.foto||perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:dadosForm.foto?"cover":"contain"}}/></div>
