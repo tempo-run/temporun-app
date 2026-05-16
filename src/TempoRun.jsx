@@ -4907,17 +4907,19 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           const lWg=80, lHg=lWg/logoAR;
           ctx.drawImage(logoImg, W/2-lWg/2, 16, lWg, lHg);
           // Faixa fundo dados
-          const dG=ctx.createLinearGradient(0,0,W*0.7,0);
-          dG.addColorStop(0,"rgba(6,4,20,0.96)"); dG.addColorStop(0.55,"rgba(6,4,20,0.8)"); dG.addColorStop(1,"rgba(6,4,20,0)");
-          ctx.fillStyle=dG; ctx.fillRect(0,C2H-220,W,220);
+          const c2r = isGradient?"30,4,60":traceStroke==="#ffffff"?"20,20,20":traceStroke==="#22d3ee"?"0,30,44":"30,4,60";
+          const c2b = isGradient?"0,20,40":traceStroke==="#ffffff"?"10,10,10":traceStroke==="#22d3ee"?"0,20,35":"20,4,50";
+          const dG=ctx.createLinearGradient(0,0,W*0.55,0);
+          dG.addColorStop(0,"rgba("+c2r+",0.97)"); dG.addColorStop(0.5,"rgba("+c2b+",0.92)"); dG.addColorStop(1,"rgba(0,0,0,0)");
+          ctx.fillStyle=dG; ctx.fillRect(0,C2H-155,W,155);
           // Dados
           const mG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
-          let yG=C2H-200;
+          let yG=C2H-145;
           mG.forEach(m=>{
-            ctx.fillStyle="#fff"; ctx.font="bold 32px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
-            ctx.fillText(m.v+(m.u?" "+m.u:""),18,yG+30);
-            ctx.fillStyle="rgba(255,255,255,0.38)"; ctx.font="bold 8px monospace";
-            ctx.fillText(m.l,18,yG+44); yG+=68;
+            ctx.fillStyle="#fff"; ctx.font="bold 24px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
+            ctx.fillText(m.v+(m.u?" "+m.u:""),16,yG+22);
+            ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.font="bold 7px monospace";
+            ctx.fillText(m.l,16,yG+33); yG+=48;
           });
           ctx.fillStyle="rgba(255,255,255,0.28)"; ctx.font="bold 8px monospace"; ctx.textAlign="right";
           ctx.fillText((run?.data||"Hoje").toUpperCase(),W-14,C2H-12);
@@ -5120,16 +5122,16 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #00000088)"}}/>
           </div>
           {/* Faixa dados */}
-          <div style={{position:"absolute",bottom:0,left:0,right:0,height:220,zIndex:3}}>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,"+(isGradient?"rgba(30,4,60,0.96)":traceStroke==="#ffffff"?"rgba(20,20,20,0.96)":traceStroke==="#22d3ee"?"rgba(0,30,40,0.96)":"rgba(30,4,60,0.96)")+" 0%,"+(isGradient?"rgba(0,20,40,0.85)":traceStroke==="#ffffff"?"rgba(10,10,10,0.8)":traceStroke==="#22d3ee"?"rgba(0,20,35,0.8)":"rgba(20,4,50,0.8)")+" 55%,transparent 100%)"}}/>
-            <div style={{position:"relative",padding:"18px 18px"}}>
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:155,zIndex:3}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,"+(isGradient?"rgba(30,4,60,0.97)":traceStroke==="#ffffff"?"rgba(20,20,20,0.97)":traceStroke==="#22d3ee"?"rgba(0,30,44,0.97)":"rgba(30,4,60,0.97)")+" 0%,"+(isGradient?"rgba(0,20,40,0.92)":traceStroke==="#ffffff"?"rgba(10,10,10,0.9)":traceStroke==="#22d3ee"?"rgba(0,20,35,0.9)":"rgba(20,4,50,0.9)")+" 50%,transparent 100%)"}}/>
+            <div style={{position:"relative",padding:"14px 16px"}}>
               {metrics2.map((m,i)=>(
-                <div key={i} style={{marginBottom:i<2?18:0}}>
-                  <div style={{display:"flex",alignItems:"baseline",gap:5}}>
-                    <span style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:32,lineHeight:1,letterSpacing:-1}}>{m.v}</span>
-                    {m.u&&<span style={{color:"rgba(255,255,255,0.5)",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:14}}>{m.u}</span>}
+                <div key={i} style={{marginBottom:i<2?10:0}}>
+                  <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                    <span style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:24,lineHeight:1,letterSpacing:-0.5}}>{m.v}</span>
+                    {m.u&&<span style={{color:"rgba(255,255,255,0.5)",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:12}}>{m.u}</span>}
                   </div>
-                  <p style={{color:"rgba(255,255,255,0.38)",fontFamily:"monospace",fontWeight:700,fontSize:8,letterSpacing:1.5,textTransform:"uppercase",margin:"2px 0 0"}}>{m.l}</p>
+                  <p style={{color:"rgba(255,255,255,0.4)",fontFamily:"monospace",fontWeight:700,fontSize:7,letterSpacing:1.5,textTransform:"uppercase",margin:"1px 0 0"}}>{m.l}</p>
                 </div>
               ))}
             </div>
