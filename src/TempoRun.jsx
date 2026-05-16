@@ -2137,15 +2137,18 @@ export default function TempoRunApp() {
   const [isPro, setIsPro]                   = useState(false);
 
   // Limites de IA para plano Free
-  const AI_LIMITS = { coach: 5, saber: 3, plano: 1 };
+  const AI_LIMITS = { coach: 5, saber: 3, plano: 1, explorar: 3 };
   function getAiUsage() {
     try {
-      const today = new Date().toDateString();
+      const month = new Date().toISOString().slice(0,7); // "2026-05"
       const raw = localStorage.getItem("tr_ai_usage");
       const data = raw ? JSON.parse(raw) : {};
-      if (data.date !== today) return { date: today, coach: 0, saber: 0, plano: 0 };
+      // explorar usa limite mensal, coach/saber usam diário
+      const today = new Date().toDateString();
+      if (data.date !== today) return { date: today, month, coach: 0, saber: 0, plano: 0, explorar: data.month===month?(data.explorar||0):0 };
+      if (data.month !== month) return { ...data, month, explorar: 0 };
       return data;
-    } catch { return { date: new Date().toDateString(), coach: 0, saber: 0, plano: 0 }; }
+    } catch { return { date: new Date().toDateString(), month: new Date().toISOString().slice(0,7), coach: 0, saber: 0, plano: 0, explorar: 0 }; }
   }
   function incAiUsage(type) {
     try {
@@ -2159,6 +2162,11 @@ export default function TempoRunApp() {
     try { if(localStorage.getItem("tr_force_pro")) return true; } catch {}
     const usage = getAiUsage();
     return (usage[type] || 0) < AI_LIMITS[type];
+  }
+  function getExplorarRestantes() {
+    if(isPro) return null; // ilimitado
+    const usage = getAiUsage();
+    return Math.max(0, AI_LIMITS.explorar - (usage.explorar||0));
   }
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
@@ -2287,6 +2295,12 @@ export default function TempoRunApp() {
   const [gpsAccuracy, setGpsAccuracy]=useState(null);
   const [routeTick, setRouteTick]=useState(0);  // força re-render do LiveMap
   const [explTab, setExplTab] = useState("rotas");
+  const [explSearch, setExplSearch] = useState("");
+  const [explResults, setExplResults] = useState(null);
+  const [explLoading, setExplLoading] = useState(false);
+  const [shopSearch, setShopSearch] = useState("");
+  const [shopResults, setShopResults] = useState(null);
+  const [shopLoading, setShopLoading] = useState(false);
   const [studioTab, setStudioTab] = useState("card");
   const [studioRun, setStudioRun] = useState(null);
   const [rpDistance, setRpDistance] = useState("400m");
@@ -5107,63 +5121,247 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
         )}
 
-        {explTab==="provas"&&(
-          <div>
-            {provas_data.map((p)=>(
-              <div key={p.id} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:12,marginBottom:9,border:"1px solid "+p.cor+"33"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,gap:8}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.3}}>{p.nome}</p>
-                    <p style={{color:C.tm,fontSize:11,margin:"3px 0 0"}}>📅 {p.data} · 📍 {p.local}</p>
-                  </div>
-                  {p.itra&&<Badge text={"ITRA "+p.itra} color={C.amber}/>}
-                </div>
-                <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:9}}>
-                  <Badge text={p.tipo} color={p.cor}/>
-                  {p.dist.map((d,j)=><Badge key={j} text={d} color={C.cyan}/>)}
-                </div>
-                <div style={{display:"flex",gap:7}}>
-                  <button onClick={()=>selecionarProva(p)} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
-                    {tt("explore.trainForRace", "Treinar para esta prova")}
+        {explTab==="provas"&&(()=>{
+          async function buscarProvas() {
+            if(!explSearch.trim()) return;
+            if(!checkAiLimit("explorar")){
+              setUpgradeReason("Você usou suas 3 buscas gratuitas este mês. ");
+              setShowUpgradeModal(true);
+              return;
+            }
+            setExplLoading(true); setExplResults(null);
+            incAiUsage("explorar");
+            try {
+              const prompt = `Você é um assistente especializado em corridas de rua e trail run no Brasil.
+Busque corridas reais para: "${explSearch}"
+Retorne APENAS JSON (sem markdown):
+{"corridas":[{"nome":"","data":"","local":"","tipo":"Trail|Rua|Ultra","dist":["10K"],"link":"","link_inscricao":"","ins":"Abertas|Em breve|Encerradas","itra":null,"obs":""}]}
+- Priorize corridas dos próximos 12 meses a partir de maio 2026
+- link_inscricao deve ser a URL direta de inscrição (ticketsports, sympla, etc)
+- Se não souber o link exato, use o site do evento
+- Máximo 5 corridas
+- Seja preciso com datas e nomes reais`;
+              const res = await fetch("https://api.anthropic.com/v1/messages",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({
+                  model:"claude-haiku-4-5-20251001",
+                  max_tokens:1000,
+                  tools:[{type:"web_search_20250305",name:"web_search"}],
+                  messages:[{role:"user",content:prompt}]
+                })
+              });
+              const data = await res.json();
+              const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+              const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+              setExplResults(parsed.corridas||[]);
+            } catch(e) {
+              setExplResults([]);
+            }
+            setExplLoading(false);
+          }
+          const corCor = (tipo) => tipo?.toLowerCase().includes("ultra")?C.amber:tipo?.toLowerCase().includes("trail")?C.green:C.cyanB;
+          return (
+            <div>
+              {/* Campo de busca */}
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",gap:8}}>
+                  <input
+                    value={explSearch}
+                    onChange={e=>setExplSearch(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&buscarProvas()}
+                    placeholder="Ex: trail run SP, maratona junho 2026, 10k Rio..."
+                    style={{flex:1,background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"11px 13px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}
+                  />
+                  <button onClick={buscarProvas} disabled={!explSearch.trim()||explLoading}
+                    style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"11px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",opacity:(!explSearch.trim()||explLoading)?0.6:1,display:"flex",alignItems:"center",gap:6}}>
+                    {explLoading?<Dots color="#fff"/>:<><Ic n="pin" z={14} c="#fff"/>Buscar</>}
                   </button>
-                  <a href={p.link} target="_blank" rel="noopener noreferrer" style={{background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 12px",display:"flex",alignItems:"center",textDecoration:"none"}}>
-                    <Ic n="link" z={14} c={C.cyanB}/>
-                  </a>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+                  <p style={{color:C.td,fontSize:10,margin:0,fontFamily:"monospace"}}>Busca com IA — corridas reais dos próximos 12 meses</p>
+                  {!isPro&&<span style={{color:getExplorarRestantes()===0?C.coral:C.td,fontSize:10,fontFamily:"monospace",fontWeight:700}}>{getExplorarRestantes()} busca{getExplorarRestantes()!==1?"s":""} restante{getExplorarRestantes()!==1?"s":""}</span>}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {explTab==="gear"&&(
-          <div>
-            <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:13,marginBottom:11,border:"1px solid "+C.border}}>
-              <div style={{display:"flex",gap:11,alignItems:"flex-start",marginBottom:11}}>
-                <div style={{width:60,height:60,borderRadius:11,background:C.cyanB+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+C.cyanB+"33"}}>
-                  <Ic n="shoe" z={32} c={C.cyanB}/>
+              {/* Resultados */}
+              {explLoading&&(
+                <div style={{textAlign:"center",padding:"28px 0"}}>
+                  <Dots color={C.cyanB}/>
+                  <p style={{color:C.tm,fontSize:12,margin:"10px 0 0"}}>Buscando corridas reais...</p>
                 </div>
-                <div style={{flex:1}}>
-                  <Badge text={tt("explore.recommended", "RECOMENDADO")} color={C.cyanB}/>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"5px 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>Nike Pegasus 40</p>
-                  <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.4}}>Tênis daily trainer com excelente custo-benefício para o seu volume.</p>
+              )}
+
+              {explResults&&explResults.length===0&&(
+                <div style={{background:C.s1,borderRadius:12,padding:"18px 14px",textAlign:"center",border:"1px dashed "+C.border}}>
+                  <p style={{color:C.tm,fontSize:13,margin:0}}>Nenhuma corrida encontrada</p>
+                  <p style={{color:C.td,fontSize:11,margin:"4px 0 0"}}>Tente outro termo ou período</p>
+                </div>
+              )}
+
+              {explResults&&explResults.map((p,i)=>{
+                const cor = corCor(p.tipo);
+                const provaObj = {...p, cor, id:"search_"+i, link:p.link_inscricao||p.link||"https://www.ticketsports.com.br"};
+                return (
+                  <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:12,marginBottom:9,border:"1px solid "+cor+"33"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,gap:8}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1.3}}>{p.nome}</p>
+                        <p style={{color:C.tm,fontSize:11,margin:"3px 0 0"}}>📅 {p.data} · 📍 {p.local}</p>
+                      </div>
+                      <Badge text={p.ins||"Ver"} color={p.ins==="Encerradas"?C.coral:p.ins==="Em breve"?C.amber:C.green}/>
+                    </div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:9}}>
+                      <Badge text={p.tipo} color={cor}/>
+                      {(p.dist||[]).map((d,j)=><Badge key={j} text={d} color={C.cyan}/>)}
+                      {p.itra&&<Badge text={"ITRA "+p.itra} color={C.amber}/>}
+                    </div>
+                    {p.obs&&<p style={{color:C.td,fontSize:11,margin:"0 0 8px",lineHeight:1.4}}>{p.obs}</p>}
+                    <div style={{display:"flex",gap:7}}>
+                      <button onClick={()=>selecionarProva(provaObj)} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>
+                        Treinar para esta prova
+                      </button>
+                      <a href={provaObj.link} target="_blank" rel="noopener noreferrer" style={{background:C.s3,border:"1px solid "+C.border,borderRadius:10,padding:"9px 12px",display:"flex",alignItems:"center",textDecoration:"none"}}>
+                        <Ic n="link" z={14} c={C.cyanB}/>
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Sugestões quando vazio */}
+              {!explResults&&!explLoading&&(
+                <div>
+                  <p style={{color:C.td,fontSize:11,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 10px"}}>Sugestões de busca</p>
+                  {["trail run São Paulo junho 2026","maratona Brasil 2026","10k Rio de Janeiro","ultra trail Minas Gerais","corrida de rua Curitiba"].map((s,i)=>(
+                    <button key={i} onClick={()=>{setExplSearch(s);}} style={{display:"block",width:"100%",background:C.s1,border:"1px solid "+C.border,borderRadius:10,padding:"10px 13px",marginBottom:7,cursor:"pointer",textAlign:"left",color:C.ts,fontSize:12,fontFamily:"inherit"}}>
+                      🔍 {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {explTab==="gear"&&(()=>{
+          async function buscarProduto() {
+            if(!shopSearch.trim()) return;
+            if(!checkAiLimit("explorar")){
+              setUpgradeReason("Você usou suas 3 buscas gratuitas este mês. ");
+              setShowUpgradeModal(true);
+              return;
+            }
+            setShopLoading(true); setShopResults(null);
+            incAiUsage("explorar");
+            try {
+              const prompt = `Você é um assistente especializado em equipamentos de corrida no Brasil.
+O usuário busca: "${shopSearch}"
+Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
+{"produto":{"nome":"","descricao":"","para_quem":""},"lojas":[{"loja":"","link":"","preco":"","frete":"","prazo":"","destaque":false}]}
+- Máximo 4 lojas (Netshoes, Centauro, Nike.com.br, Asics, Adidas, Amazon, Decathlon, etc)
+- Links diretos de busca no site da loja para o produto
+- Preços aproximados em BRL se souber, senão "Ver preço"
+- destaque:true para a melhor opção custo-benefício`;
+              const res = await fetch("https://api.anthropic.com/v1/messages",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({
+                  model:"claude-haiku-4-5-20251001",
+                  max_tokens:800,
+                  tools:[{type:"web_search_20250305",name:"web_search"}],
+                  messages:[{role:"user",content:prompt}]
+                })
+              });
+              const data = await res.json();
+              const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+              const parsed = JSON.parse(text.replace(/```json|```/g,"").trim());
+              setShopResults(parsed);
+            } catch(e) {
+              setShopResults(null);
+            }
+            setShopLoading(false);
+          }
+          return (
+            <div>
+              {/* Campo de busca */}
+              <div style={{marginBottom:14}}>
+                <div style={{display:"flex",gap:8}}>
+                  <input
+                    value={shopSearch}
+                    onChange={e=>setShopSearch(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&buscarProduto()}
+                    placeholder="Ex: tênis para maratona, GPS Garmin, meias de compressão..."
+                    style={{flex:1,background:C.s2,border:"1px solid "+C.border,borderRadius:11,padding:"11px 13px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}
+                  />
+                  <button onClick={buscarProduto} disabled={!shopSearch.trim()||shopLoading}
+                    style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:11,padding:"11px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",opacity:(!shopSearch.trim()||shopLoading)?0.6:1,display:"flex",alignItems:"center",gap:6}}>
+                    {shopLoading?<Dots color="#fff"/>:<><Ic n="shoe" z={14} c="#fff"/>Buscar</>}
+                  </button>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+                  <p style={{color:C.td,fontSize:10,margin:0,fontFamily:"monospace"}}>Busca com IA — encontra onde comprar no Brasil</p>
+                  {!isPro&&<span style={{color:getExplorarRestantes()===0?C.coral:C.td,fontSize:10,fontFamily:"monospace",fontWeight:700}}>{getExplorarRestantes()} busca{getExplorarRestantes()!==1?"s":""} restante{getExplorarRestantes()!==1?"s":""}</span>}
                 </div>
               </div>
-              <SL><Ic n="link" z={13} c={C.ts}/>{tt("explore.whereBuy", "Onde comprar")}</SL>
-              {lojaItems.map((l,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",background:C.s3,borderRadius:9,marginBottom:5,border:"1px solid "+(l.ok?C.cyanB+"33":C.border)}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:5}}>
-                      <p style={{color:C.tp,fontWeight:700,fontSize:12,margin:0}}>{l.loja}</p>
-                      {l.ok&&<Badge text={tt("explore.best", "Melhor")} color={C.cyanB}/>}
-                    </div>
-                    <p style={{color:C.tm,fontSize:10,margin:"2px 0 0",fontFamily:"monospace"}}>{l.tipo} · {l.frete} · {l.prazo}</p>
-                  </div>
-                  <p style={{color:l.ok?C.cyanB:C.tp,fontWeight:800,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{l.preco}</p>
+
+              {shopLoading&&(
+                <div style={{textAlign:"center",padding:"28px 0"}}>
+                  <Dots color={C.cyanB}/>
+                  <p style={{color:C.tm,fontSize:12,margin:"10px 0 0"}}>Buscando melhores opções...</p>
                 </div>
-              ))}
+              )}
+
+              {shopResults&&(
+                <div>
+                  {/* Info do produto */}
+                  <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:13,marginBottom:11,border:"1px solid "+C.border}}>
+                    <div style={{display:"flex",gap:11,alignItems:"flex-start",marginBottom:10}}>
+                      <div style={{width:48,height:48,borderRadius:11,background:C.cyanB+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+C.cyanB+"33"}}>
+                        <Ic n="shoe" z={26} c={C.cyanB}/>
+                      </div>
+                      <div style={{flex:1}}>
+                        <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{shopResults.produto?.nome}</p>
+                        <p style={{color:C.tm,fontSize:11,margin:"0 0 3px",lineHeight:1.4}}>{shopResults.produto?.descricao}</p>
+                        {shopResults.produto?.para_quem&&<p style={{color:C.td,fontSize:10,margin:0,fontStyle:"italic"}}>{shopResults.produto.para_quem}</p>}
+                      </div>
+                    </div>
+                    <SL><Ic n="link" z={13} c={C.ts}/>Onde comprar</SL>
+                    {(shopResults.lojas||[]).map((l,i)=>(
+                      <a key={i} href={l.link} target="_blank" rel="noopener noreferrer"
+                        style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",background:l.destaque?"linear-gradient(135deg,"+C.violet+"11,"+C.cyan+"08)":C.s3,borderRadius:9,marginBottom:5,border:"1px solid "+(l.destaque?C.cyanB+"44":C.border),textDecoration:"none"}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            <p style={{color:C.tp,fontWeight:700,fontSize:12,margin:0}}>{l.loja}</p>
+                            {l.destaque&&<Badge text="Melhor opção" color={C.cyanB}/>}
+                          </div>
+                          <p style={{color:C.tm,fontSize:10,margin:"2px 0 0",fontFamily:"monospace"}}>{l.frete&&"Frete: "+l.frete}{l.prazo&&" · "+l.prazo}</p>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <p style={{color:l.destaque?C.cyanB:C.tp,fontWeight:800,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{l.preco}</p>
+                          <Ic n="link" z={12} c={l.destaque?C.cyanB:C.td}/>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                  <button onClick={()=>{setShopResults(null);setShopSearch("");}} style={{background:"none",border:"none",color:C.tm,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:"4px 0"}}>← Nova busca</button>
+                </div>
+              )}
+
+              {/* Sugestões quando vazio */}
+              {!shopResults&&!shopLoading&&(
+                <div>
+                  <p style={{color:C.td,fontSize:11,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 10px"}}>Sugestões</p>
+                  {["tênis para maratona","GPS Garmin Forerunner","meias de compressão","cinto de hidratação trail","relógio running barato"].map((s,i)=>(
+                    <button key={i} onClick={()=>{setShopSearch(s);}} style={{display:"block",width:"100%",background:C.s1,border:"1px solid "+C.border,borderRadius:10,padding:"10px 13px",marginBottom:7,cursor:"pointer",textAlign:"left",color:C.ts,fontSize:12,fontFamily:"inherit"}}>
+                      🔍 {s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     );
   }
