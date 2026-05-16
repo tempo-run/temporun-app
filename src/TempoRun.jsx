@@ -4867,28 +4867,63 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const cardBorder = "1px solid #a855f744";
     const cardShadow = "0 8px 32px rgba(0,0,0,0.6)";
 
-    // ── CARD 1: logo + stats + small map ──
-    const Card1 = (
-      <div style={{background:cardBg,borderRadius:17,overflow:"hidden",border:cardBorder,boxShadow:cardShadow,height:480,display:"flex",flexDirection:"column"}}>
-        <div style={{padding:"16px 16px 0",textAlign:"center",flex:1}}>
-          <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 10px"}}/>
-          <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>{data}</p>
-          <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
-            <p style={{color:"#f0f4ff",fontSize:42,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}<span style={{fontSize:18,opacity:0.6,fontWeight:600}}> km</span></p>
+    // ── CARD 1: logo + stats + traçado minimalista ──
+    const Card1 = (()=>{
+      const W1=356, H1=480, pad1=28;
+      const poly1 = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
+      let raw1=[];
+      if(poly1.length>2){
+        const s1=poly1[0];
+        const isLL1=s1[0]<0||(Math.abs(s1[0])<10&&Math.abs(s1[1])>10);
+        raw1=poly1.map(p=>({x:isLL1?p[0]:p[1],y:isLL1?-p[1]:-p[0]}));
+      } else {
+        const seed=run?run.distancia_km:10;
+        let rx=0,ry=0;raw1=[{x:rx,y:ry}];
+        for(let i=0;i<28;i++){rx+=Math.sin(i*1.3+seed)*0.003+0.002;ry+=Math.cos(i*0.9+seed)*0.0025;raw1.push({x:rx,y:ry});}
+      }
+      const traceH=160, traceY=H1-traceH-48;
+      const minX1=Math.min(...raw1.map(p=>p.x)),maxX1=Math.max(...raw1.map(p=>p.x));
+      const minY1=Math.min(...raw1.map(p=>p.y)),maxY1=Math.max(...raw1.map(p=>p.y));
+      const rX1=maxX1-minX1||1,rY1=maxY1-minY1||1;
+      const sc1=Math.min((W1-pad1*2)/rX1,(traceH-pad1)/rY1);
+      const oX1=(W1-rX1*sc1)/2,oY1=traceY+(traceH-rY1*sc1)/2;
+      const pts1=raw1.map(p=>({x:oX1+(p.x-minX1)*sc1,y:oY1+(p.y-minY1)*sc1}));
+      const pathD1=pts1.length>1?"M "+pts1.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L "):"";
+      const g1id="c1grad",gw1id="c1glow";
+      return (
+        <div style={{background:cardBg,borderRadius:17,overflow:"hidden",border:cardBorder,boxShadow:cardShadow,height:H1,position:"relative"}}>
+          <svg width="100%" height={H1} viewBox={`0 0 ${W1} ${H1}`} style={{position:"absolute",top:0,left:0}}>
+            <defs>
+              <linearGradient id={g1id} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#7c3aed"/><stop offset="50%" stopColor="#a855f7"/><stop offset="100%" stopColor="#22d3ee"/>
+              </linearGradient>
+              <filter id={gw1id}><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            {pathD1&&<path d={pathD1} fill="none" stroke="#7c3aed" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.2"/>}
+            {pathD1&&<path d={pathD1} fill="none" stroke={`url(#${g1id})`} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${gw1id})`}/>}
+            {pts1.length>0&&<><circle cx={pts1[0].x} cy={pts1[0].y} r="5" fill="#06071a" stroke="#22c55e" strokeWidth="2"/><circle cx={pts1[0].x} cy={pts1[0].y} r="2.5" fill="#22c55e"/></>}
+            {pts1.length>1&&<><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="5" fill="#06071a" stroke="#22d3ee" strokeWidth="2"/><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="2.5" fill="#22d3ee"/></>}
+          </svg>
+          {/* Conteúdo por cima */}
+          <div style={{position:"relative",zIndex:1,padding:"16px 16px 0",textAlign:"center"}}>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 10px"}}/>
+            <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>{data}</p>
+            <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
+              <p style={{color:"#f0f4ff",fontSize:42,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}<span style={{fontSize:18,opacity:0.6,fontWeight:600}}> km</span></p>
+            </div>
+            <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
+              <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{pace}<span style={{fontSize:12,opacity:0.6,fontWeight:600}}> /km</span></p>
+            </div>
+            <div style={{padding:"10px 0"}}>
+              <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{dur}</p>
+            </div>
           </div>
-          <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
-            <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{pace}<span style={{fontSize:12,opacity:0.6,fontWeight:600}}> /km</span></p>
-          </div>
-          <div style={{padding:"10px 0"}}>
-            <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{dur}</p>
+          <div style={{position:"absolute",bottom:10,left:0,right:0,textAlign:"center",zIndex:1}}>
+            <img src={tempoRunLogo} alt="" style={{width:50,height:"auto",objectFit:"contain",opacity:0.25}}/>
           </div>
         </div>
-        {mapUrl1 ? <img src={mapUrl1} alt="mapa" style={{width:"100%",height:120,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef1} width={356} height={120} style={{width:"100%",display:"block"}}/>}
-        <div style={{padding:"8px 16px",textAlign:"center"}}>
-          <img src={tempoRunLogo} alt="" style={{width:50,height:"auto",objectFit:"contain",opacity:0.3}}/>
-        </div>
-      </div>
-    );
+      );
+    })();
 
     // ── CARD 2: full neon map + logo centered top ──
     const Card2 = (
@@ -4987,7 +5022,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       <div>
         {/* card + arrows */}
         <div style={{position:"relative",marginBottom:14}}>
-          <div ref={cardRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{touchAction:"pan-y"}}>
+          <div ref={cardRef} onTouchStart={(e)=>{e.stopPropagation();onTouchStart(e);}} onTouchEnd={(e)=>{e.stopPropagation();onTouchEnd(e);}} style={{touchAction:"pan-y",userSelect:"none"}}>
             {CARDS[cardIndex]}
           </div>
           {/* left arrow */}
@@ -5005,7 +5040,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         {/* dots indicator */}
         <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:16}}>
           {Array.from({length:TOTAL}).map((_,i)=>(
-            <div key={i} onClick={()=>setCardIndex(i)} style={{width:i===cardIndex?20:6,height:6,borderRadius:3,background:i===cardIndex?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border,cursor:"pointer",transition:"width 0.2s"}}/>
+            <div key={i} onClick={()=>setCardIndex(i)} style={{width:i===cardIndex?20:6,height:6,borderRadius:3,background:i===cardIndex?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.border,cursor:"pointer",transition:"none"}}/>
           ))}
         </div>
 
