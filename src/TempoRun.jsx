@@ -4569,7 +4569,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       <div>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <Badge text={anData.isPro?"ANÁLISE PRO":"ANÁLISE PRÉVIA"} color={anData.isPro?C.violet:C.amber}/>
+            <Badge text={isPro?"ANÁLISE PRO":"ANÁLISE PRÉVIA"} color={isPro?C.violet:C.amber}/>
             <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:20}}>Relatório biomecânico</h1>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{color:C.cyanB,fontSize:12,fontWeight:700,fontFamily:"\'Space Grotesk\',sans-serif",whiteSpace:"nowrap"}}>Envie seu vídeo</span><button onClick={()=>setAnStep("upload")} style={{background:C.s2,border:"1px solid "+C.cyanB+"66",borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="upload" z={13} c={C.cyanB}/></button></div>
@@ -4598,7 +4598,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         {/* MÉTRICAS — Free: 1 visível + blur nas restantes / Pro: todas */}
         <SL><Ic n="bars" z={13} c={C.ts}/>Métricas avaliadas</SL>
 
-        {anData.isPro ? (
+        {isPro ? (
           // PRO: todas as métricas com detalhes completos
           (anData.metricas||[]).map((m)=>{
             const cor = colorStatus(m.cor_status);
@@ -4670,14 +4670,14 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
         )}
 
-        {anData.isPro&&anData.resumo&&(
+        {isPro&&anData.resumo&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:13,marginBottom:12,border:"1px solid "+C.cyanB+"33"}}>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 7px",textTransform:"uppercase",letterSpacing:0.5}}>Resumo do TEMPO</p>
             <p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.6}}>{anData.resumo}</p>
           </div>
         )}
 
-        {anData.isPro&&(
+        {isPro&&(
           <div style={{display:"flex",background:C.s2,borderRadius:10,padding:3,marginBottom:12,gap:2}}>
             {[{id:"drills",l:"Drills"},{id:"treino",l:"Treino"},{id:"cues",l:"Cues"},{id:"plano",l:"Plano 4 sem"}].map(t=>(
               <button key={t.id} onClick={()=>setAnTab(t.id)} style={{flex:1,background:anTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":"transparent",color:anTab===t.id?C.tp:C.tm,border:"none",borderRadius:8,padding:"7px 0",fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
@@ -4685,7 +4685,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
         )}
 
-        {anData.isPro&&anTab==="drills"&&(
+        {isPro&&anTab==="drills"&&(
           <div>
             {(anData.drills||[]).map((d,i)=>(
               <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"10px 12px",marginBottom:7,border:"1px solid "+C.border}}>
@@ -4699,7 +4699,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
         )}
 
-        {anData.isPro&&anTab==="treino"&&anData.treino_tecnico&&(
+        {isPro&&anTab==="treino"&&anData.treino_tecnico&&(
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:13,padding:14,border:"1px solid "+C.violet+"33"}}>
             <p style={{color:C.violetL,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>Treino Técnico Sugerido</p>
             <p style={{color:C.tp,fontSize:13,margin:"0 0 12px",lineHeight:1.6}}>{anData.treino_tecnico.descricao}</p>
@@ -4715,7 +4715,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
         )}
 
-        {anData.isPro&&anTab==="cues"&&(
+        {isPro&&anTab==="cues"&&(
           <div>
             {(anData.cues||[]).map((c,i)=>(
               <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"11px 13px",marginBottom:7,border:"1px solid "+C.border,display:"flex",alignItems:"center",gap:11}}>
@@ -4728,7 +4728,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
         )}
 
-        {anData.isPro&&anTab==="plano"&&(
+        {isPro&&anTab==="plano"&&(
           <div>
             {(anData.plano_4sem||[]).map((s)=>(
               <div key={s.semana} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:12,marginBottom:8,border:"1px solid "+C.border}}>
