@@ -2391,10 +2391,37 @@ export default function TempoRunApp() {
     return `${key}_${uid}`;
   }
 
+  function readRunsVaultData() {
+    const uid = currentUserId();
+    if(!uid) return null;
+    try {
+      const vault = JSON.parse(localStorage.getItem("tr_runs_by_user") || "{}");
+      return Array.isArray(vault[uid]) ? JSON.stringify(vault[uid]) : null;
+    } catch { return null; }
+  }
+
+  function writeRunsVaultData(value) {
+    const uid = currentUserId();
+    if(!uid) return;
+    try {
+      const runs = JSON.parse(value || "[]");
+      const vault = JSON.parse(localStorage.getItem("tr_runs_by_user") || "{}");
+      vault[uid] = Array.isArray(runs) ? runs : [];
+      localStorage.setItem("tr_runs_by_user", JSON.stringify(vault));
+    } catch {}
+  }
+
   function readUserLocalData(key) {
     try {
       const scoped = localStorage.getItem(userStorageKey(key));
       if(scoped) return scoped;
+      if(key==="tr5_corridas") {
+        const vaultRuns = readRunsVaultData();
+        if(vaultRuns) {
+          writeUserLocalData(key, vaultRuns);
+          return vaultRuns;
+        }
+      }
       if(session?.email) {
         const emailScoped = localStorage.getItem(`${key}_${session.email}`);
         if(emailScoped) {
@@ -2407,7 +2434,10 @@ export default function TempoRunApp() {
   }
 
   function writeUserLocalData(key, value) {
-    try { localStorage.setItem(userStorageKey(key), value); } catch {}
+    try {
+      localStorage.setItem(userStorageKey(key), value);
+      if(key==="tr5_corridas") writeRunsVaultData(value);
+    } catch {}
   }
 
   async function loadSupabaseUserData(key) {
@@ -2450,6 +2480,8 @@ export default function TempoRunApp() {
   }
 
   useEffect(()=>{
+    const loadUserId = currentUserId();
+    let cancelled = false;
     async function load(){
       try{
         const remoteRuns = await loadSupabaseUserData("tr5_corridas");
@@ -2460,6 +2492,7 @@ export default function TempoRunApp() {
           window.storage.get("tr5_xp").catch(()=>null),
           window.storage.get("tr5_prova").catch(()=>null),
         ]);
+        if(cancelled || loadUserId !== currentUserId()) return;
         const rawRuns = remoteRuns || scopedRuns || (!currentUserId() ? rc?.value : null);
         if(remoteRuns) writeUserLocalData("tr5_corridas", remoteRuns);
         if(!remoteRuns && scopedRuns) persistSupabaseUserData("tr5_corridas", scopedRuns);
@@ -2471,6 +2504,7 @@ export default function TempoRunApp() {
       setDbReady(true);
     }
     load();
+    return ()=>{ cancelled = true; };
   },[session?.access_token, session?.id]);
 
   function connectStrava(){
