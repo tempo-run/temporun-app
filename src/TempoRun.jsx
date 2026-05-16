@@ -4793,10 +4793,11 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       touchStartX.current = null;
       if(Math.abs(dx) < 40) return;
       if(dx < 0) {
-        // swipe left no card 1 → vai para Análises
-        if(cardIndex === 0) { setTab("analise"); return; }
+        // swipe left → próximo card (ou Análises se já no último)
+        if(cardIndex === TOTAL-1) { setTab("analise"); return; }
         setCardIndex(i=>(i+1)%TOTAL);
       } else {
+        // swipe right → card anterior
         setCardIndex(i=>(i-1+TOTAL)%TOTAL);
       }
     }
