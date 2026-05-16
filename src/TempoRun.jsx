@@ -2099,9 +2099,10 @@ export default function TempoRunApp() {
         // average-pace estimate with the best continuous segment for d.km.
         const rpSeg = Math.max(1, Math.round(seg*(d.km/km)));
         const prev = newRps[d.key];
-        if(prev&&rpSeg>=prev.seg) return null;
-        const diff = prev ? prev.seg-rpSeg : null;
-        const hit = {
+        const previousTop = Array.isArray(prev?.top)
+          ? prev.top
+          : prev?.seg ? [{...prev,rank:1,key:d.key,dist:prev.dist||d.label}] : [];
+        const attempt = {
           dist:d.label,
           key:d.key,
           tempo:fmtT(rpSeg),
@@ -2113,7 +2114,13 @@ export default function TempoRunApp() {
           runId:run.id,
           checkedAt:now.toISOString(),
         };
-        newRps[d.key]=hit;
+        const top = [...previousTop, attempt].sort((a,b)=>a.seg-b.seg).slice(0,3).map((item,idx)=>({...item,rank:idx+1}));
+        const hit = top.find(item=>item.runId===run.id);
+        if(!hit) return null;
+        const previousSameRank = previousTop.find(item=>item.rank===hit.rank);
+        const diff = previousSameRank&&previousSameRank.seg>hit.seg ? previousSameRank.seg-hit.seg : null;
+        hit.melhora = diff?fmtT(diff):null;
+        newRps[d.key]={...top[0],top};
         return hit;
       })
       .filter(Boolean);
@@ -3314,6 +3321,20 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
   // ── HOME ─────────────────────────────────────────────────────────────────────
   function renderHome() {
+    const rpRankColor = rank => rank===1 ? C.amber : rank===2 ? "#cfd8dc" : rank===3 ? "#c77a43" : C.cyanB;
+    const latestRpsHome = Object.entries(rpsDb||{})
+      .flatMap(([key,r])=>{
+        if(!r) return [];
+        if(Array.isArray(r.top)) return r.top.map(item=>({...item,key:item.key||key,dist:item.dist||r.dist||key}));
+        return r.seg ? [{...r,key:r.key||key,dist:r.dist||key,rank:1}] : [];
+      })
+      .filter(r=>r&&r.seg&&r.rank<=3)
+      .sort((a,b)=>new Date(b.checkedAt||b.timestamp||b.data||0)-new Date(a.checkedAt||a.timestamp||a.data||0))
+      .slice(0,5)
+      .map(r=>({dist:r.dist||r.key,tempo:r.tempoDisplay||r.tempo,melhora:r.melhora,data:r.data,pace:r.pace,cor:rpRankColor(r.rank),rank:r.rank,real:true,key:r.key}));
+    const homeRps = latestRpsHome.length
+      ? latestRpsHome
+      : rpsExib.slice(0,5).map((r,i)=>({...r,cor:rpRankColor(i<3?i+1:1),rank:i<3?i+1:1,real:false}));
     return (
       <div>
         {novoRP&&(
@@ -3496,16 +3517,16 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
             <div style={{marginBottom:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <SL><Ic n="trophy" z={13} c={C.ts}/>Recordes Pessoais</SL>
-                <button onClick={()=>setTab("studio")} style={{background:"none",border:"none",color:C.violet,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Ver todos →</button>
+                <SL><Ic n="trophy" z={13} c={C.ts}/>Últimos recordes pessoais</SL>
+                <button onClick={()=>{setTab("studio");setStudioTab("rps");}} style={{background:"none",border:"none",color:C.violet,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Ver todos →</button>
               </div>
-              <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4}}>
-                {rpsExib.map((r,i)=>(
-                  <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+r.cor+"33",borderRadius:13,padding:"11px 10px",flexShrink:0,minWidth:82,textAlign:"center"}}>
-                    <p style={{color:r.cor,fontWeight:800,fontSize:11,margin:"0 0 3px"}}>{r.dist}</p>
-                    <p style={{color:C.tp,fontWeight:800,fontSize:14,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5}}>{r.tempo}</p>
-                    {r.melhora?<p style={{color:C.cyanB,fontSize:10,margin:"0 0 1px",fontWeight:700}}>↓{r.melhora}</p>:<p style={{color:C.td,fontSize:10,margin:"0 0 1px"}}>—</p>}
-                    <p style={{color:C.tg,fontSize:9,margin:0,fontFamily:"monospace"}}>{r.data}</p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6}}>
+                {homeRps.map((r,i)=>(
+                  <div key={(r.key||r.dist||"rp")+i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+r.cor+"40",borderRadius:11,padding:"9px 5px",textAlign:"center",position:"relative",overflow:"hidden",minWidth:0}}>
+                    <div style={{position:"absolute",top:-18,right:-18,width:46,height:46,borderRadius:"50%",background:r.cor+"18",filter:"blur(2px)"}}/>
+                    <p style={{position:"relative",color:r.cor,fontWeight:900,fontSize:10,margin:"0 0 4px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.dist}</p>
+                    <p style={{position:"relative",color:C.tp,fontWeight:900,fontSize:12,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.tempo}</p>
+                    <p style={{position:"relative",color:C.tg,fontSize:8.5,margin:0,fontFamily:"monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.data||"—"}</p>
                   </div>
                 ))}
               </div>
@@ -5786,8 +5807,10 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       return m+":"+String(s).padStart(2,"0")+" /km";
     }
     const savedFirst = rpsDb[activeRp.key];
-    const bestSeconds = savedFirst?.seg || activeRp.base;
+    const savedTop = Array.isArray(savedFirst?.top) ? savedFirst.top : [];
+    const bestSeconds = savedTop[0]?.seg || savedFirst?.seg || activeRp.base;
     const rpEfforts = [0,1,2].map(i=>{
+      if(savedTop[i]) return {rank:i+1,time:savedTop[i].tempoDisplay||savedTop[i].tempo||effortTime(savedTop[i].seg),pace:savedTop[i].pace?(""+savedTop[i].pace+" /km"):effortPace(savedTop[i].seg,activeRp.km)};
       const sec = bestSeconds + [0, Math.max(5,Math.round(bestSeconds*0.055)), Math.max(9,Math.round(bestSeconds*0.088))][i];
       return {rank:i+1,time:i===0&&savedFirst?.tempoDisplay?savedFirst.tempoDisplay:effortTime(sec),pace:effortPace(sec,activeRp.km)};
     });
