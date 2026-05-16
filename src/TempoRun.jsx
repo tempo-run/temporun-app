@@ -1473,6 +1473,26 @@ const TR_I18N = {
     "login.resendCode": "Did not receive it, resend code",
     "login.codeExpires": "The code expires in 10 minutes.",
     "login.stravaError": "Could not connect with Strava.",
+    "home.newRecord": "New Record!",
+    "home.goodMorning": "Good morning",
+    "home.runnerFallback": "Runner",
+    "home.knowledge": "Learn",
+    "home.profile": "Profile",
+    "home.connectStravaTitle": "Connect your Strava",
+    "home.connectStravaDesc": "Import your workouts automatically",
+    "home.connectStravaButton": "Connect with Strava",
+    "home.dailyMotivation": "daily motivation",
+    "home.kmThisMonth": "km this month",
+    "home.runs": "runs",
+    "home.averagePace": "average pace",
+    "home.recentRuns": "recent runs",
+    "home.activities": "activities",
+    "home.thisMonth": "this month",
+    "home.thisYear": "this year",
+    "home.activeWeeks": "active weeks",
+    "home.currentStreak": "current streak",
+    "home.latestPrs": "Latest personal records",
+    "home.viewAll": "View all",
   },
 };
 function tr(lang, key, fallback) {
@@ -1971,6 +1991,8 @@ export default function TempoRunApp() {
   // Deriva C do tema — atualiza em tempo real
   const tema = configForm.tema==="light" || (configForm.tema==="auto" && typeof window!=="undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches) ? "light" : "dark";
   C = tema==="light" ? C_LIGHT : C_DARK;
+  const appLang = configForm.idioma || "pt-BR";
+  const tt = (key, fallback) => tr(appLang, key, fallback);
   const [equipDropdown, setEquipDropdown] = useState(null);
   const [equipInput, setEquipInput] = useState("");
   const PAISES = ["Brasil","Irlanda","Alemanha","Angola","Argentina","Austrália","Bélgica","Bolívia","Cabo Verde","Canadá","Chile","China","Colômbia","Coreia do Sul","Dinamarca","Emirados Árabes","Equador","Espanha","Estados Unidos","França","Grécia","Guatemala","Holanda","Hungria","Índia","Itália","Japão","México","Moçambique","Noruega","Nova Zelândia","Paraguai","Peru","Polônia","Portugal","Reino Unido","Rússia","Suécia","Suíça","Turquia","Ucrânia","Uruguai","Venezuela"];
@@ -3511,28 +3533,28 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         {novoRP&&(
           <div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:12,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 24px "+C.violet+"55"}}>
             <Ic n="trophy" z={22} c="#fff"/>
-            <div><p style={{color:"#fff",fontWeight:800,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Novo Recorde!</p><p style={{color:"#ffffffcc",fontSize:12,margin:0}}>{novoRP.dist} em {novoRP.tempo}{novoRP.melhora?" · ↓"+novoRP.melhora:""}</p></div>
+            <div><p style={{color:"#fff",fontWeight:800,fontSize:14,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{tt("home.newRecord", "Novo Recorde!")}</p><p style={{color:"#ffffffcc",fontSize:12,margin:0}}>{novoRP.dist} em {novoRP.tempo}{novoRP.melhora?" · ↓"+novoRP.melhora:""}</p></div>
           </div>
         )}
 
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,paddingBottom:12}}>
           <div style={{textAlign:"left"}}>
-            <p style={{color:C.tm,fontSize:13,margin:0}}>Bom dia 🌤</p>
-            <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{dadosForm.nome?dadosForm.nome.split(" ")[0]:session?.strava_athlete?.firstname||session?.email?.split("@")[0]||"Corredor"} {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}</h1>
+            <p style={{color:C.tm,fontSize:13,margin:0}}>{tt("home.goodMorning", "Bom dia")} 🌤</p>
+            <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{dadosForm.nome?dadosForm.nome.split(" ")[0]:session?.strava_athlete?.firstname||session?.email?.split("@")[0]||tt("home.runnerFallback", "Corredor")} {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}</h1>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
               <div style={{width:44,height:44,borderRadius:22,background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showSaber?C.cyanB+"88":C.border),boxShadow:showSaber?"0 0 14px "+C.violet+"66":"none"}}>
                 <Ic n="science" z={20} c={showSaber?"#fff":C.ts}/>
               </div>
-              <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Saber</span>
+              <span style={{color:showSaber?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>{tt("home.knowledge", "Saber")}</span>
             </button>
             <button onClick={()=>{setShowPerfil(!showPerfil);setShowSaber(false);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px"}}>
               <div style={{position:"relative"}}>
                 <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showPerfil?C.cyanB+"88":C.violet+"44"),boxShadow:isPro?"0 0 12px "+C.violet+"55":showPerfil?"0 0 14px "+C.violet+"66":"none",overflow:"hidden"}}><img src={dadosForm.foto||perfilImg} alt="perfil" style={{width:"100%",height:"100%",objectFit:dadosForm.foto?"cover":"contain"}}/></div>
                 {isPro&&<div style={{position:"absolute",bottom:-2,right:-2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:7,padding:"2px 5px",border:"1.5px solid "+C.bg,boxShadow:"0 0 8px "+C.violet+"66"}}><span style={{color:"#fff",fontSize:7,fontWeight:800,letterSpacing:0.5}}>PRO</span></div>}
               </div>
-              <span style={{color:showPerfil?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>Perfil</span>
+              <span style={{color:showPerfil?C.cyanB:C.td,fontSize:8,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.3}}>{tt("home.profile", "Perfil")}</span>
             </button>
           </div>
         </div>
@@ -3654,29 +3676,29 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={C.strava}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
                   </div>
                   <div style={{flex:1}}>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Conecte seu Strava</p>
-                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>Importe seus treinos automaticamente</p>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{tt("home.connectStravaTitle", "Conecte seu Strava")}</p>
+                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>{tt("home.connectStravaDesc", "Importe seus treinos automaticamente")}</p>
                   </div>
                 </div>
                 <button onClick={()=>sb.signInStrava()} style={{width:"100%",background:C.strava,color:"#fff",border:"none",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-                  Conectar com Strava
+                  {tt("home.connectStravaButton", "Conectar com Strava")}
                 </button>
               </div>
             )}
 
             <div style={{background:"linear-gradient(135deg,"+C.violet+"22,"+C.cyan+"11)",border:"1px solid "+C.violet+"33",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative",overflow:"hidden"}}>
-              <p style={{color:C.violetB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 5px",opacity:0.8}}>motivação do dia</p>
+              <p style={{color:C.violetB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 5px",opacity:0.8}}>{tt("home.dailyMotivation", "motivacao do dia")}</p>
               <p style={{color:C.tp,fontSize:14,fontWeight:600,margin:0,lineHeight:1.55,fontStyle:"italic"}}>"{frases[fraseIdx]}"</p>
             </div>
             <KmChart corridas={corridas} slice={chartSlice} setSlice={setChartSlice}/>
 
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:14}}>
               {[
-                {v:corridas.length?(kmTotal+247).toFixed(0):"247",u:"km este mês",i:"run",c:C.cyanB,sub:corridas.length?"+"+kmTotal.toFixed(1)+"km":"11 corridas"},
-                {v:"5:30/km",u:"pace médio",i:"watch",c:C.amber,sub:"últimas corridas"},
-                {v:(98+corridas.length)+"",u:"atividades",i:"flame",c:C.violetL,sub:corridas.length?corridas.length+" este mês":"este ano"},
-                {v:calcStreak()+"",u:"semanas ativo",i:"streak",c:C.cyan,sub:"sequência atual"},
+                {v:corridas.length?(kmTotal+247).toFixed(0):"247",u:tt("home.kmThisMonth", "km este mês"),i:"run",c:C.cyanB,sub:corridas.length?"+"+kmTotal.toFixed(1)+"km":"11 "+tt("home.runs", "corridas")},
+                {v:"5:30/km",u:tt("home.averagePace", "pace médio"),i:"watch",c:C.amber,sub:tt("home.recentRuns", "últimas corridas")},
+                {v:(98+corridas.length)+"",u:tt("home.activities", "atividades"),i:"flame",c:C.violetL,sub:corridas.length?corridas.length+" "+tt("home.thisMonth", "este mês"):tt("home.thisYear", "este ano")},
+                {v:calcStreak()+"",u:tt("home.activeWeeks", "semanas ativo"),i:"streak",c:C.cyan,sub:tt("home.currentStreak", "sequência atual")},
               ].map((s,i)=>(
                 <div key={i} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"9px 10px",border:"1px solid "+s.c+"22",position:"relative",overflow:"hidden",minHeight:86}}>
                   <Ic n={s.i} z={14} c={s.c}/>
@@ -3689,8 +3711,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
             <div style={{marginBottom:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <SL><Ic n="trophy" z={13} c={C.ts}/>Últimos recordes pessoais</SL>
-                <button onClick={()=>{setTab("studio");setStudioTab("rps");}} style={{background:"none",border:"none",color:C.violet,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Ver todos →</button>
+                <SL><Ic n="trophy" z={13} c={C.ts}/>{tt("home.latestPrs", "Últimos recordes pessoais")}</SL>
+                <button onClick={()=>{setTab("studio");setStudioTab("rps");}} style={{background:"none",border:"none",color:C.violet,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{tt("home.viewAll", "Ver todos")} →</button>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6}}>
                 {homeRps.map((r,i)=>(
