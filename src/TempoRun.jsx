@@ -2465,7 +2465,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const url=URL.createObjectURL(file);
     const vid=document.createElement("video");vid.src=url;
     vid.onloadedmetadata=()=>{
-      if(vid.duration>22){alert("Vídeo muito longo. Envie um vídeo de até 20 segundos.");return;}
+      if(vid.duration>21){alert("Vídeo muito longo. Envie um vídeo de até 20 segundos em movimento.");return;}
       setAnVideoFile(file);
       setAnVideo({name:file.name,duration:Math.round(vid.duration),size:(file.size/1024/1024).toFixed(1)});
       setAnStep("info");
@@ -4496,7 +4496,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         <div style={{paddingTop:8,paddingBottom:12}}>
           <Badge text="ANÁLISE TÉCNICA · IA" color={C.violet}/>
           <h1 style={{color:C.tp,margin:"7px 0 3px",fontFamily:"'Space Grotesk',sans-serif",fontSize:21}}>Análise biomecânica</h1>
-          <p style={{color:C.tm,fontSize:12,margin:0}}>Envie um vídeo de até 30 segundos da sua corrida</p>
+          <p style={{color:C.tm,fontSize:12,margin:0}}>Envie um vídeo de até 20 segundos em movimento</p>
         </div>
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
           <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ai" z={17} c="#fff"/></div>
@@ -4509,15 +4509,18 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <input type="file" accept="video/*" onChange={handleVideoUpload} style={{display:"none"}}/>
           <Ic n="upload" z={32} c={C.violet}/>
           <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"9px 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Toque para enviar vídeo</p>
-          <p style={{color:C.tm,fontSize:11,margin:0}}>MP4, MOV · até 30 segundos · max 100MB</p>
+          <p style={{color:C.tm,fontSize:11,margin:0}}>MP4, MOV · até 20 segundos · max 50MB</p>
         </label>
         <div style={{background:C.s1,borderRadius:12,padding:13,border:"1px solid "+C.border}}>
           <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:0.5}}>O que será avaliado</p>
           {[
-            {n:"Elevação Vertical",d:"Oscilação do tronco durante a corrida"},
-            {n:"Tamanho da Passada × Pace",d:"Relação entre comprimento e ritmo"},
-            {n:"Aterrissagem em relação ao CG",d:"Como o pé toca o solo"},
+            {n:"Elevação Vertical",d:"Oscilação vertical do centro de massa"},
+            {n:"Tamanho da Passada",d:"Comprimento e ponto de aterrissagem"},
+            {n:"Aterrissagem",d:"Como e onde o pé toca o solo"},
             {n:"Overstriding",d:"Pé aterrissando à frente do quadril"},
+            {n:"Posição do Tronco e Braços",d:"Inclinação anterior e movimento dos membros"},
+            {n:"Oscilação Vertical",d:"Energia desperdiçada no movimento para cima"},
+            {n:"Tempo de Contato com o Solo",d:"Duração do apoio em cada passada"},
           ].map((m,i)=>(
             <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
               <div style={{width:18,height:18,borderRadius:5,background:C.cyanB+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}><Ic n="check" z={11} c={C.cyanB}/></div>
