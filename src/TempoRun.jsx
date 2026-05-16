@@ -82,6 +82,28 @@ function Ic({ n, z=20, c="currentColor", st={} }) {
   );
 }
 
+function FlagIcon({ country="br", size=24, st={} }) {
+  if(country==="uk") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 36 24" style={{display:"block",borderRadius:4,overflow:"hidden",boxShadow:"0 0 0 1px rgba(255,255,255,.25)",...st}}>
+        <rect width="36" height="24" fill="#012169"/>
+        <path d="M0 0l36 24M36 0L0 24" stroke="#fff" strokeWidth="6"/>
+        <path d="M0 0l36 24M36 0L0 24" stroke="#C8102E" strokeWidth="3"/>
+        <path d="M18 0v24M0 12h36" stroke="#fff" strokeWidth="8"/>
+        <path d="M18 0v24M0 12h36" stroke="#C8102E" strokeWidth="4.5"/>
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 24" style={{display:"block",borderRadius:4,overflow:"hidden",boxShadow:"0 0 0 1px rgba(255,255,255,.25)",...st}}>
+      <rect width="36" height="24" fill="#009B3A"/>
+      <path d="M18 3L33 12L18 21L3 12Z" fill="#FFDF00"/>
+      <circle cx="18" cy="12" r="5.2" fill="#002776"/>
+      <path d="M13.2 10.7c3.7-.8 7.2-.1 9.6 2" stroke="#fff" strokeWidth="1.15" fill="none"/>
+    </svg>
+  );
+}
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function Badge({ text, color }) {
   return <span style={{background:color+"22",color,border:"1px solid "+color+"44",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,whiteSpace:"nowrap",display:"inline-block"}}>{text}</span>;
@@ -1477,6 +1499,7 @@ const TR_I18N = {
     "home.goodMorning": "Good morning",
     "home.runnerFallback": "Runner",
     "home.knowledge": "Learn",
+    "home.language": "Language",
     "home.profile": "Profile",
     "home.connectStravaTitle": "Connect your Strava",
     "home.connectStravaDesc": "Import your workouts automatically",
@@ -3742,6 +3765,22 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <h1 style={{color:C.tp,margin:"1px 0 0",fontFamily:"'Space Grotesk',sans-serif",fontSize:22,fontWeight:700}}>{dadosForm.nome?dadosForm.nome.split(" ")[0]:session?.strava_athlete?.firstname||session?.email?.split("@")[0]||tt("home.runnerFallback", "Corredor")} {dadosForm.sexo==="Feminino"?"🏃‍♀️":dadosForm.sexo==="Masculino"?"🏃‍♂️":"👋"}</h1>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <button
+              onClick={()=>{
+                const nextLang = appLang==="en" ? "pt-BR" : "en";
+                const next = {...configForm, idioma: nextLang};
+                setConfigForm(next);
+                try{localStorage.setItem("tr_config",JSON.stringify(next));}catch{}
+              }}
+              title={tt("home.language", "Idioma")}
+              style={{background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}
+            >
+              <div style={{width:44,height:44,borderRadius:22,background:C.s2,display:"flex",alignItems:"center",justifyContent:"center",gap:2,border:"2px solid "+C.cyanB+"55",boxShadow:"0 0 12px "+C.cyan+"22"}}>
+                <FlagIcon country="br" size={appLang==="en"?15:25} st={{opacity:appLang==="en"?0.62:1,transform:appLang==="en"?"translateY(1px)":"translateY(0)",transition:"all .18s ease"}}/>
+                <FlagIcon country="uk" size={appLang==="en"?25:15} st={{opacity:appLang==="en"?1:0.62,transform:appLang==="en"?"translateY(0)":"translateY(1px)",transition:"all .18s ease"}}/>
+              </div>
+              <span style={{color:C.td,fontSize:7.5,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.2}}>{tt("home.language", "Idioma")}</span>
+            </button>
             <button onClick={()=>{setShowSaber(!showSaber);setShowPerfil(false);}} style={{background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px",borderRadius:13}}>
               <div style={{width:44,height:44,borderRadius:22,background:showSaber?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+(showSaber?C.cyanB+"88":C.border),boxShadow:showSaber?"0 0 14px "+C.violet+"66":"none"}}>
                 <Ic n="science" z={20} c={showSaber?"#fff":C.ts}/>
