@@ -4544,7 +4544,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     const [cardIndex, setCardIndex] = useState(0);
     const canvasRef1 = useRef(null); // small map for card 1
     const canvasRef2 = useRef(null); // full map for card 2
-    const TOTAL = 4;
+    const TOTAL = 5;
 
     const dist  = run ? run.distancia_km.toFixed(1) : "10.4";
     const pace  = run?.pace_medio  || "5:30";
@@ -4888,13 +4888,40 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           ctx.globalAlpha = 1;
 
         } else if (cardIndex === 1) {
-          // CARD 2: map fills full card, logo centered on top
+          // CARD 2: estilo Garmin — fundo transparente + dados
+          // Logo
+          const lWg=90, lHg=lWg/logoAR;
+          ctx.drawImage(logoImg, W/2-lWg/2, 20, lWg, lHg);
+          // Barra lateral
+          const barG=ctx.createLinearGradient(0,0,0,cardH);
+          barG.addColorStop(0,"#811df2"); barG.addColorStop(0.4,"#a855f7");
+          barG.addColorStop(0.8,"#22d3ee"); barG.addColorStop(1,"rgba(34,211,238,0)");
+          ctx.fillStyle=barG; ctx.fillRect(0,0,5,cardH);
+          // Faixa fundo dados
+          const dG=ctx.createLinearGradient(0,0,W*0.7,0);
+          dG.addColorStop(0,"rgba(10,8,32,0.95)"); dG.addColorStop(0.55,"rgba(10,8,32,0.8)"); dG.addColorStop(1,"rgba(10,8,32,0)");
+          ctx.fillStyle=dG; ctx.fillRect(0,cardH-240,W,240);
+          // Dados
+          const mG=[{v:dist,u:"km",l:"DISTÂNCIA"},{v:pace,u:"/km",l:"PACE MÉDIO"},{v:dur,u:"",l:"TEMPO TOTAL"}];
+          let yG=cardH-220;
+          mG.forEach((m,i)=>{
+            ctx.fillStyle="#ffffff"; ctx.font="bold 36px 'Space Grotesk',sans-serif"; ctx.textAlign="left";
+            ctx.fillText(m.v+(m.u?" "+m.u:""), 20, yG+34);
+            ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.font="bold 9px monospace";
+            ctx.fillText(m.l, 20, yG+50); yG+=76;
+          });
+          // Data
+          ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.font="bold 9px monospace"; ctx.textAlign="right";
+          ctx.fillText((run?.data||"Hoje").toUpperCase(), W-16, cardH-14);
+
+        } else if (cardIndex === 2) {
+          // CARD 3: mapa neon
           if (mapCanvas) { ctx.drawImage(mapCanvas, 0, 0, W, cardH); }
           const lW = 90, lH = lW / logoAR;
           ctx.drawImage(logoImg, W/2 - lW/2, 12, lW, lH);
 
-        } else if (cardIndex === 2) {
-          // CARD 3: logo centered + date + 3 col horizontal stats
+        } else if (cardIndex === 3) {
+          // CARD 4: logo centered + date + 3 col horizontal stats
           let y = 24;
           const lW = 72, lH = lW / logoAR;
           ctx.drawImage(logoImg, W/2 - lW/2, y, lW, lH);
@@ -4914,7 +4941,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         }
 
         // CARD 4: export separado com fundo transparente
-        if(cardIndex === 3) {
+        if(cardIndex === 4) {
           // Novo canvas sem fundo
           const off4 = document.createElement("canvas");
           off4.width = W * SCALE; off4.height = cardH * SCALE;
@@ -5057,8 +5084,48 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       );
     })();
 
-    // ── CARD 2: full neon map + logo centered top ──
-    const Card2 = (
+    // ── CARD 2: estilo Garmin — fundo transparente, dados + barra gradiente ──
+    const Card2 = (()=>{
+      const metrics2 = [
+        {v:dist,  u:"km",  l:"DISTÂNCIA"},
+        {v:pace,  u:"/km", l:"PACE MÉDIO"},
+        {v:dur,   u:"",    l:"TEMPO TOTAL"},
+      ];
+      return (
+        <div style={{position:"relative",borderRadius:17,overflow:"hidden",height:480,border:"1px solid #7c3aed33",boxShadow:cardShadow}}>
+          {/* Fundo xadrez — indica transparência */}
+          <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(45deg,#12122a 25%,transparent 25%),linear-gradient(-45deg,#12122a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#12122a 75%),linear-gradient(-45deg,transparent 75%,#12122a 75%)",backgroundSize:"22px 22px",backgroundPosition:"0 0,0 11px,11px -11px,-11px 0",opacity:0.5}}/>
+          {/* Barra lateral gradiente */}
+          <div style={{position:"absolute",left:0,top:0,bottom:0,width:5,background:"linear-gradient(180deg,#811df2 0%,#a855f7 40%,#22d3ee 80%,transparent 100%)",zIndex:2}}/>
+          {/* Logo centralizada no topo */}
+          <div style={{position:"absolute",top:20,left:0,right:0,display:"flex",justifyContent:"center",zIndex:2}}>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:90,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 10px #7c3aed99)"}}/>
+          </div>
+          {/* Faixa dos dados — gradiente que desbota para a direita */}
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:240,zIndex:2}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,rgba(10,8,32,0.95) 0%,rgba(10,8,32,0.8) 55%,transparent 100%)"}}/>
+            <div style={{position:"relative",padding:"20px 20px 20px 20px"}}>
+              {metrics2.map((m,i)=>(
+                <div key={i} style={{marginBottom:i<2?22:0}}>
+                  <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+                    <span style={{color:"#ffffff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:36,lineHeight:1,letterSpacing:-1}}>{m.v}</span>
+                    {m.u&&<span style={{color:"rgba(255,255,255,0.55)",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:15}}>{m.u}</span>}
+                  </div>
+                  <p style={{color:"rgba(255,255,255,0.4)",fontFamily:"monospace",fontWeight:700,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",margin:"3px 0 0"}}>{m.l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Data canto inferior direito */}
+          <div style={{position:"absolute",bottom:16,right:16,zIndex:3}}>
+            <p style={{color:"rgba(255,255,255,0.3)",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:0}}>{data}</p>
+          </div>
+        </div>
+      );
+    })();
+
+    // ── CARD 3: full neon map + logo centered top ──
+    const Card3 = (
       <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative",height:480}}>
         {mapUrl2 ? <img src={mapUrl2} alt="mapa" style={{width:"100%",height:480,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef2} width={356} height={480} style={{width:"100%",display:"block"}}/>}
         <div style={{position:"absolute",top:12,left:"50%",transform:"translateX(-50%)"}}>
@@ -5067,8 +5134,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       </div>
     );
 
-    // ── CARD 3: logo centered + horizontal stats only ──
-    const Card3 = (
+    // ── CARD 4: logo centered + horizontal stats only ──
+    const Card4 = (
       <div style={{background:cardBg,borderRadius:17,padding:"24px 20px 28px",border:cardBorder,boxShadow:cardShadow,textAlign:"center",height:480,display:"flex",flexDirection:"column",justifyContent:"center"}}>
         <img src={tempoRunLogo} alt="TempoRun" style={{width:72,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 20px"}}/>
         <p style={{color:"#ffffff44",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",margin:"0 0 20px"}}>{data}</p>
@@ -5089,8 +5156,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       </div>
     );
 
-    // ── CARD 4: traçado minimalista — só a linha da rota ──
-    const Card4 = (()=>{
+    // ── CARD 5: traçado minimalista — só a linha da rota ──
+    const Card5 = (()=>{
       const W=356, H=480, pad=48;
       const poly = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
       // Gera pontos sintéticos se não há polyline
@@ -5147,8 +5214,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       );
     })();
 
-    const CARDS = [Card1, Card2, Card3, Card4];
-    const LABELS = ["Card 1 de 4","Card 2 de 4","Card 3 de 4","Card 4 de 4"];
+    const CARDS = [Card1, Card2, Card3, Card4, Card5];
+    const LABELS = ["Card 1 de 5","Card 2 de 5","Card 3 de 5","Card 4 de 5","Card 5 de 5"];
 
     return (
       <div>
@@ -5181,7 +5248,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           <button onClick={handleSave} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
             <Ic n="save" z={15} c="#fff"/>PNG
           </button>
-          {(cardIndex===0||cardIndex===2||cardIndex===3)&&(
+          {(cardIndex===0||cardIndex===1||cardIndex===3||cardIndex===4)&&(
             <button onClick={handleCopy} style={{flex:1,background:copied?"#22c55e22":C.s2,color:copied?"#22c55e":C.cyanB,border:"1px solid "+(copied?"#22c55e44":C.cyanB+"44"),borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
               <Ic n="save" z={15} c={copied?"#22c55e":C.cyanB}/>{copied?"Copiado ✓":"Copiar"}
             </button>
