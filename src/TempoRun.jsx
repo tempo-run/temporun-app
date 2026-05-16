@@ -1947,6 +1947,7 @@ export default function TempoRunApp() {
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
   const [cardColor, setCardColor] = useState("gradient");
+  const [cardIndex, setCardIndex] = useState(0);
   const [provaAmb, setProvaAmb]       = useState(null);
   const [numPeito, setNumPeito]       = useState("");
   const [buscFotos, setBuscFotos]     = useState(false);
@@ -4540,8 +4541,8 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
 
   // ── CARD CAROUSEL ────────────────────────────────────────────────────────────
-  function CardCarousel({ run, C, fmtT, traceStroke="#811df2", isGradient=true }) {
-    const [cardIndex, setCardIndex] = useState(0);
+  function CardCarousel({ run, C, fmtT, traceStroke="#811df2", isGradient=true, cardIndex=0, setCardIndex }) {
+    // cardIndex gerido pelo componente pai
     const canvasRef1 = useRef(null); // small map for card 1
     const canvasRef2 = useRef(null); // full map for card 2
     const TOTAL = 5;
@@ -5564,7 +5565,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
         {studioTab==="card"&&(
           <div>
-            <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient}/>
+            <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient} cardIndex={cardIndex} setCardIndex={setCardIndex}/>
             {/* toggle de cor do traçado */}
             <div style={{display:"flex",gap:6,justifyContent:"center",alignItems:"center",marginTop:12}}>
               {Object.entries(COLOR_PALETTE).map(([key,val])=>{
