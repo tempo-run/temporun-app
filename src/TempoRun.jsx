@@ -5583,11 +5583,12 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
           const pts=rawPts.map(p=>({x:oX+(p.x-minX)*sc,y:oY+(p.y-minY)*sc}));
           if((cardIdx===0||cardIdx===3)&&pts.length>1){
             ctx.shadowColor="#7c3aed"; ctx.shadowBlur=16;
-            ctx.strokeStyle="#7c3aed33"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round";
+            ctx.strokeStyle=(isGradient?"#7c3aed":traceStroke)+"33"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round";
             ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
             pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
             const gr=ctx.createLinearGradient(pts[0].x,pts[0].y,pts[pts.length-1].x,pts[pts.length-1].y);
-            gr.addColorStop(0,"#7c3aed"); gr.addColorStop(0.5,"#a855f7"); gr.addColorStop(1,"#22d3ee");
+            if(isGradient){gr.addColorStop(0,"#7c3aed");gr.addColorStop(0.5,"#a855f7");gr.addColorStop(1,"#22d3ee");}
+            else{gr.addColorStop(0,traceStroke);gr.addColorStop(0.5,traceStroke);gr.addColorStop(1,traceStroke);}
             ctx.shadowBlur=6; ctx.strokeStyle=gr; ctx.lineWidth=4;
             ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
             pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
@@ -5679,8 +5680,8 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
       const logoAR = logoImg.naturalWidth / logoImg.naturalHeight;
       const cardH = CARD_H;
 
-        if (cardIndex === 0) {
-          // CARD 1: logo + dados + traçado minimalista (fundo transparente)
+        if (cardIndex === 1) {
+          // CARD 2 (visual index 1): logo + dados horizontais + traçado minimalista
           let y = 16;
           const logoW = 80, logoH = logoW / logoAR;
           ctx.drawImage(logoImg, W/2 - logoW/2, y, logoW, logoH);
@@ -5713,8 +5714,8 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
           const pts1e=raw1e.map(p=>({x:oX1e+(p.x-minX1e)*sc1e,y:oY1e+(p.y-minY1e)*sc1e}));
           if(pts1e.length>1){
             // Glow
-            ctx.shadowColor="#7c3aed"; ctx.shadowBlur=12;
-            ctx.strokeStyle="#7c3aed33"; ctx.lineWidth=8; ctx.lineCap="round"; ctx.lineJoin="round";
+            ctx.shadowColor=isGradient?"#7c3aed":traceStroke; ctx.shadowBlur=12;
+            ctx.strokeStyle=(isGradient?"#7c3aed":traceStroke)+"33"; ctx.lineWidth=8; ctx.lineCap="round"; ctx.lineJoin="round";
             ctx.beginPath(); ctx.moveTo(pts1e[0].x,pts1e[0].y);
             pts1e.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
             // Gradiente roxo→cyan
@@ -5735,8 +5736,8 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
           ctx.drawImage(logoImg, W/2 - wLogoW/2, y+6, wLogoW, wLogoH);
           ctx.globalAlpha = 1;
 
-        } else if (cardIndex === 1) {
-          // CARD 2: estilo Garmin — foto + dados
+        } else if (cardIndex === 0) {
+          // CARD 1 (visual index 0): estilo Garmin — foto + dados
           const C2H = cardH;
           const barC1 = isGradient?"#811df2":traceStroke;
           const barC2 = isGradient?"#22d3ee":traceStroke;
@@ -5770,13 +5771,64 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
           ctx.fillText((run?.data||tt("studio.today", "Hoje")).toUpperCase(),W-14,C2H-12);
 
         } else if (cardIndex === 2) {
-          // CARD 3: mapa neon
-          if (mapCanvas) { ctx.drawImage(mapCanvas, 0, 0, W, cardH); }
-          const lW = 90, lH = lW / logoAR;
-          ctx.drawImage(logoImg, W/2 - lW/2, 12, lW, lH);
+          // CARD 3 (visual index 2): dados verticais coluna central + traçado neon abaixo
+          const mapTop3 = 240, mapH3 = cardH - mapTop3;
+          const pad3e = 48;
+          // Traçado neon na metade inferior
+          const poly3e = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
+          let raw3e=[];
+          if(poly3e.length>2){
+            const s3e=poly3e[0];
+            const isLL3e=s3e[0]<0||(Math.abs(s3e[0])<10&&Math.abs(s3e[1])>10);
+            raw3e=poly3e.map(p=>({x:isLL3e?p[0]:p[1],y:isLL3e?-p[1]:-p[0]}));
+          } else {
+            const seed3e=run?run.distancia_km:10; let rx=0,ry=0; raw3e=[{x:rx,y:ry}];
+            for(let i=0;i<32;i++){rx+=Math.sin(i*1.3+seed3e)*0.003+0.002;ry+=Math.cos(i*0.9+seed3e)*0.0025;raw3e.push({x:rx,y:ry});}
+          }
+          const minX3e=Math.min(...raw3e.map(p=>p.x)),maxX3e=Math.max(...raw3e.map(p=>p.x));
+          const minY3e=Math.min(...raw3e.map(p=>p.y)),maxY3e=Math.max(...raw3e.map(p=>p.y));
+          const rX3e=maxX3e-minX3e||1, rY3e=maxY3e-minY3e||1;
+          const sc3e=Math.min((W-pad3e*2)/rX3e,(mapH3-pad3e*0.8)/rY3e);
+          const oX3e=(W-rX3e*sc3e)/2, oY3e=mapTop3+(mapH3-rY3e*sc3e)/2;
+          const pts3e=raw3e.map(p=>({x:oX3e+(p.x-minX3e)*sc3e,y:oY3e+(p.y-minY3e)*sc3e}));
+          if(pts3e.length>1){
+            const gr3e=ctx.createLinearGradient(pts3e[0].x,pts3e[0].y,pts3e[pts3e.length-1].x,pts3e[pts3e.length-1].y);
+            gr3e.addColorStop(0,isGradient?traceStroke:"#7c3aed");
+            gr3e.addColorStop(0.5,"#a855f7");
+            gr3e.addColorStop(1,isGradient?"#22d3ee":traceStroke);
+            ctx.shadowColor="#7c3aed"; ctx.shadowBlur=14;
+            ctx.strokeStyle=isGradient?"#7c3aed44":traceStroke+"44"; ctx.lineWidth=8; ctx.lineCap="round"; ctx.lineJoin="round";
+            ctx.beginPath(); ctx.moveTo(pts3e[0].x,pts3e[0].y); pts3e.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+            ctx.shadowBlur=6; ctx.strokeStyle=gr3e; ctx.lineWidth=3;
+            ctx.beginPath(); ctx.moveTo(pts3e[0].x,pts3e[0].y); pts3e.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
+            ctx.shadowBlur=0;
+            ctx.fillStyle="#22c55e"; ctx.beginPath(); ctx.arc(pts3e[0].x,pts3e[0].y,6,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(pts3e[pts3e.length-1].x,pts3e[pts3e.length-1].y,6,0,Math.PI*2); ctx.fill();
+          }
+          // Logo
+          const lW3=70, lH3=lW3/logoAR;
+          ctx.drawImage(logoImg, W/2-lW3/2, 20, lW3, lH3);
+          // Data
+          ctx.fillStyle="#ffffff33"; ctx.font="bold 8px monospace"; ctx.textAlign="center";
+          ctx.fillText((run?.data||"Hoje").toUpperCase(), W/2, lH3+32);
+          // 3 dados verticais centralizados
+          const metrics3e=[{l:"DISTÂNCIA",v:dist,u:"km",sz:34},{l:"PACE",v:pace,u:"/km",sz:26},{l:"TEMPO TOTAL",v:dur,u:"",sz:26}];
+          let yM=lH3+54;
+          metrics3e.forEach((m,i)=>{
+            ctx.fillStyle="#ffffff33"; ctx.font="bold 7px monospace"; ctx.textAlign="center";
+            ctx.fillText(m.l, W/2, yM);
+            ctx.fillStyle="#f0f4ff"; ctx.font=`bold ${m.sz}px 'Space Grotesk',sans-serif`;
+            ctx.fillText(m.v+(m.u?" "+m.u:""), W/2, yM+m.sz+2);
+            yM+=m.sz+28;
+            // separador
+            if(i<2){
+              ctx.strokeStyle="#ffffff18"; ctx.lineWidth=1;
+              ctx.beginPath(); ctx.moveTo(W/2-20,yM-10); ctx.lineTo(W/2+20,yM-10); ctx.stroke();
+            }
+          });
 
         } else if (cardIndex === 3) {
-          // CARD 4: logo centered + date + 3 col horizontal stats
+          // CARD 4 (visual index 3): logo centered + date + 3 col horizontal stats
           let y = 24;
           const lW = 72, lH = lW / logoAR;
           ctx.drawImage(logoImg, W/2 - lW/2, y, lW, lH);
@@ -5796,7 +5848,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
         }
 
         // CARD 4: export separado com fundo transparente
-        if(cardIndex === 4) {
+        if(cardIndex === 4) { // CARD 5 (visual index 4): traçado minimalista
           // Novo canvas sem fundo
           const off4 = document.createElement("canvas");
           off4.width = W * SCALE; off4.height = cardH * SCALE;
@@ -5825,7 +5877,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
           if(pts4.length>1){
             // Glow
             ctx4.shadowColor="#7c3aed"; ctx4.shadowBlur=16;
-            ctx4.strokeStyle="#7c3aed44"; ctx4.lineWidth=10;
+            ctx4.strokeStyle=(isGradient?"#7c3aed":traceStroke)+"44"; ctx4.lineWidth=10;
             ctx4.lineCap="round"; ctx4.lineJoin="round";
             ctx4.beginPath(); ctx4.moveTo(pts4[0].x,pts4[0].y);
             pts4.slice(1).forEach(p=>ctx4.lineTo(p.x,p.y)); ctx4.stroke();
@@ -5915,21 +5967,34 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
             {pts1.length>1&&<><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="5" fill="#06071a" stroke="#22d3ee" strokeWidth="2"/><circle cx={pts1[pts1.length-1].x} cy={pts1[pts1.length-1].y} r="2.5" fill="#22d3ee"/></>}
           </svg>
           {/* Conteúdo por cima */}
-          <div style={{position:"relative",zIndex:1,padding:"16px 16px 0",textAlign:"center"}}>
-            <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 10px"}}/>
-            <p style={{color:"#ffffff55",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>{data}</p>
-            <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
-              <p style={{color:"#f0f4ff",fontSize:42,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}<span style={{fontSize:18,opacity:0.6,fontWeight:600}}> km</span></p>
+          <div style={{position:"relative",zIndex:1,padding:"20px 20px 0",textAlign:"center"}}>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:80,height:"auto",objectFit:"contain",display:"block",margin:"0 auto 12px"}}/>
+            <p style={{color:"#ffffff44",fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 24px"}}>{data}</p>
+            {/* 3 dados com títulos, separadores discretos só entre dados */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:0,padding:"0 4px"}}>
+              {/* Distância */}
+              <div style={{flex:1,textAlign:"center",padding:"0 8px 16px"}}>
+                <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 10px"}}>Distância</p>
+                <p style={{color:"#f0f4ff",fontSize:38,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1.5,lineHeight:1,margin:0}}>{dist}</p>
+                <p style={{color:"#ffffff44",fontSize:12,fontWeight:500,margin:"4px 0 0"}}>km</p>
+              </div>
+              {/* Separador discreto */}
+              <div style={{width:1,height:56,background:"linear-gradient(180deg,transparent,#ffffff22,transparent)",flexShrink:0,marginBottom:16}}/>
+              {/* Pace */}
+              <div style={{flex:1,textAlign:"center",padding:"0 8px 16px"}}>
+                <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 10px"}}>Pace</p>
+                <p style={{color:"#f0f4ff",fontSize:28,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,lineHeight:1,margin:0}}>{pace}</p>
+                <p style={{color:"#ffffff44",fontSize:12,fontWeight:500,margin:"4px 0 0"}}>/km</p>
+              </div>
+              {/* Separador discreto */}
+              <div style={{width:1,height:56,background:"linear-gradient(180deg,transparent,#ffffff22,transparent)",flexShrink:0,marginBottom:16}}/>
+              {/* Tempo Total */}
+              <div style={{flex:1,textAlign:"center",padding:"0 8px 16px"}}>
+                <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 10px"}}>Tempo</p>
+                <p style={{color:"#f0f4ff",fontSize:28,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,lineHeight:1,margin:0}}>{dur}</p>
+                <p style={{color:"#ffffff44",fontSize:12,fontWeight:500,margin:"4px 0 0"}}>total</p>
+              </div>
             </div>
-            <div style={{borderBottom:"1px solid #ffffff18",padding:"10px 0"}}>
-              <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{pace}<span style={{fontSize:12,opacity:0.6,fontWeight:600}}> /km</span></p>
-            </div>
-            <div style={{padding:"10px 0"}}>
-              <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{dur}</p>
-            </div>
-          </div>
-          <div style={{position:"absolute",bottom:10,left:0,right:0,textAlign:"center",zIndex:1}}>
-            <img src={tempoRunLogo} alt="" style={{width:50,height:"auto",objectFit:"contain",opacity:0.25}}/>
           </div>
         </div>
       );
@@ -5991,15 +6056,77 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
       );
     })();
 
-    // ── CARD 3: full neon map + logo centered top ──
-    const Card3 = (
-      <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative",height:480}}>
-        {mapUrl2 ? <img src={mapUrl2} alt="mapa" style={{width:"100%",height:480,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef2} width={356} height={480} style={{width:"100%",display:"block"}}/>}
-        <div style={{position:"absolute",top:12,left:"50%",transform:"translateX(-50%)"}}>
-          <img src={tempoRunLogo} alt="TempoRun" style={{width:64,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
+    // ── CARD 3: dados verticais na coluna central + mapa neon abaixo ──
+    const Card3 = (()=>{
+      const W3=356, H3=480, pad3=48;
+      const poly3 = run?.polyline?.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)||[];
+      let raw3=[];
+      if(poly3.length>2){
+        const s3=poly3[0];
+        const isLL3=s3[0]<0||(Math.abs(s3[0])<10&&Math.abs(s3[1])>10);
+        raw3=poly3.map(p=>({x:isLL3?p[0]:p[1],y:isLL3?-p[1]:-p[0]}));
+      } else {
+        const seed3=run?run.distancia_km:10;
+        let rx=0,ry=0; raw3=[{x:rx,y:ry}];
+        for(let i=0;i<32;i++){rx+=Math.sin(i*1.3+seed3)*0.003+0.002;ry+=Math.cos(i*0.9+seed3)*0.0025;raw3.push({x:rx,y:ry});}
+      }
+      // Mapa ocupa metade inferior — começa em Y=240
+      const mapTop=240, mapH=H3-mapTop;
+      const minX3=Math.min(...raw3.map(p=>p.x)), maxX3=Math.max(...raw3.map(p=>p.x));
+      const minY3=Math.min(...raw3.map(p=>p.y)), maxY3=Math.max(...raw3.map(p=>p.y));
+      const rX3=maxX3-minX3||1, rY3=maxY3-minY3||1;
+      const sc3=Math.min((W3-pad3*2)/rX3,(mapH-pad3*0.8)/rY3);
+      const oX3=(W3-rX3*sc3)/2, oY3=mapTop+(mapH-rY3*sc3)/2;
+      const pts3=raw3.map(p=>({x:oX3+(p.x-minX3)*sc3, y:oY3+(p.y-minY3)*sc3}));
+      const pathD3=pts3.length>1?"M "+pts3.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L "):"";
+      const g3id="c3grad", gw3id="c3glow";
+      return (
+        <div style={{background:"#06071a",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative",height:H3}}>
+          {/* SVG do mapa — apenas metade inferior */}
+          <svg width="100%" height={H3} viewBox={`0 0 ${W3} ${H3}`} style={{position:"absolute",top:0,left:0}}>
+            <defs>
+              <linearGradient id={g3id} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={isGradient?traceColor1:traceStroke}/>
+                <stop offset="50%" stopColor={isGradient?"#a855f7":traceStroke}/>
+                <stop offset="100%" stopColor={isGradient?traceColor2:traceStroke}/>
+              </linearGradient>
+              <filter id={gw3id}><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            {pathD3&&<path d={pathD3} fill="none" stroke={isGradient?traceColor1:traceStroke} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.22"/>}
+            {pathD3&&<path d={pathD3} fill="none" stroke={`url(#${g3id})`} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${gw3id})`}/>}
+            {pts3.length>0&&<><circle cx={pts3[0].x} cy={pts3[0].y} r="6" fill="#06071a" stroke="#22c55e" strokeWidth="2"/><circle cx={pts3[0].x} cy={pts3[0].y} r="2.5" fill="#22c55e"/></>}
+            {pts3.length>1&&<><circle cx={pts3[pts3.length-1].x} cy={pts3[pts3.length-1].y} r="6" fill="#06071a" stroke="#22d3ee" strokeWidth="2"/><circle cx={pts3[pts3.length-1].x} cy={pts3[pts3.length-1].y} r="2.5" fill="#22d3ee"/></>}
+          </svg>
+          {/* Linha divisória sutil */}
+          <div style={{position:"absolute",top:mapTop,left:24,right:24,height:1,background:"linear-gradient(90deg,transparent,#ffffff15,transparent)"}}/>
+          {/* Conteúdo superior — logo + dados verticais na coluna central */}
+          <div style={{position:"relative",zIndex:2,height:mapTop,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"16px 20px 8px"}}>
+            <img src={tempoRunLogo} alt="TempoRun" style={{width:70,height:"auto",objectFit:"contain",marginBottom:6,filter:"drop-shadow(0 0 6px #7c3aed66)"}}/>
+            <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 18px"}}>{data}</p>
+            {/* 3 dados empilhados na vertical */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0,width:"60%"}}>
+              {/* Distância */}
+              <div style={{textAlign:"center",padding:"8px 0",width:"100%"}}>
+                <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>Distância</p>
+                <p style={{color:"#f0f4ff",fontSize:34,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1,lineHeight:1,margin:0}}>{dist} <span style={{fontSize:14,opacity:0.5,fontWeight:500}}>km</span></p>
+              </div>
+              <div style={{width:40,height:1,background:"linear-gradient(90deg,transparent,#ffffff18,transparent)",margin:"2px 0"}}/>
+              {/* Pace */}
+              <div style={{textAlign:"center",padding:"8px 0",width:"100%"}}>
+                <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>Pace</p>
+                <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,lineHeight:1,margin:0}}>{pace} <span style={{fontSize:12,opacity:0.5,fontWeight:500}}>/km</span></p>
+              </div>
+              <div style={{width:40,height:1,background:"linear-gradient(90deg,transparent,#ffffff18,transparent)",margin:"2px 0"}}/>
+              {/* Tempo */}
+              <div style={{textAlign:"center",padding:"8px 0",width:"100%"}}>
+                <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>Tempo Total</p>
+                <p style={{color:"#f0f4ff",fontSize:26,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,lineHeight:1,margin:0}}>{dur}</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    })();
 
     // ── CARD 4: logo centered + horizontal stats only ──
     const Card4 = (
@@ -6081,7 +6208,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
       );
     })();
 
-    const CARDS = [Card1, Card2, Card3, Card4, Card5];
+    const CARDS = [Card2, Card1, Card3, Card4, Card5];
     const LABELS = [1,2,3,4,5].map(n=>`${tt("studio.cardLabel", "Card")} ${n} ${tt("studio.of", "de")} 5`);
 
     return (
