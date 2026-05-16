@@ -122,7 +122,7 @@ function Bubble({ m }) {
   const u = m.from==="user";
   return (
     <div style={{marginBottom:9,display:"flex",justifyContent:u?"flex-end":"flex-start"}}>
-      <div style={{background:u?"#4c1d95":C.s2,border:u?"none":"1px solid "+C.bsub,borderRadius:u?"14px 14px 4px 14px":"4px 14px 14px 14px",padding:"9px 13px",maxWidth:"82%",color:C.tp,fontSize:13,lineHeight:1.65}}>{m.text}</div>
+      <div style={{background:u?"#4c1d95":C.s2,border:u?"none":"1px solid "+C.bsub,borderRadius:u?"14px 14px 4px 14px":"4px 14px 14px 14px",padding:"9px 13px",maxWidth:"82%",color:u?"#fff":C.tp,fontSize:13,lineHeight:1.65}}>{m.text}</div>
     </div>
   );
 }
@@ -1711,12 +1711,13 @@ function tr(lang, key, fallback) {
 function LoginScreen({ onLogin }) {
   // Aplica tema salvo na tela de login também
   let loginLang = "pt-BR";
+  let loginIsLight = false;
   try {
     const saved = JSON.parse(localStorage.getItem("tr_config")||"{}");
     loginLang = saved.idioma || "pt-BR";
-    const isLight = saved.tema==="light" || (saved.tema==="auto" && window.matchMedia?.("(prefers-color-scheme: light)").matches);
-    C = isLight ? C_LIGHT : C_DARK;
-  } catch { C = C_DARK; }
+    loginIsLight = saved.tema==="light" || (saved.tema==="auto" && window.matchMedia?.("(prefers-color-scheme: light)").matches);
+    C = loginIsLight ? C_LIGHT : C_DARK;
+  } catch { loginIsLight = false; C = C_DARK; }
   const tt = (key, fallback) => tr(loginLang, key, fallback);
   const [mode, setMode]       = useState("main"); // main | otp_email | otp_code
   const [email, setEmail]     = useState("");
@@ -1869,7 +1870,7 @@ function LoginScreen({ onLogin }) {
 
   // Tela principal
   return (
-    <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center",background:"#000115"}}>
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center",background:loginIsLight?"linear-gradient(180deg,"+C.bg+","+C.bg2+")":"#000115"}}>
       <div style={{marginTop:16,marginBottom:24,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
         <img src={logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
         <p style={{color:C.ts,fontSize:13,margin:"0",fontWeight:400,letterSpacing:0.3}}>{tt("login.connectToContinue", "Conecte-se para continuar")}</p>
@@ -1880,7 +1881,7 @@ function LoginScreen({ onLogin }) {
           <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"\'Space Grotesk\',sans-serif"}}>{tt("login.continueEmail", "Continuar com e-mail")}</span>
         </button>
         <button onClick={()=>sb.signInApple()} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M17.05 20.28c-.98.95-2.05.86-3.08.41-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.41C2.79 15.25 3.51 7.7 9.05 7.42c1.28.07 2.17.74 2.93.8.89-.19 1.74-.87 3.01-.94 1.61-.09 2.82.63 3.6 1.69-3.24 1.93-2.69 6.17.61 7.35-.49 1.24-1.12 2.46-2.15 3.96zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="#fff"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><path d="M17.05 20.28c-.98.95-2.05.86-3.08.41-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.41C2.79 15.25 3.51 7.7 9.05 7.42c1.28.07 2.17.74 2.93.8.89-.19 1.74-.87 3.01-.94 1.61-.09 2.82.63 3.6 1.69-3.24 1.93-2.69 6.17.61 7.35-.49 1.24-1.12 2.46-2.15 3.96zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill={loginIsLight?C.tp:"#fff"}/></svg>
           <span style={{color:C.tp,fontSize:15,fontWeight:600,fontFamily:"\'Space Grotesk\',sans-serif"}}>{tt("login.continueApple", "Continuar com Apple")}</span>
         </button>
         <button onClick={()=>sb.signInGoogle()} style={{background:"transparent",border:"1px solid "+C.border,borderRadius:14,padding:"15px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"inherit"}}>
@@ -2209,6 +2210,9 @@ export default function TempoRunApp() {
   C = tema==="light" ? C_LIGHT : C_DARK;
   const appLang = configForm.idioma || "pt-BR";
   const tt = (key, fallback) => tr(appLang, key, fallback);
+  const darkCardText = tema==="light" ? "#f0f4ff" : C.tp;
+  const darkCardSub = tema==="light" ? "#c8d3ee" : C.ts;
+  const darkCardMuted = tema==="light" ? "#93a4ca" : C.tm;
   const [equipDropdown, setEquipDropdown] = useState(null);
   const [equipInput, setEquipInput] = useState("");
   const PAISES = ["Brasil","Irlanda","Alemanha","Angola","Argentina","Austrália","Bélgica","Bolívia","Cabo Verde","Canadá","Chile","China","Colômbia","Coreia do Sul","Dinamarca","Emirados Árabes","Equador","Espanha","Estados Unidos","França","Grécia","Guatemala","Holanda","Hungria","Índia","Itália","Japão","México","Moçambique","Noruega","Nova Zelândia","Paraguai","Peru","Polônia","Portugal","Reino Unido","Rússia","Suécia","Suíça","Turquia","Ucrânia","Uruguai","Venezuela"];
@@ -3814,7 +3818,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               <div style={{flex:1,overflowY:"auto",paddingBottom:24}}>
                 <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"33",borderRadius:12,padding:12,marginBottom:10}}>
                   <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 5px"}}>{tt("saber.dailyCuriosity", "curiosidade do dia")}</p>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:"0 0 6px",lineHeight:1.4}}>{tt("saber.cadenceFact", "Corredores com cadência acima de 170 spm têm 30% menos risco de lesão no joelho")}</p>
+                  <p style={{color:darkCardText,fontWeight:700,fontSize:13,margin:"0 0 6px",lineHeight:1.4}}>{tt("saber.cadenceFact", "Corredores com cadência acima de 170 spm têm 30% menos risco de lesão no joelho")}</p>
                   <button onClick={()=>sendSaber("Explique sobre cadência e como aumentar a minha")} style={{background:C.violet+"22",color:C.violetL,border:"1px solid "+C.violet+"44",borderRadius:7,padding:"5px 11px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{tt("saber.learnMore", "Saber mais")} →</button>
                 </div>
                 <div style={{background:"linear-gradient(135deg,#1a0e00,#1e1500)",border:"1px solid "+C.amber+"55",borderRadius:12,padding:12,marginBottom:10}}>
@@ -3822,8 +3826,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                     <div style={{width:24,height:24,borderRadius:7,background:C.amber+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="warning" z={13} c={C.amber}/></div>
                     <p style={{color:C.amber,fontFamily:"monospace",fontSize:9,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.5}}>{tt("saber.glp1Title", "Caneta Emagrecedora & Corrida")}</p>
                   </div>
-                  <p style={{color:C.tp,fontWeight:700,fontSize:12,margin:"0 0 5px",lineHeight:1.4}}>{tt("saber.glp1Headline", "Ozempic, Wegovy e Mounjaro afetam diretamente o desempenho na corrida")}</p>
-                  <p style={{color:C.ts,fontSize:11,margin:"0 0 8px",lineHeight:1.5}}>{tt("saber.glp1Desc", "Estudos mostram redução de 16–39% na ingestão calórica, perda de 25–40% de massa muscular e risco aumentado de fadiga precoce.")}</p>
+                  <p style={{color:darkCardText,fontWeight:700,fontSize:12,margin:"0 0 5px",lineHeight:1.4}}>{tt("saber.glp1Headline", "Ozempic, Wegovy e Mounjaro afetam diretamente o desempenho na corrida")}</p>
+                  <p style={{color:darkCardSub,fontSize:11,margin:"0 0 8px",lineHeight:1.5}}>{tt("saber.glp1Desc", "Estudos mostram redução de 16–39% na ingestão calórica, perda de 25–40% de massa muscular e risco aumentado de fadiga precoce.")}</p>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     {["GLP-1 afeta meu desempenho?","Como treinar com Ozempic?","Perco músculo usando GLP-1?"].map((q,i)=>(
                       <button key={i} onClick={()=>sendSaber(q)} style={{background:C.amber+"18",color:C.amber,border:"1px solid "+C.amber+"44",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{q}</button>
@@ -3908,14 +3912,14 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             {/* Card Strava — aparece uma vez, some ao conectar ou fechar */}
             {!stravaConnected && !stravaCardDismissed && (
               <div style={{background:"linear-gradient(135deg,#1a0800,#200e00)",border:"1px solid "+C.strava+"55",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative"}}>
-                <button onClick={()=>{setStravaCardDismissed(true);try{localStorage.setItem("strava_card_dismissed","1");}catch{}}} style={{position:"absolute",top:10,right:10,background:"none",border:"none",color:C.td,fontSize:16,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
+                <button onClick={()=>{setStravaCardDismissed(true);try{localStorage.setItem("strava_card_dismissed","1");}catch{}}} style={{position:"absolute",top:10,right:10,background:"none",border:"none",color:darkCardMuted,fontSize:16,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                   <div style={{width:34,height:34,borderRadius:10,background:C.strava+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+C.strava+"44"}}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={C.strava}><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
                   </div>
                   <div style={{flex:1}}>
-                    <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{tt("home.connectStravaTitle", "Conecte seu Strava")}</p>
-                    <p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>{tt("home.connectStravaDesc", "Importe seus treinos automaticamente")}</p>
+                    <p style={{color:darkCardText,fontWeight:700,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{tt("home.connectStravaTitle", "Conecte seu Strava")}</p>
+                    <p style={{color:darkCardSub,fontSize:11,margin:"2px 0 0"}}>{tt("home.connectStravaDesc", "Importe seus treinos automaticamente")}</p>
                   </div>
                 </div>
                 <button onClick={()=>sb.signInStrava()} style={{width:"100%",background:C.strava,color:"#fff",border:"none",borderRadius:10,padding:"10px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -3983,7 +3987,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div>
             <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
               <Ic n="ai" z={26} c={C.cyanB}/>
-              <div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Coach TEMPO</p><p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{tt("training.planIntro", "Vamos montar um plano completo e personalizado para você.")}</p></div>
+              <div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Coach TEMPO</p><p style={{color:darkCardSub,fontSize:12,margin:0,lineHeight:1.6}}>{tt("training.planIntro", "Vamos montar um plano completo e personalizado para você.")}</p></div>
             </div>
 
             {/* Tipo de plano */}
@@ -4111,7 +4115,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                     <div style={{width:32,height:32,borderRadius:10,background:C.amber+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="warning" z={17} c={C.amber}/></div>
                     <div>
                       <p style={{color:C.amber,fontWeight:700,fontSize:13,margin:"0 0 3px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.glp1Question", "Usa caneta emagrecedora?")}</p>
-                      <p style={{color:C.ts,fontSize:11,margin:0,lineHeight:1.5}}>{tt("training.glp1Desc", "Ozempic · Wegovy · Mounjaro · Saxenda")}</p>
+                      <p style={{color:darkCardSub,fontSize:11,margin:0,lineHeight:1.5}}>{tt("training.glp1Desc", "Ozempic · Wegovy · Mounjaro · Saxenda")}</p>
                     </div>
                   </div>
                   <div style={{display:"flex",gap:8,marginBottom:planForm.glp1==="sim"?12:0}}>
@@ -4153,7 +4157,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               <Ic n="ai" z={22} c={C.cyanB}/>
               <div>
                 <p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 5px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.planGenerated", "Plano gerado")}</p>
-                <p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{planResult.resumo_semanal}</p>
+                <p style={{color:darkCardSub,fontSize:12,margin:0,lineHeight:1.6}}>{planResult.resumo_semanal}</p>
               </div>
             </div>
             {planResult.plano?.map((d,i)=>{
@@ -4323,7 +4327,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             {savedPlan.resumo_semanal&&typeof savedPlan.resumo_semanal==="string"&&(
               <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:13,padding:12,marginBottom:12,display:"flex",gap:9,alignItems:"flex-start"}}>
                 <Ic n="ai" z={18} c={C.cyanB}/>
-                <p style={{color:C.ts,fontSize:12,margin:0,lineHeight:1.6}}>{savedPlan.resumo_semanal}</p>
+                <p style={{color:darkCardSub,fontSize:12,margin:0,lineHeight:1.6}}>{savedPlan.resumo_semanal}</p>
               </div>
             )}
 
@@ -4591,8 +4595,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             </div>
           </div>
           <div style={{background:"linear-gradient(160deg,#06071a,#0c0830)",borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
-            <p style={{color:C.tm,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,margin:"0 0 5px",position:"relative"}}>tempo de corrida</p>
-            <p style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:50,fontWeight:800,margin:"0 0 3px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{fmtT(gSeg)}</p>
+                <p style={{color:darkCardMuted,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,margin:"0 0 5px",position:"relative"}}>tempo de corrida</p>
+                <p style={{color:darkCardText,fontFamily:"'Space Grotesk',sans-serif",fontSize:50,fontWeight:800,margin:"0 0 3px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{fmtT(gSeg)}</p>
             <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>{gStatus==="ativo"?"Em andamento":gStatus==="pausado"?"Pausado":"Pronto"}</p>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
@@ -4762,7 +4766,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         {/* Coach Tempo */}
         <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>{tt("training.coachTempo", "Coach Tempo")}</p>
-          <p style={{color:C.ts,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>{tt("training.coachTip", "Hoje focamos em velocidade de limiar. Execute em ~5:10/km.")}</p>
+          <p style={{color:darkCardSub,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>{tt("training.coachTip", "Hoje focamos em velocidade de limiar. Execute em ~5:10/km.")}</p>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>{setPlanScreen("form");setSubScreen("plano");}} style={{flex:1,height:48,background:C.s2,color:C.cyanB,border:"1px solid "+C.cyanB+"33",borderRadius:10,padding:"0 8px",fontWeight:800,fontSize:12,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,whiteSpace:"nowrap"}}>
               <Ic n="ai" z={14} c={C.cyanB}/>{tt("training.createPlan", "Criar plano")}
@@ -4778,7 +4782,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <p style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 8px"}}>{tt("training.chatWithCoach", "Chat com Coach Tempo")}</p>
           {coachMsgs.slice(-2).map((m,i)=>(
             <div key={i} style={{marginBottom:6,textAlign:m.from==="user"?"right":"left"}}>
-              <span style={{background:m.from==="user"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:C.tp,fontSize:12,padding:"6px 10px",borderRadius:10,display:"inline-block",maxWidth:"85%",lineHeight:1.4}}>{m.text}</span>
+              <span style={{background:m.from==="user"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:m.from==="user"?"#fff":C.tp,fontSize:12,padding:"6px 10px",borderRadius:10,display:"inline-block",maxWidth:"85%",lineHeight:1.4}}>{m.text}</span>
             </div>
           ))}
           <div style={{display:"flex",gap:7,marginTop:8}}>
@@ -4806,7 +4810,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ai" z={17} c="#fff"/></div>
           <div>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,margin:"0 0 5px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Coach TEMPO</p>
-            <p style={{color:C.ts,fontSize:13,margin:0,lineHeight:1.5}}>{tt("analysis.coachTip", "Filme sua corrida de lado, em terreno plano e bem iluminado. Capture pelo menos 8 ciclos de passada.")}</p>
+            <p style={{color:darkCardSub,fontSize:13,margin:0,lineHeight:1.5}}>{tt("analysis.coachTip", "Filme sua corrida de lado, em terreno plano e bem iluminado. Capture pelo menos 8 ciclos de passada.")}</p>
           </div>
         </div>
         <label style={{display:"block",background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"2px dashed "+C.violet+"66",borderRadius:14,padding:"24px 20px",textAlign:"center",cursor:"pointer",marginBottom:11}}>
@@ -4881,8 +4885,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{position:"absolute",top:-30,left:"50%",transform:"translateX(-50%)",width:200,height:80,borderRadius:"50%",background:C.violet+"22",filter:"blur(25px)",pointerEvents:"none"}}/>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 7px",position:"relative"}}>{tt("analysis.techIndex", "Índice Técnico")}</p>
           <div style={{display:"flex",justifyContent:"center",alignItems:"baseline",gap:6,position:"relative",marginBottom:5}}>
-            <span style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:54,fontWeight:800,letterSpacing:-2,lineHeight:1}}>{anData.indice_tecnica}</span>
-            <span style={{color:C.tm,fontSize:18,fontWeight:600}}>/100</span>
+            <span style={{color:darkCardText,fontFamily:"'Space Grotesk',sans-serif",fontSize:54,fontWeight:800,letterSpacing:-2,lineHeight:1}}>{anData.indice_tecnica}</span>
+            <span style={{color:darkCardMuted,fontSize:18,fontWeight:600}}>/100</span>
           </div>
           <Badge text={anData.classificacao} color={C.cyanB}/>
           {/* Frase de impacto — visível para todos, cria urgência */}
@@ -4890,7 +4894,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <div style={{marginTop:14,background:"linear-gradient(135deg,"+C.coral+"18,"+C.amber+"11)",border:"1px solid "+C.coral+"44",borderRadius:11,padding:"10px 13px",position:"relative"}}>
               <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
                 <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
-                <p style={{color:C.tp,fontSize:12,fontWeight:600,margin:0,lineHeight:1.6,textAlign:"left"}}>{anData.frase_impacto}</p>
+                <p style={{color:darkCardText,fontSize:12,fontWeight:600,margin:0,lineHeight:1.6,textAlign:"left"}}>{anData.frase_impacto}</p>
               </div>
             </div>
           )}
