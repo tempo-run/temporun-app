@@ -4740,7 +4740,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           const sc=Math.min((W-pad*2)/rX,(trH-pad)/rY);
           const oX=(W-rX*sc)/2,oY=trY+(trH-rY*sc)/2;
           const pts=rawPts.map(p=>({x:oX+(p.x-minX)*sc,y:oY+(p.y-minY)*sc}));
-          if(pts.length>1){
+          if((cardIdx===0||cardIdx===3)&&pts.length>1){
             ctx.shadowColor="#7c3aed"; ctx.shadowBlur=16;
             ctx.strokeStyle="#7c3aed33"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round";
             ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
@@ -4754,12 +4754,14 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             ctx.fillStyle="#22c55e"; ctx.beginPath(); ctx.arc(pts[0].x,pts[0].y,7,0,Math.PI*2); ctx.fill();
             ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(pts[pts.length-1].x,pts[pts.length-1].y,7,0,Math.PI*2); ctx.fill();
           }
-          // Logo
-          const lW=cardIdx===0?50:80, lH=lW/logoAR;
-          const lY=cardIdx===0?CARD_H-lH-10:14;
-          ctx.globalAlpha=cardIdx===0?0.25:0.8;
-          ctx.drawImage(logoImg,W/2-lW/2,lY,lW,lH);
-          ctx.globalAlpha=1;
+          // Logo (só cards 1 e 4)
+          if(cardIdx===0||cardIdx===3){
+            const lW=cardIdx===0?50:80, lH=lW/logoAR;
+            const lY=cardIdx===0?CARD_H-lH-10:14;
+            ctx.globalAlpha=cardIdx===0?0.25:0.8;
+            ctx.drawImage(logoImg,W/2-lW/2,lY,lW,lH);
+            ctx.globalAlpha=1;
+          }
           if(cardIdx===0){
             let y=16;
             const lW2=80,lH2=lW2/logoAR;
