@@ -813,7 +813,7 @@ const lojaItems=[
 const frases=["Cada quilômetro te faz mais forte do que ontem.","O ritmo que importa é o seu.","Subidas constroem quem você vai ser na descida.","Não existe mal tempo. Existe falta de preparo.","Corra pelo processo, não só pelo resultado.","Seu maior adversário é a voz que diz 'para'."];
 
 // ─── RUN DETAIL MODAL ─────────────────────────────────────────────────────────
-function RunDetailModal({ run, onClose }) {
+function RunDetailModal({ run, onClose, onShare }) {
   if(!run) return null;
   const isStrava = run.source==="strava";
   const isGarmin = run.source==="garmin";
@@ -898,7 +898,7 @@ function RunDetailModal({ run, onClose }) {
                 <p style={{color:"rgba(255,255,255,0.65)",fontSize:11,margin:"2px 0 0",fontFamily:"monospace"}}>{run.data}</p>
               </div>
             </div>
-            <button style={{background:"rgba(13,15,46,0.75)",border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",backdropFilter:"blur(8px)"}}><Ic n="share" z={14} c="#fff"/></button>
+            <button onClick={()=>onShare&&onShare(run)} style={{background:"rgba(13,15,46,0.75)",border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",backdropFilter:"blur(8px)"}}><Ic n="share" z={14} c="#fff"/></button>
           </div>
         </div>
       </div>
@@ -1943,6 +1943,7 @@ export default function TempoRunApp() {
   const [routeTick, setRouteTick]=useState(0);  // força re-render do LiveMap
   const [explTab, setExplTab] = useState("rotas");
   const [studioTab, setStudioTab] = useState("card");
+  const [studioRun, setStudioRun] = useState(null);
   const [cardType, setCardType]   = useState("treino");
   const [cardIdx, setCardIdx]     = useState(0);
   const [cardColor, setCardColor] = useState("blue");
@@ -2154,6 +2155,13 @@ ${parts.join(" | ")}` : "";
   async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gCR.current,p,routeRef.current);}
   function resetGrav(keepGPS=false){isRunningRef.current=false;clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];if(!keepGPS)lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
+
+  // Ouvir evento de share do RunDetailModal
+  useEffect(()=>{
+    const handler=(e)=>{ setStudioRun(e.detail); };
+    window.addEventListener("tr_studio_run", handler);
+    return ()=>window.removeEventListener("tr_studio_run", handler);
+  },[]);
 
   // Pré-aquecimento GPS ao entrar na tela de gravação
   useEffect(()=>{
@@ -3611,7 +3619,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
                 <div key={i} style={{background:C.s3,borderRadius:11,padding:"11px 12px",border:"1px solid "+s.c+"22"}}><p style={{color:s.c,fontFamily:"monospace",fontWeight:700,fontSize:8,textTransform:"uppercase",letterSpacing:1.2,margin:"0 0 4px",opacity:0.8}}>{s.l}</p><p style={{color:s.c,fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:20,margin:0,letterSpacing:-0.5}}>{s.v}</p></div>
               ))}
             </div>
-            <div style={{display:"flex",gap:5}}>{[1,2,3,4,5,6].map(n=><div key={n} style={{flex:1,height:27,borderRadius:7,background:n<=intDone?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s3,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:n<=intDone?"#fff":C.tg,fontSize:11,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif"}}>{n}</span></div>)}</div>
+            <button onClick={()=>{if(savedRun){setSelectedRun(savedRun);}}} style={{width:"100%",background:"transparent",border:"none",color:C.cyanB,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",padding:"4px 0",textAlign:"center",textDecoration:"underline",letterSpacing:0.2}}>Ver dados completos →</button>
           </div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>{setTab("studio");setStudioTab("card");setSubScreen(null);}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",letterSpacing:0.3}}>Criar card</button>
@@ -5152,7 +5160,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
       violet: {accent:C.violetL, label:"Violeta"},
       amber: {accent:C.amber, label:"Âmbar"},
     };
-    const lastRun = corridas[0] || {distancia_km:10.4, pace_medio:"5:30", duracao_seg:3120, dplus:128, bpm_medio:158, data:"Hoje"};
+    const lastRun = studioRun || corridas[0] || {distancia_km:10.4, pace_medio:"5:30", duracao_seg:3120, dplus:128, bpm_medio:158, data:"Hoje"};
     const accent = COLOR_PALETTE[cardColor].accent;
     return (
       <div>
@@ -5290,7 +5298,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
               </button>
             );
           })}
-          <button disabled={!loggedIn} onClick={()=>{if(loggedIn){setTab("treino");setSubScreen(null);}}} style={{background:"none",border:"none",cursor:loggedIn?"pointer":"default",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"0 10px",opacity:loggedIn?1:0.85}}>
+          <button disabled={!loggedIn} onClick={()=>{if(loggedIn){if(gStatus==="fim"){resetGrav();setGStatus("idle");}setTab("treino");setSubScreen(null);}}} style={{background:"none",border:"none",cursor:loggedIn?"pointer":"default",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"0 10px",opacity:loggedIn?1:0.85}}>
             <div style={{width:52,height:52,borderRadius:16,background:loggedIn&&tab==="treino"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"linear-gradient(135deg,"+C.s2+","+C.s3+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:loggedIn&&tab==="treino"?"0 4px 22px "+C.violet+"55":"none",border:"1px solid "+(loggedIn&&tab==="treino"?C.violet+"66":C.border),marginTop:subScreen==="gravacao"?0:-20}}>
               <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                 {/* Cabeça */}
@@ -5328,7 +5336,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </div>
 
         {selectedRun&&(
-          <RunDetailModal run={selectedRun} onClose={()=>setSelectedRun(null)}/>
+          <RunDetailModal run={selectedRun} onClose={()=>setSelectedRun(null)} onShare={(r)=>{setSelectedRun(null);setTab("studio");setStudioTab("card");setTimeout(()=>{const ev=new CustomEvent("tr_studio_run",{detail:r});window.dispatchEvent(ev);},100);}}/>
         )}
 
         <GarminConnectModal
