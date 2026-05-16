@@ -4565,6 +4565,27 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
 
     const NEON = { route:"#a855f7", glow:"#7c3aed", bg:"#1a1a2edd", street:"#16213e", pin:"#c084fc", dot:"#22d3ee" };
 
+    // URL do Mapbox Static para os cards
+    const mapboxCardUrl = (w, h) => {
+      try {
+        if(!run?.polyline||run.polyline.length<2) return null;
+        const sample = run.polyline[0];
+        if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
+        const isLngLat = sample[0] < 0 || (Math.abs(sample[0]) < 10 && Math.abs(sample[1]) > 10);
+        const all = run.polyline.filter(p=>p&&p[0]!==undefined&&p[1]!==undefined)
+          .map(p => isLngLat ? [p[0], p[1]] : [p[1], p[0]]);
+        if(all.length<2) return null;
+        const step = Math.max(1, Math.floor(all.length/60));
+        const coords = all.filter((_,i)=>i%step===0||i===all.length-1);
+        const geoJson = {type:"Feature",properties:{stroke:"#a855f7","stroke-width":4,"stroke-opacity":1},geometry:{type:"LineString",coordinates:coords}};
+        const geoStr = encodeURIComponent(JSON.stringify(geoJson));
+        const url = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/geojson(${geoStr})/auto/${w}x${h}@2x?access_token=${MAPBOX_TOKEN}&padding=30`;
+        return url.length > 7500 ? null : url;
+      } catch(e) { return null; }
+    };
+    const mapUrl1 = mapboxCardUrl(356, 130);
+    const mapUrl2 = mapboxCardUrl(356, 468);
+
     function drawMap(canvas, small=false) {
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
@@ -4804,7 +4825,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
             <p style={{color:"#f0f4ff",fontSize:28,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-0.5,margin:0}}>{dur}</p>
           </div>
         </div>
-        <canvas ref={canvasRef1} width={356} height={130} style={{width:"100%",display:"block"}}/>
+        {mapUrl1 ? <img src={mapUrl1} alt="mapa" style={{width:"100%",height:130,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef1} width={356} height={130} style={{width:"100%",display:"block"}}/>}
         <div style={{padding:"10px 16px",textAlign:"center"}}>
           <img src={tempoRunLogo} alt="" style={{width:60,height:"auto",objectFit:"contain",opacity:0.35}}/>
         </div>
@@ -4814,7 +4835,7 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
     // ── CARD 2: full neon map + logo centered top ──
     const Card2 = (
       <div style={{background:"#1a1a2e",borderRadius:17,overflow:"hidden",border:"1px solid #a855f733",boxShadow:cardShadow,position:"relative"}}>
-        <canvas ref={canvasRef2} width={356} height={468} style={{width:"100%",display:"block"}}/>
+        {mapUrl2 ? <img src={mapUrl2} alt="mapa" style={{width:"100%",height:468,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";}} /> : <canvas ref={canvasRef2} width={356} height={468} style={{width:"100%",display:"block"}}/>}
         <div style={{position:"absolute",top:12,left:"50%",transform:"translateX(-50%)"}}>
           <img src={tempoRunLogo} alt="TempoRun" style={{width:64,height:"auto",objectFit:"contain",filter:"drop-shadow(0 0 8px #7c3aed88)"}}/>
         </div>
