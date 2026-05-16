@@ -5247,24 +5247,6 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
           ))}
         </div>
 
-        {/* toggle de cor do traçado */}
-        <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"center",alignItems:"center"}}>
-          {Object.entries(COLOR_PALETTE).map(([key,val])=>{
-            const isSelected = cardColor===key;
-            const previewBg = key==="gradient"
-              ? "linear-gradient(135deg,#811df2,#22d3ee)"
-              : key==="white" ? "#e0e0e0"
-              : key==="cyan" ? "#22d3ee"
-              : "#811df2";
-            return (
-              <button key={key} onClick={()=>setCardColor(key)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 8px"}}>
-                <div style={{width:26,height:26,borderRadius:"50%",background:previewBg,border:isSelected?"2.5px solid #fff":"2px solid #ffffff33",boxShadow:isSelected?"0 0 8px #ffffff66":"none"}}/>
-                <span style={{color:isSelected?C.tp:C.td,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{val.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
         {/* actions */}
         <div style={{display:"flex",gap:8}}>
           <button onClick={handleSave} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"12px 0",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
@@ -5581,7 +5563,22 @@ Total corridas:${corridas.length}${glp1str}${planImport?"\n"+planImport.fonte+":
         </div>
 
         {studioTab==="card"&&(
-          <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient}/>
+          <div>
+            <CardCarousel run={lastRun} C={C} fmtT={fmtT} traceStroke={traceStroke} isGradient={isGradient}/>
+            {/* toggle de cor do traçado */}
+            <div style={{display:"flex",gap:6,justifyContent:"center",alignItems:"center",marginTop:12}}>
+              {Object.entries(COLOR_PALETTE).map(([key,val])=>{
+                const isSelected = cardColor===key;
+                const previewBg = key==="gradient"?"linear-gradient(135deg,#811df2,#22d3ee)":key==="white"?"#e0e0e0":key==="cyan"?"#22d3ee":"#811df2";
+                return (
+                  <button key={key} onClick={()=>setCardColor(key)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",cursor:"pointer",padding:"4px 8px"}}>
+                    <div style={{width:26,height:26,borderRadius:"50%",background:previewBg,border:isSelected?"2.5px solid #fff":"2px solid #ffffff33",boxShadow:isSelected?"0 0 8px #ffffff66":"none"}}/>
+                    <span style={{color:isSelected?C.tp:C.td,fontSize:8,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{val.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {studioTab==="rps"&&(
