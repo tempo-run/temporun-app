@@ -1958,6 +1958,7 @@ function clearSession() {
 
 export default function TempoRunApp() {
   const [session, setSession]   = useState(()=>loadSession()); // restaura sessão salva
+  const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // evita flash da tela de login
   const loggedIn = !!session;
 
@@ -2003,7 +2004,13 @@ export default function TempoRunApp() {
     }).then(r=>r.json()).then(data=>{
       if(data.id) {
         // Token ainda válido — mantém sessão
-        setSession(s=>s||saved);
+        setAuthUser(data);
+        setSession(s=>{
+          const base = s||saved;
+          const updated = {...base, id: base.id||data.id, email: base.email||data.email||""};
+          saveSession(updated);
+          return updated;
+        });
       } else {
         // Token expirado — limpa e pede login
         clearSession(); setSession(null);
@@ -2023,17 +2030,19 @@ export default function TempoRunApp() {
       const updated = {...session, id: jwtId};
       saveSession(updated);
       setSession(updated);
-      return;
     }
-    if(session?.id) return;
     // Fallback — busca no Supabase
     fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
     }).then(r=>r.json()).then(data=>{
       if(data?.id) {
-        const updated = {...session, id: data.id, email: data.email||session.email};
-        saveSession(updated);
-        setSession(updated);
+        setAuthUser(data);
+        setSession(s=>{
+          const base = s||session;
+          const updated = {...base, id: data.id, email: data.email||base.email||""};
+          saveSession(updated);
+          return updated;
+        });
       }
     }).catch(()=>{});
   },[session?.access_token]);
@@ -2383,16 +2392,39 @@ export default function TempoRunApp() {
   }
 
   function currentUserId() {
-    return session?.id || (session?.access_token ? jwtUserId(session.access_token) : "") || "";
+    return session?.id || authUser?.id || (session?.access_token ? jwtUserId(session.access_token) : "") || "";
   }
 
-  function userStorageKey(key) {
-    const uid = currentUserId() || session?.email || "anon";
+  async function resolveCurrentUserId() {
+    const existing = currentUserId();
+    if(existing) return existing;
+    if(!session?.access_token) return "";
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
+      });
+      const data = await r.json().catch(()=>null);
+      if(data?.id) {
+        setAuthUser(data);
+        setSession(s=>{
+          const base = s||session;
+          const updated = {...base, id:data.id, email:data.email||base.email||""};
+          saveSession(updated);
+          return updated;
+        });
+        return data.id;
+      }
+    } catch {}
+    return "";
+  }
+
+  function userStorageKey(key, uidOverride=null) {
+    const uid = uidOverride || currentUserId() || session?.email || "anon";
     return `${key}_${uid}`;
   }
 
-  function readRunsVaultData() {
-    const uid = currentUserId();
+  function readRunsVaultData(uidOverride=null) {
+    const uid = uidOverride || currentUserId();
     if(!uid) return null;
     try {
       const vault = JSON.parse(localStorage.getItem("tr_runs_by_user") || "{}");
@@ -2400,8 +2432,8 @@ export default function TempoRunApp() {
     } catch { return null; }
   }
 
-  function writeRunsVaultData(value) {
-    const uid = currentUserId();
+  function writeRunsVaultData(value, uidOverride=null) {
+    const uid = uidOverride || currentUserId();
     if(!uid) return;
     try {
       const runs = JSON.parse(value || "[]");
@@ -2411,21 +2443,21 @@ export default function TempoRunApp() {
     } catch {}
   }
 
-  function readUserLocalData(key) {
+  function readUserLocalData(key, uidOverride=null) {
     try {
-      const scoped = localStorage.getItem(userStorageKey(key));
+      const scoped = localStorage.getItem(userStorageKey(key, uidOverride));
       if(scoped) return scoped;
       if(key==="tr5_corridas") {
-        const vaultRuns = readRunsVaultData();
+        const vaultRuns = readRunsVaultData(uidOverride);
         if(vaultRuns) {
-          writeUserLocalData(key, vaultRuns);
+          writeUserLocalData(key, vaultRuns, uidOverride);
           return vaultRuns;
         }
       }
       if(session?.email) {
         const emailScoped = localStorage.getItem(`${key}_${session.email}`);
         if(emailScoped) {
-          if(currentUserId()) writeUserLocalData(key, emailScoped);
+          if(uidOverride || currentUserId()) writeUserLocalData(key, emailScoped, uidOverride);
           return emailScoped;
         }
       }
@@ -2433,15 +2465,15 @@ export default function TempoRunApp() {
     } catch { return null; }
   }
 
-  function writeUserLocalData(key, value) {
+  function writeUserLocalData(key, value, uidOverride=null) {
     try {
-      localStorage.setItem(userStorageKey(key), value);
-      if(key==="tr5_corridas") writeRunsVaultData(value);
+      localStorage.setItem(userStorageKey(key, uidOverride), value);
+      if(key==="tr5_corridas") writeRunsVaultData(value, uidOverride);
     } catch {}
   }
 
-  async function loadSupabaseUserData(key) {
-    const userId = currentUserId();
+  async function loadSupabaseUserData(key, uidOverride=null) {
+    const userId = uidOverride || currentUserId();
     if(!session?.access_token || !userId) return null;
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(userId)}&key=eq.${encodeURIComponent(key)}&select=value&limit=1`, {
@@ -2453,8 +2485,8 @@ export default function TempoRunApp() {
     } catch { return null; }
   }
 
-  async function persistSupabaseUserData(key, value) {
-    const userId = currentUserId();
+  async function persistSupabaseUserData(key, value, uidOverride=null) {
+    const userId = uidOverride || currentUserId();
     if(!session?.access_token || !userId) return;
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
@@ -2472,30 +2504,31 @@ export default function TempoRunApp() {
   }
 
   async function persistCorridas(nextCorridas) {
+    const uid = await resolveCurrentUserId();
     const local = localRunsOnly(nextCorridas);
     const value = JSON.stringify(local);
-    writeUserLocalData("tr5_corridas", value);
+    writeUserLocalData("tr5_corridas", value, uid);
     try { await window.storage.set("tr5_corridas", value); } catch(e) {}
-    await persistSupabaseUserData("tr5_corridas", value);
+    await persistSupabaseUserData("tr5_corridas", value, uid);
   }
 
   useEffect(()=>{
-    const loadUserId = currentUserId();
     let cancelled = false;
     async function load(){
       try{
-        const remoteRuns = await loadSupabaseUserData("tr5_corridas");
-        const scopedRuns = readUserLocalData("tr5_corridas");
+        const loadUserId = await resolveCurrentUserId();
+        const remoteRuns = await loadSupabaseUserData("tr5_corridas", loadUserId);
+        const scopedRuns = readUserLocalData("tr5_corridas", loadUserId);
         const [rc,rp,xp,pa]=await Promise.all([
           window.storage.get("tr5_corridas").catch(()=>null),
           window.storage.get("tr5_rps").catch(()=>null),
           window.storage.get("tr5_xp").catch(()=>null),
           window.storage.get("tr5_prova").catch(()=>null),
         ]);
-        if(cancelled || loadUserId !== currentUserId()) return;
-        const rawRuns = remoteRuns || scopedRuns || (!currentUserId() ? rc?.value : null);
-        if(remoteRuns) writeUserLocalData("tr5_corridas", remoteRuns);
-        if(!remoteRuns && scopedRuns) persistSupabaseUserData("tr5_corridas", scopedRuns);
+        if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
+        const rawRuns = remoteRuns || scopedRuns || (!loadUserId ? rc?.value : null);
+        if(remoteRuns) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
+        if(!remoteRuns && scopedRuns) persistSupabaseUserData("tr5_corridas", scopedRuns, loadUserId);
         if(rawRuns){ const saved=JSON.parse(rawRuns); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
         if(rp) setRpsDb(JSON.parse(rp.value));
         if(xp) setXpTotal(JSON.parse(xp.value));
@@ -7224,7 +7257,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
             </div>
           ) : (
             <>
-              {!loggedIn && <LoginScreen onLogin={s=>{ saveSession(s); setSession(s); }} tab={tab} setTab={setTab}/>}
+              {!loggedIn && <LoginScreen onLogin={s=>{ const enriched={...s,id:s.id||jwtUserId(s.access_token)}; saveSession(enriched); setSession(enriched); }} tab={tab} setTab={setTab}/>}
               {loggedIn && showOnboarding && renderOnboarding()}
               {loggedIn && showDadosModal && renderDadosModal()}
               {loggedIn && showConfigModal && renderConfigModal()}
