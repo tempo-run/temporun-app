@@ -2693,6 +2693,32 @@ export default function TempoRunApp() {
     return "";
   }
 
+  async function resolvePublicUserId(uidOverride=null) {
+    const authId = uidOverride || await resolveCurrentUserId();
+    if(!session?.access_token || !authId) return "";
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/users?auth_id=eq.${encodeURIComponent(authId)}&select=id&limit=1`, {
+        headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}` }
+      });
+      if(r.ok) {
+        const data = await r.json().catch(()=>[]);
+        if(Array.isArray(data) && data[0]?.id) return data[0].id;
+      } else {
+        console.warn("Public user id lookup failed", r.status, await r.text().catch(()=>""));
+      }
+    } catch(e) {
+      console.warn("Public user id lookup error", e);
+    }
+    return authId;
+  }
+
+  async function resolveCorridasUserIds(uidOverride=null) {
+    const authId = uidOverride || await resolveCurrentUserId();
+    if(!authId) return [];
+    const publicId = await resolvePublicUserId(authId);
+    return [publicId, authId].filter(Boolean).filter((id,idx,arr)=>arr.indexOf(id)===idx);
+  }
+
   function userStorageKey(key, uidOverride=null) {
     const uid = uidOverride || currentUserId();
     if(!uid) return null;
@@ -2845,20 +2871,27 @@ export default function TempoRunApp() {
   }
 
   async function loadCorridasTableData(uidOverride=null) {
-    const userId = uidOverride || currentUserId();
-    if(!session?.access_token || !userId) return null;
+    const userIds = await resolveCorridasUserIds(uidOverride);
+    if(!session?.access_token || !userIds.length) return null;
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}&select=*&order=timestamp.desc`, {
-        headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}` }
+      const chunks = await Promise.all(userIds.map(async userId=>{
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}&select=*&order=timestamp.desc`, {
+          headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}` }
+        });
+        if(!r.ok) {
+          const msg = await r.text().catch(()=>"");
+          console.warn("Supabase corridas load failed", r.status, msg, { userId });
+          return [];
+        }
+        const data = await r.json().catch(()=>[]);
+        return Array.isArray(data) ? data : [];
+      }));
+      const seen = new Set();
+      return chunks.flat().map(runFromCorridasRow).filter(r=>{
+        if(CORRIDAS_DEMO.find(d=>d.id===r.id) || seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
       });
-      if(!r.ok) {
-        const msg = await r.text().catch(()=>"");
-        console.warn("Supabase corridas load failed", r.status, msg);
-        return null;
-      }
-      const data = await r.json().catch(()=>null);
-      if(!Array.isArray(data)) return null;
-      return data.map(runFromCorridasRow).filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id));
     } catch(e) {
       console.warn("Supabase corridas load error", e);
       return null;
@@ -2866,73 +2899,78 @@ export default function TempoRunApp() {
   }
 
   async function saveCorridaRow(run, uidOverride=null) {
-    const userId = uidOverride || currentUserId();
-    if(!session?.access_token || !userId || !run?.timestamp) return;
-    const payload = corridaRowPayload(run, userId);
+    const userIds = await resolveCorridasUserIds(uidOverride);
+    if(!session?.access_token || !userIds.length || !run?.timestamp) return;
     const baseHeaders = {
       "apikey":SUPABASE_ANON,
       "Authorization":`Bearer ${session.access_token}`,
       "Content-Type":"application/json",
     };
+    let lastFailure = null;
     try {
-      const query = `user_id=eq.${encodeURIComponent(userId)}&timestamp=eq.${encodeURIComponent(payload.timestamp)}`;
-      const patch = await fetch(`${SUPABASE_URL}/rest/v1/corridas?${query}`, {
-        method:"PATCH",
-        headers:{...baseHeaders,"Prefer":"return=representation"},
-        body:JSON.stringify(payload)
-      });
-      if(patch.ok) {
-        const patchedRows = await patch.json().catch(()=>[]);
-        if(Array.isArray(patchedRows) && patchedRows.length) return;
-      }
+      for(const userId of userIds) {
+        const payload = corridaRowPayload(run, userId);
+        const query = `user_id=eq.${encodeURIComponent(userId)}&timestamp=eq.${encodeURIComponent(payload.timestamp)}`;
+        const patch = await fetch(`${SUPABASE_URL}/rest/v1/corridas?${query}`, {
+          method:"PATCH",
+          headers:{...baseHeaders,"Prefer":"return=representation"},
+          body:JSON.stringify(payload)
+        });
+        if(patch.ok) {
+          const patchedRows = await patch.json().catch(()=>[]);
+          if(Array.isArray(patchedRows) && patchedRows.length) return;
+        }
 
-      const insert = await fetch(`${SUPABASE_URL}/rest/v1/corridas`, {
-        method:"POST",
-        headers:{...baseHeaders,"Prefer":"return=minimal"},
-        body:JSON.stringify({id:newUuid(),...payload})
-      });
-      if(!insert.ok) {
-        const msg = await insert.text().catch(()=>"");
-        console.warn("Supabase corridas save failed", insert.status, msg);
+        const insert = await fetch(`${SUPABASE_URL}/rest/v1/corridas`, {
+          method:"POST",
+          headers:{...baseHeaders,"Prefer":"return=minimal"},
+          body:JSON.stringify({id:newUuid(),...payload})
+        });
+        if(insert.ok) return;
+        lastFailure = { status:insert.status, msg:await insert.text().catch(()=>""), payload };
       }
+      if(lastFailure) console.warn("Supabase corridas save failed", lastFailure.status, lastFailure.msg, { payload:lastFailure.payload });
     } catch(e) {
       console.warn("Supabase corridas save error", e);
     }
   }
 
   async function deleteCorridaRow(run, uidOverride=null) {
-    const userId = uidOverride || currentUserId();
-    if(!session?.access_token || !userId || !run?.timestamp) return;
+    const userIds = await resolveCorridasUserIds(uidOverride);
+    if(!session?.access_token || !userIds.length || !run?.timestamp) return;
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}&timestamp=eq.${encodeURIComponent(run.timestamp)}`, {
-        method:"DELETE",
-        headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}`, "Prefer":"return=minimal" }
-      });
-      if(!r.ok) console.warn("Supabase corridas delete failed", r.status, await r.text().catch(()=>""));
+      await Promise.all(userIds.map(async userId=>{
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}&timestamp=eq.${encodeURIComponent(run.timestamp)}`, {
+          method:"DELETE",
+          headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}`, "Prefer":"return=minimal" }
+        });
+        if(!r.ok) console.warn("Supabase corridas delete failed", r.status, await r.text().catch(()=>""), { userId });
+      }));
     } catch(e) {
       console.warn("Supabase corridas delete error", e);
     }
   }
 
   async function clearCorridasRows(uidOverride=null) {
-    const userId = uidOverride || currentUserId();
-    if(!session?.access_token || !userId) return;
+    const userIds = await resolveCorridasUserIds(uidOverride);
+    if(!session?.access_token || !userIds.length) return;
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}`, {
-        method:"DELETE",
-        headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}`, "Prefer":"return=minimal" }
-      });
-      if(!r.ok) console.warn("Supabase corridas clear failed", r.status, await r.text().catch(()=>""));
+      await Promise.all(userIds.map(async userId=>{
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}`, {
+          method:"DELETE",
+          headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}`, "Prefer":"return=minimal" }
+        });
+        if(!r.ok) console.warn("Supabase corridas clear failed", r.status, await r.text().catch(()=>""), { userId });
+      }));
     } catch(e) {
       console.warn("Supabase corridas clear error", e);
     }
   }
 
   async function syncCorridasRows(runs, uidOverride=null) {
-    const userId = uidOverride || currentUserId();
-    if(!session?.access_token || !userId) return;
+    if(!session?.access_token) return;
     const local = localRunsOnly(runs);
-    await Promise.all(local.map(run=>saveCorridaRow(run, userId)));
+    await Promise.all(local.map(run=>saveCorridaRow(run, uidOverride)));
   }
 
   async function loadSupabaseUserData(key, uidOverride=null) {
@@ -3005,10 +3043,7 @@ export default function TempoRunApp() {
     const local = localRunsOnly(nextCorridas);
     const value = JSON.stringify(local);
     writeUserLocalData("tr5_corridas", value, uid);
-    await Promise.all([
-      persistSupabaseUserData("tr5_corridas", value, uid),
-      syncCorridasRows(local, uid),
-    ]);
+    await syncCorridasRows(local, uid);
   }
 
   // Persiste qualquer chave de utilizador (RPs, XP, prova) por user_id — nunca global
@@ -3038,11 +3073,9 @@ export default function TempoRunApp() {
           return;
         }
 
-        // Corridas: SEMPRE por utilizador. Tabela public.corridas é a fonte primária;
-        // user_data/tr5_corridas fica como compatibilidade para históricos antigos.
+        // Corridas: SEMPRE por utilizador. Tabela public.corridas é a fonte remota.
         const tableRuns = await loadCorridasTableData(loadUserId);
-        const legacyRemoteRuns = await loadSupabaseUserData("tr5_corridas", loadUserId);
-        const remoteRuns = Array.isArray(tableRuns) && tableRuns.length ? JSON.stringify(tableRuns) : legacyRemoteRuns;
+        const remoteRuns = Array.isArray(tableRuns) && tableRuns.length ? JSON.stringify(tableRuns) : null;
         const scopedRuns = readUserLocalData("tr5_corridas", loadUserId);
         if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
 
@@ -3050,11 +3083,7 @@ export default function TempoRunApp() {
         const rawRuns = hasRemoteRuns ? remoteRuns : scopedRuns;
         if(hasRemoteRuns) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
         if(!hasRemoteRuns && isMeaningfulStoredValue(scopedRuns)) {
-          persistSupabaseUserData("tr5_corridas", scopedRuns, loadUserId);
           syncCorridasRows(safeParseStoredJson(scopedRuns, []), loadUserId);
-        }
-        if((!Array.isArray(tableRuns) || !tableRuns.length) && isMeaningfulStoredValue(remoteRuns)) {
-          syncCorridasRows(safeParseStoredJson(remoteRuns, []), loadUserId);
         }
 
         const savedRuns = safeParseStoredJson(rawRuns, []);
@@ -3255,7 +3284,7 @@ export default function TempoRunApp() {
     setSalvando(false);
   }
   async function limparDados(){
-    try{const uid=await resolveCurrentUserId();["tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>{try{localStorage.removeItem(userStorageKey(k,uid));}catch{}});await clearCorridasRows(uid);await persistSupabaseUserData("tr5_corridas","[]",uid);}catch(e){}
+    try{const uid=await resolveCurrentUserId();["tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>{try{localStorage.removeItem(userStorageKey(k,uid));}catch{}});await clearCorridasRows(uid);}catch(e){}
     setCorridas([]);setRpsDb({});setXpTotal(3240);setProvaAmb(null);
   }
 
