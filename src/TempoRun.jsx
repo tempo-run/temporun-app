@@ -2785,6 +2785,156 @@ export default function TempoRunApp() {
     return values.find(isMeaningfulStoredValue) || values[values.length-1] || null;
   }
 
+  function runDateOnly(run) {
+    const d = new Date(run?.timestamp || Date.now());
+    if(Number.isNaN(d.getTime())) return new Date().toISOString().slice(0,10);
+    return d.toISOString().slice(0,10);
+  }
+
+  function newUuid() {
+    if(window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{
+      const r = Math.random()*16|0;
+      const v = c==="x" ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
+
+  function runFromCorridasRow(row) {
+    const ts = row?.timestamp || row?.created_at || row?.data_treino || new Date().toISOString();
+    const d = new Date(ts);
+    return {
+      id: row?.client_run_id || row?.id || `corrida_${ts}`,
+      source: row?.source || "local",
+      nome: row?.nome || "Corrida livre",
+      tipo: row?.tipo || "Corrida",
+      data: row?.data || (Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"2-digit"})),
+      timestamp: ts,
+      distancia_km: parseFloat(row?.distancia_km) || 0,
+      duracao_seg: parseInt(row?.duracao_seg) || 0,
+      pace_medio: row?.pace_medio || "--:--",
+      bpm_medio: parseInt(row?.bpm_medio) || 0,
+      cadencia_media: parseInt(row?.cadencia_media) || 0,
+      calorias: parseInt(row?.calorias) || 0,
+      forca_w: row?.forca_w ?? null,
+      dplus: parseInt(row?.dplus) || 0,
+      xp_ganho: parseInt(row?.xp_ganho) || 0,
+      polyline: Array.isArray(row?.polyline) ? row.polyline : null,
+    };
+  }
+
+  function corridaRowPayload(run, uid) {
+    const timestamp = run?.timestamp || new Date().toISOString();
+    return {
+      user_id: uid,
+      source: run?.source || "local",
+      nome: run?.nome || "Corrida livre",
+      tipo: run?.tipo || "Corrida",
+      data_treino: runDateOnly(run),
+      timestamp,
+      distancia_km: parseFloat(run?.distancia_km) || 0,
+      duracao_seg: parseInt(run?.duracao_seg) || 0,
+      pace_medio: run?.pace_medio || "--:--",
+      bpm_medio: parseInt(run?.bpm_medio) || 0,
+      cadencia_media: parseInt(run?.cadencia_media) || 0,
+      calorias: parseInt(run?.calorias) || 0,
+      dplus: parseInt(run?.dplus) || 0,
+      xp_ganho: parseInt(run?.xp_ganho) || 0,
+      polyline: Array.isArray(run?.polyline) ? run.polyline : null,
+    };
+  }
+
+  async function loadCorridasTableData(uidOverride=null) {
+    const userId = uidOverride || currentUserId();
+    if(!session?.access_token || !userId) return null;
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}&select=*&order=timestamp.desc`, {
+        headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}` }
+      });
+      if(!r.ok) {
+        const msg = await r.text().catch(()=>"");
+        console.warn("Supabase corridas load failed", r.status, msg);
+        return null;
+      }
+      const data = await r.json().catch(()=>null);
+      if(!Array.isArray(data)) return null;
+      return data.map(runFromCorridasRow).filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id));
+    } catch(e) {
+      console.warn("Supabase corridas load error", e);
+      return null;
+    }
+  }
+
+  async function saveCorridaRow(run, uidOverride=null) {
+    const userId = uidOverride || currentUserId();
+    if(!session?.access_token || !userId || !run?.timestamp) return;
+    const payload = corridaRowPayload(run, userId);
+    const baseHeaders = {
+      "apikey":SUPABASE_ANON,
+      "Authorization":`Bearer ${session.access_token}`,
+      "Content-Type":"application/json",
+    };
+    try {
+      const query = `user_id=eq.${encodeURIComponent(userId)}&timestamp=eq.${encodeURIComponent(payload.timestamp)}`;
+      const patch = await fetch(`${SUPABASE_URL}/rest/v1/corridas?${query}`, {
+        method:"PATCH",
+        headers:{...baseHeaders,"Prefer":"return=representation"},
+        body:JSON.stringify(payload)
+      });
+      if(patch.ok) {
+        const patchedRows = await patch.json().catch(()=>[]);
+        if(Array.isArray(patchedRows) && patchedRows.length) return;
+      }
+
+      const insert = await fetch(`${SUPABASE_URL}/rest/v1/corridas`, {
+        method:"POST",
+        headers:{...baseHeaders,"Prefer":"return=minimal"},
+        body:JSON.stringify({id:newUuid(),...payload})
+      });
+      if(!insert.ok) {
+        const msg = await insert.text().catch(()=>"");
+        console.warn("Supabase corridas save failed", insert.status, msg);
+      }
+    } catch(e) {
+      console.warn("Supabase corridas save error", e);
+    }
+  }
+
+  async function deleteCorridaRow(run, uidOverride=null) {
+    const userId = uidOverride || currentUserId();
+    if(!session?.access_token || !userId || !run?.timestamp) return;
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}&timestamp=eq.${encodeURIComponent(run.timestamp)}`, {
+        method:"DELETE",
+        headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}`, "Prefer":"return=minimal" }
+      });
+      if(!r.ok) console.warn("Supabase corridas delete failed", r.status, await r.text().catch(()=>""));
+    } catch(e) {
+      console.warn("Supabase corridas delete error", e);
+    }
+  }
+
+  async function clearCorridasRows(uidOverride=null) {
+    const userId = uidOverride || currentUserId();
+    if(!session?.access_token || !userId) return;
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}`, {
+        method:"DELETE",
+        headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}`, "Prefer":"return=minimal" }
+      });
+      if(!r.ok) console.warn("Supabase corridas clear failed", r.status, await r.text().catch(()=>""));
+    } catch(e) {
+      console.warn("Supabase corridas clear error", e);
+    }
+  }
+
+  async function syncCorridasRows(runs, uidOverride=null) {
+    const userId = uidOverride || currentUserId();
+    if(!session?.access_token || !userId) return;
+    const local = localRunsOnly(runs);
+    await Promise.all(local.map(run=>saveCorridaRow(run, userId)));
+  }
+
   async function loadSupabaseUserData(key, uidOverride=null) {
     const userId = uidOverride || currentUserId();
     if(!session?.access_token || !userId) return null;
@@ -2855,7 +3005,10 @@ export default function TempoRunApp() {
     const local = localRunsOnly(nextCorridas);
     const value = JSON.stringify(local);
     writeUserLocalData("tr5_corridas", value, uid);
-    await persistSupabaseUserData("tr5_corridas", value, uid);
+    await Promise.all([
+      persistSupabaseUserData("tr5_corridas", value, uid),
+      syncCorridasRows(local, uid),
+    ]);
   }
 
   // Persiste qualquer chave de utilizador (RPs, XP, prova) por user_id — nunca global
@@ -2885,8 +3038,11 @@ export default function TempoRunApp() {
           return;
         }
 
-        // Corridas: SEMPRE por utilizador (Supabase → localStorage scoped). Nunca storage global.
-        const remoteRuns = await loadSupabaseUserData("tr5_corridas", loadUserId);
+        // Corridas: SEMPRE por utilizador. Tabela public.corridas é a fonte primária;
+        // user_data/tr5_corridas fica como compatibilidade para históricos antigos.
+        const tableRuns = await loadCorridasTableData(loadUserId);
+        const legacyRemoteRuns = await loadSupabaseUserData("tr5_corridas", loadUserId);
+        const remoteRuns = Array.isArray(tableRuns) && tableRuns.length ? JSON.stringify(tableRuns) : legacyRemoteRuns;
         const scopedRuns = readUserLocalData("tr5_corridas", loadUserId);
         if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
 
@@ -2895,6 +3051,10 @@ export default function TempoRunApp() {
         if(hasRemoteRuns) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
         if(!hasRemoteRuns && isMeaningfulStoredValue(scopedRuns)) {
           persistSupabaseUserData("tr5_corridas", scopedRuns, loadUserId);
+          syncCorridasRows(safeParseStoredJson(scopedRuns, []), loadUserId);
+        }
+        if((!Array.isArray(tableRuns) || !tableRuns.length) && isMeaningfulStoredValue(remoteRuns)) {
+          syncCorridasRows(safeParseStoredJson(remoteRuns, []), loadUserId);
         }
 
         const savedRuns = safeParseStoredJson(rawRuns, []);
@@ -3035,18 +3195,22 @@ export default function TempoRunApp() {
 
   function renomearCorrida(id, novoNome) {
     const novas = corridas.map(r => r.id===id ? {...r, nome:novoNome} : r);
+    const atualizada = novas.find(r=>r.id===id);
     setCorridas(novas);
     setEditingRunId(null);
     persistCorridas(novas);
+    if(atualizada) saveCorridaRow(atualizada);
   }
 
   function excluirCorrida(id) {
+    const removida = corridas.find(r => r.id === id);
     const novas = corridas.filter(r => r.id !== id);
     const newRps = buildPersonalRecordsFromRuns(novas);
     setCorridas(novas);
     setRpsDb(newRps);
     setExpandedRun(null);
     persistCorridas(novas);
+    if(removida) deleteCorridaRow(removida);
     persistUserData("tr5_rps", newRps);
   }
 
@@ -3091,7 +3255,7 @@ export default function TempoRunApp() {
     setSalvando(false);
   }
   async function limparDados(){
-    try{const uid=await resolveCurrentUserId();["tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>{try{localStorage.removeItem(userStorageKey(k,uid));}catch{}});}catch(e){}
+    try{const uid=await resolveCurrentUserId();["tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>{try{localStorage.removeItem(userStorageKey(k,uid));}catch{}});await clearCorridasRows(uid);await persistSupabaseUserData("tr5_corridas","[]",uid);}catch(e){}
     setCorridas([]);setRpsDb({});setXpTotal(3240);setProvaAmb(null);
   }
 
