@@ -4897,6 +4897,138 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
     );
   }
   // ── TREINO ───────────────────────────────────────────────────────────────────
+  function renderTreinoTabs() {
+    const tabs = [
+      {id:"iniciar", label:"Hoje", icon:"run"},
+      {id:"historico", label:"Historico", icon:"trophy"},
+    ];
+    return (
+      <div style={{display:"flex",gap:6,background:C.s1,border:"1px solid "+C.border,borderRadius:12,padding:4,marginBottom:12}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTreinoTab(t.id)} style={{flex:1,background:treinoTab===t.id?"linear-gradient(135deg,"+C.violet+"44,"+C.cyan+"22)":C.s2,border:"1px solid "+(treinoTab===t.id?C.violet+"55":"transparent"),borderRadius:9,padding:"9px 8px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7,fontFamily:"inherit"}}>
+            <Ic n={t.icon} z={14} c={treinoTab===t.id?C.cyanB:C.tm}/>
+            <span style={{color:treinoTab===t.id?C.tp:C.tm,fontSize:12,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif"}}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  function renderTreinosHistorico() {
+    const corridasConcluidas = [...corridas.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id)),...stravaRuns]
+      .filter(r=>(r.duracao_seg||0)>0 || (r.distancia_km||0)>0)
+      .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+
+    return (
+      <div style={{background:C.s1,borderRadius:14,marginBottom:10,border:"1px solid "+C.border,overflow:"hidden"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px 10px",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0}}>
+            <Ic n="trophy" z={13} c={C.ts}/>
+            <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,whiteSpace:"nowrap"}}>{tt("training.completed", "Treinos Concluidos")}</span>
+            <span style={{color:C.td,fontSize:11,fontWeight:800,fontFamily:"monospace"}}>{corridasConcluidas.length}</span>
+          </div>
+          <div style={{display:"flex",gap:6,flexShrink:0}}>
+            <button onClick={()=>{setShowStravaModal&&setShowStravaModal(true);}} style={{background:stravaConnected?"#fc4c0222":"#fc4c0211",border:"1px solid #fc4c0244",borderRadius:8,padding:"4px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+              <div style={{width:6,height:6,borderRadius:3,background:stravaConnected?"#fc4c02":C.td}}/>
+              <span style={{color:stravaConnected?"#fc4c02":C.td,fontSize:11,fontWeight:700}}>Strava</span>
+            </button>
+            <button onClick={()=>setShowGarminModal(true)} style={{background:garminConnected?"#009CDE22":C.s2,border:"1px solid "+(garminConnected?"#009CDE44":C.border),borderRadius:8,padding:"4px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+              <Ic n="watch" z={11} c={garminConnected?"#009CDE":C.td}/>
+              <span style={{color:garminConnected?"#009CDE":C.td,fontSize:11,fontWeight:700}}>Garmin</span>
+            </button>
+          </div>
+        </div>
+
+        {corridasConcluidas.length===0 ? (
+          <div style={{textAlign:"center",padding:"22px 14px 24px"}}>
+            <p style={{color:C.tm,fontSize:13,margin:"0 0 3px"}}>Nenhuma corrida ainda</p>
+            <p style={{color:C.td,fontSize:11,margin:0}}>Finalize seu primeiro treino para ver aqui</p>
+          </div>
+        ) : (
+          <div>
+            {corridasConcluidas.map((r,i)=>{
+              const isExpanded = expandedRun===r.id;
+              const isEditing = editingRunId===r.id;
+              const isLocalRun = r.source!=="strava" && r.source!=="garmin";
+              const srcColor = r.source==="strava"?"#fc4c02":r.source==="garmin"?"#009CDE":C.cyanB;
+              const srcLabel = r.source==="strava"?"STRAVA":r.source==="garmin"?"GARMIN":null;
+              return (
+                <div key={r.id||i} style={{borderTop:i>0?"1px solid "+C.border:"none"}}>
+                  <div onClick={()=>setExpandedRun(isExpanded?null:r.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",cursor:"pointer"}}>
+                    <div style={{width:38,height:38,borderRadius:10,background:srcColor+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+srcColor+"33"}}>
+                      <Ic n="run" z={18} c={srcColor}/>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                        <p style={{color:C.tp,fontWeight:800,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nome||"Corrida"}</p>
+                        {srcLabel&&<span style={{color:srcColor,fontSize:9,fontWeight:800,fontFamily:"monospace",letterSpacing:0.5,flexShrink:0}}>{srcLabel}</span>}
+                      </div>
+                      <p style={{color:C.tm,fontSize:11,margin:0}}>{r.distancia_km}km - {r.pace_medio}/km - {r.data}</p>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                      <p style={{color:C.ts,fontSize:11,margin:0}}>▲{r.dplus||0}m</p>
+                      <span style={{color:C.td,fontSize:14,transition:"transform 0.2s",display:"inline-block",transform:isExpanded?"rotate(90deg)":"rotate(0deg)"}}>›</span>
+                    </div>
+                  </div>
+
+                  {isExpanded&&(
+                    <div style={{background:C.s2,margin:"0 14px 12px",borderRadius:12,padding:"12px 14px",border:"1px solid "+C.border}}>
+                      <div style={{display:"flex",gap:0,marginBottom:12}}>
+                        {[
+                          {l:"Distancia",v:r.distancia_km+"km"},
+                          {l:"Pace",v:r.pace_medio+"/km"},
+                          {l:"Tempo",v:fmtT(r.duracao_seg)},
+                          {l:"Calorias",v:(r.calorias||Math.round(r.distancia_km*65))+"kcal"},
+                        ].map((s,si)=>(
+                          <div key={si} style={{flex:1,textAlign:"center",borderRight:si<3?"1px solid "+C.border:"none",minWidth:0}}>
+                            <p style={{color:C.cyanB,fontWeight:800,fontSize:13,margin:0,fontFamily:"'Space Grotesk',sans-serif",whiteSpace:"nowrap"}}>{s.v}</p>
+                            <p style={{color:C.td,fontSize:9,fontWeight:700,fontFamily:"monospace",textTransform:"uppercase",letterSpacing:0.5,margin:"2px 0 0"}}>{s.l}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {isLocalRun&&isEditing?(
+                        <div style={{display:"flex",gap:7,marginBottom:8}}>
+                          <input
+                            value={editingRunName}
+                            onChange={e=>setEditingRunName(e.target.value)}
+                            onKeyDown={e=>e.key==="Enter"&&renomearCorrida(r.id,editingRunName)}
+                            autoFocus
+                            style={{flex:1,background:C.s1,border:"1px solid "+C.violet+"55",borderRadius:8,padding:"7px 10px",color:C.tp,fontSize:13,outline:"none",fontFamily:"inherit"}}
+                          />
+                          <button onClick={()=>renomearCorrida(r.id,editingRunName)} style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:8,padding:"7px 12px",fontWeight:700,fontSize:12,cursor:"pointer"}}>Salvar</button>
+                          <button onClick={()=>setEditingRunId(null)} style={{background:C.s1,border:"1px solid "+C.border,borderRadius:8,padding:"7px 10px",color:C.tm,fontSize:12,cursor:"pointer"}}>x</button>
+                        </div>
+                      ):isLocalRun?(
+                        <button onClick={()=>{setEditingRunId(r.id);setEditingRunName(r.nome||"Corrida");}} style={{background:"none",border:"none",color:C.td,fontSize:11,cursor:"pointer",fontFamily:"inherit",padding:"0 0 8px",display:"flex",alignItems:"center",gap:4}}>
+                          Renomear corrida
+                        </button>
+                      ):null}
+
+                      <div style={{display:"flex",gap:7}}>
+                        <button onClick={()=>setSelectedRun(r)} style={{flex:1,background:C.s1,border:"1px solid "+C.border,borderRadius:9,padding:"8px 0",fontWeight:700,fontSize:12,color:C.ts,cursor:"pointer",fontFamily:"inherit"}}>
+                          Ver detalhes
+                        </button>
+                        <button onClick={()=>{setStudioRun(r);setTab("studio");}} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+"33,"+C.cyan+"22)",border:"1px solid "+C.violet+"44",borderRadius:9,padding:"8px 0",fontWeight:700,fontSize:12,color:C.tp,cursor:"pointer",fontFamily:"inherit"}}>
+                          Studio
+                        </button>
+                        {isLocalRun&&(
+                          <button onClick={()=>{if(window.confirm("Excluir esta corrida?")) excluirCorrida(r.id);}} style={{background:"none",border:"1px solid "+C.coral+"44",borderRadius:9,padding:"8px 10px",color:C.coral,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+                            Excluir
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function renderTreino() {
     // Sub: Plano IA
     if(subScreen==="plano") return (
@@ -5553,19 +5685,33 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       );
     }
 
-    // Tela principal do Treino
-    return (
-      <div>
-        {/* Header */}
+    const treinoHeader = (
+      <>
         <div style={{paddingTop:8,paddingBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:22,margin:0,fontWeight:800}}>{tt("training.title", "Treino")}</h1>
           <span style={{background:C.s2,border:"1px solid "+C.border,borderRadius:10,padding:"4px 10px",color:C.tm,fontSize:12,fontWeight:600,fontFamily:"monospace"}}>
             {new Date().toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"}).replace(".","")}
           </span>
         </div>
+        {renderTreinoTabs()}
+      </>
+    );
+
+    if(treinoTab==="historico") return (
+      <div>
+        {treinoHeader}
+        {renderTreinosHistorico()}
+      </div>
+    );
+
+    // Tela principal do Treino
+    return (
+      <div>
+        {/* Header */}
+        {treinoHeader}
 
         {/* Treinos Concluídos */}
-        <div style={{background:C.s1,borderRadius:14,marginBottom:10,border:"1px solid "+C.border,overflow:"hidden"}}>
+        {false&&<div style={{background:C.s1,borderRadius:14,marginBottom:10,border:"1px solid "+C.border,overflow:"hidden"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px 10px"}}>
             <div style={{display:"flex",alignItems:"center",gap:7}}>
               <Ic n="trophy" z={13} c={C.ts}/>
@@ -5678,7 +5824,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             </div>
             );
           })()}
-        </div>
+        </div>}
 
         {/* Ver Plano Completo */}
         <div onClick={()=>setSubScreen("verPlano")} style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.violet+"33",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
