@@ -1253,40 +1253,33 @@ function RunDetailModal({ run, onClose, onShare }) {
           </div>
         )}
 
-        {/* PACE ZONES — barras horizontais, gradiente global violet→cyan por percentual */}
-        {(()=>{
-          const maxPct = Math.max(...pZones.map(z=>z.pct));
-          function zoneColor(pct) {
-            const t = maxPct > 0 ? pct / maxPct : 0;
-            const h = Math.round(192 + (263-192)*t);
-            const s = Math.round(49 + (82-49)*t);
-            const l = Math.round(58 + (49-58)*t);
-            return `hsl(${h},${s}%,${l}%)`;
-          }
-          return (
-            <div style={{marginBottom:16,borderTop:"1px solid "+C.cyanB+"33",borderBottom:"1px solid "+C.cyanB+"33",paddingTop:12,paddingBottom:12}}>
-              <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 10px"}}>Pace Zones</p>
-              <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                {pZones.map((z,i)=>{
-                  const barW = maxPct>0 ? Math.round(z.pct/maxPct*100) : 0;
-                  const color = zoneColor(z.pct);
-                  return (
-                    <div key={i} style={{display:"grid",gridTemplateColumns:"52px 1fr 32px",gap:8,alignItems:"center"}}>
-                      <div style={{textAlign:"right"}}>
-                        <span style={{color:C.tm,fontSize:9,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{z.z}</span>
-                        <span style={{color:C.td,fontSize:7,fontFamily:"monospace",display:"block",marginTop:1}}>{z.label}</span>
-                      </div>
-                      <div style={{background:C.s3,borderRadius:4,height:10,overflow:"hidden"}}>
-                        <div style={{width:barW+"%",height:"100%",borderRadius:4,background:color,boxShadow:"0 0 8px "+color+"99",transition:"width .4s ease"}}/>
-                      </div>
-                      <span style={{color:color,fontSize:10,fontFamily:"monospace",fontWeight:800,textAlign:"right"}}>{z.pct}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
+        {/* PACE ZONES — barras verticais gradiente */}
+        <div style={{marginBottom:16,borderTop:"1px solid "+C.cyanB+"33",borderBottom:"1px solid "+C.cyanB+"33",paddingTop:12,paddingBottom:8}}>
+          <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 8px"}}>Pace Zones</p>
+          <svg width="100%" height={SPH+28} viewBox={"0 0 "+(SPW*5+60)+" "+(SPH+28)}>
+            <defs>
+              {pZones.map((z,i)=>(
+                <linearGradient key={i} id={"pzg"+i} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={C.violet} stopOpacity="1"/>
+                  <stop offset="100%" stopColor={C.cyanB} stopOpacity="0.7"/>
+                </linearGradient>
+              ))}
+            </defs>
+            {pZones.map((z,i)=>{
+              const x=i*(SPW+12)+6;
+              const barH=Math.round(z.pct/100*SPH);
+              const y=SPH-barH;
+              return (
+                <g key={i}>
+                  <rect x={x} y={y} width={SPW} height={barH} rx="5" fill={"url(#pzg"+i+")"}/>
+                  <text x={x+SPW/2} y={y-4} textAnchor="middle" fill={C.cyanB} fontSize="9" fontWeight="700" fontFamily="monospace">{z.pct}%</text>
+                  <text x={x+SPW/2} y={SPH+12} textAnchor="middle" fill={C.tm} fontSize="9" fontFamily="monospace">{z.z}</text>
+                  <text x={x+SPW/2} y={SPH+22} textAnchor="middle" fill={C.td} fontSize="7" fontFamily="monospace">{z.label}</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
 
         {/* CADÊNCIA */}
         {cadSeries.length>1&&(
@@ -3063,12 +3056,12 @@ ${parts.join(" | ")}` : "";
     // Estimar cadência pela velocidade GPS
     if(last){
       const dt2=(Date.now()-last.ts)/1000;
-      const dist2=haversine(last.lat,last.lng,lat,lng);
-      const sp2=dt2>0?dist2/dt2:0; // m/s
-      if(sp2>0.3){ // mínimo ~1 km/h
-        const paceMin=sp2>0?1000/(sp2*60):10;
-        const cadEst=Math.round(Math.min(205,Math.max(150, 160+(7.0-Math.min(paceMin,9.0))*5)));
-        gCR.current=gCR.current>0?Math.round(gCR.current*0.75+cadEst*0.25):cadEst;
+      const sp2=dt2>0?(haversine(last.lat,last.lng,lat,lng)/dt2):0; // m/s
+      if(sp2>0.5){ // mínimo 1.8km/h para calcular
+        const paceMin=sp2>0?1000/(sp2*60):0; // min/km
+        const cadEst=Math.round(Math.min(200,Math.max(140, 155+(6.0-Math.min(paceMin,8.0))*8)));
+        // Suavizar com média móvel
+        gCR.current=gCR.current>0?Math.round(gCR.current*0.7+cadEst*0.3):cadEst;
         setGCad(gCR.current);
       }
     }
@@ -4170,14 +4163,141 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
   // ── ADD TREINO MODAL (simplificado para correção de sintaxe) ────────────────
   function renderAddTreinoModal() {
     if(!showAddTreino) return null;
+    const tipoSel = TIPOS_TREINO.find(t=>t.id===addTipo);
+    const subOpts = addTipo ? (SUBTREINOS[addTipo]||[]) : [];
+    const subSel = subOpts.find(s=>s.id===addSubtipo);
+
+    function salvarTreino(){
+      if(!savedPlan) { setShowAddTreino(false); return; }
+      const isDescanso = addTipo==="descanso";
+      const novoTreino = {
+        dia: savedPlan?.plano?.[addTreinoDia]?.dia || ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][new Date().getDay()],
+        tipo: subSel ? subSel.label : (tipoSel?.label||"Treino"),
+        distancia_km: isDescanso ? 0 : (addModo==="dist" ? addDistancia : 0),
+        duracao_min: isDescanso ? 0 : (addModo==="duracao" ? addDuracao : 0),
+        pace_alvo: "—",
+        descricao: subSel?.desc || tipoSel?.desc || "",
+        alerta_lesao: "",
+        adicionado_manual: true,
+      };
+      const plano = Array.isArray(savedPlan.plano) ? [...savedPlan.plano] : [];
+      if(addTreinoDia!=null && addTreinoDia>=0 && addTreinoDia<plano.length){
+        plano[addTreinoDia] = {...plano[addTreinoDia], ...novoTreino};
+      } else {
+        plano.push(novoTreino);
+      }
+      const updated = {...savedPlan, plano};
+      setSavedPlan(updated);
+      try{localStorage.setItem("tr_saved_plan",JSON.stringify(updated));}catch{}
+      setShowAddTreino(false);
+      setAddStep("tipo"); setAddTipo(null); setAddSubtipo(null);
+    }
+
     return (
-      <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowAddTreino(false)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,borderRadius:12,padding:20,border:"1px solid "+C.border,maxWidth:420,width:"90%"}}>
-          <p style={{color:C.tp,fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Adicionar treino</p>
-          <p style={{color:C.tm,fontSize:13,margin:"8px 0 12px"}}>Selecione o tipo e configure no plano (simplificado).</p>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-            <button onClick={()=>setShowAddTreino(false)} style={{background:"none",border:"1px solid "+C.border,borderRadius:8,padding:"8px 10px",cursor:"pointer",color:C.tp}}>Fechar</button>
+      <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setShowAddTreino(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,borderRadius:16,padding:20,border:"1px solid "+C.border,maxWidth:420,width:"100%",maxHeight:"82vh",overflowY:"auto"}}>
+          {/* Header */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              {addStep!=="tipo"&&(
+                <button onClick={()=>setAddStep(addStep==="config"?"subtipo":"tipo")} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:8,padding:"5px 9px",cursor:"pointer",display:"flex",alignItems:"center"}}><Ic n="back" z={13} c={C.ts}/></button>
+              )}
+              <p style={{color:C.tp,fontWeight:800,fontSize:16,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>Adicionar treino</p>
+            </div>
+            <button onClick={()=>setShowAddTreino(false)} style={{background:"none",border:"none",color:C.tm,fontSize:20,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
           </div>
+          {/* Indicador de step */}
+          <div style={{display:"flex",gap:5,marginBottom:16}}>
+            {["tipo","subtipo","config"].map((s,i)=>{
+              const stepIdx=["tipo","subtipo","config"].indexOf(addStep);
+              return <div key={s} style={{flex:1,height:3,borderRadius:2,background:i<=stepIdx?"linear-gradient(90deg,"+C.violet+","+C.cyan+")":C.s3}}/>;
+            })}
+          </div>
+
+          {/* STEP 1: Tipo de treino */}
+          {addStep==="tipo"&&(
+            <div>
+              <p style={{color:C.tm,fontSize:13,margin:"0 0 14px"}}>Que tipo de treino você quer fazer hoje?</p>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {TIPOS_TREINO.map(t=>(
+                  <button key={t.id} onClick={()=>{setAddTipo(t.id);if(t.id==="descanso"){setAddSubtipo(null);setAddStep("subtipo");}else{setAddStep("subtipo");}}} style={{background:C.s1,border:"1px solid "+(addTipo===t.id?t.color:C.border),borderRadius:12,padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",fontFamily:"inherit"}}>
+                    <div style={{width:38,height:38,borderRadius:10,background:t.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>{t.emoji}</div>
+                    <div style={{flex:1}}>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>{t.label}</p>
+                      <p style={{color:C.tm,fontSize:11,margin:0}}>{t.desc}</p>
+                    </div>
+                    <Ic n="chevron-right" z={16} c={C.td}/>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Subtipo */}
+          {addStep==="subtipo"&&tipoSel&&(
+            <div>
+              <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:14}}>
+                <div style={{width:32,height:32,borderRadius:9,background:tipoSel.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{tipoSel.emoji}</div>
+                <p style={{color:C.tp,fontWeight:700,fontSize:15,margin:0,fontFamily:"'Space Grotesk',sans-serif"}}>{tipoSel.label}</p>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {subOpts.map(s=>(
+                  <button key={s.id} onClick={()=>{setAddSubtipo(s.id);setAddStep("config");}} style={{background:C.s1,border:"1px solid "+(addSubtipo===s.id?tipoSel.color:C.border),borderRadius:11,padding:"11px 13px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,textAlign:"left",fontFamily:"inherit"}}>
+                    <div>
+                      <p style={{color:C.tp,fontWeight:700,fontSize:13,margin:"0 0 2px",fontFamily:"'Space Grotesk',sans-serif"}}>{s.label}</p>
+                      <p style={{color:C.tm,fontSize:11,margin:0}}>{s.desc}</p>
+                    </div>
+                    <Ic n="chevron-right" z={15} c={C.td}/>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Configuração */}
+          {addStep==="config"&&tipoSel&&(
+            <div>
+              <div style={{background:C.s1,border:"1px solid "+C.border,borderRadius:12,padding:"12px 14px",marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"center",gap:9}}>
+                  <div style={{width:32,height:32,borderRadius:9,background:tipoSel.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{tipoSel.emoji}</div>
+                  <div>
+                    <p style={{color:C.tp,fontWeight:700,fontSize:14,margin:"0 0 1px",fontFamily:"'Space Grotesk',sans-serif"}}>{subSel?subSel.label:tipoSel.label}</p>
+                    <p style={{color:C.tm,fontSize:11,margin:0}}>{subSel?.desc||tipoSel.desc}</p>
+                  </div>
+                </div>
+              </div>
+
+              {addTipo!=="descanso"&&(
+                <>
+                  {/* Toggle dist/duração */}
+                  <div style={{display:"flex",gap:7,marginBottom:14}}>
+                    {[{id:"dist",l:"Por distância"},{id:"duracao",l:"Por duração"}].map(m=>(
+                      <button key={m.id} onClick={()=>setAddModo(m.id)} style={{flex:1,background:addModo===m.id?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":C.s2,color:addModo===m.id?"#fff":C.tm,border:"1px solid "+(addModo===m.id?C.violet:C.border),borderRadius:10,padding:"9px 0",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{m.l}</button>
+                    ))}
+                  </div>
+                  {addModo==="dist"?(
+                    <div style={{marginBottom:18}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+                        <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Distância</span>
+                        <span style={{color:C.cyanB,fontSize:20,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif"}}>{addDistancia} km</span>
+                      </div>
+                      <input type="range" min="1" max="42" step="1" value={addDistancia} onChange={e=>setAddDistancia(Number(e.target.value))} style={{width:"100%",accentColor:C.violet}}/>
+                    </div>
+                  ):(
+                    <div style={{marginBottom:18}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+                        <span style={{color:C.ts,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Duração</span>
+                        <span style={{color:C.cyanB,fontSize:20,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif"}}>{addDuracao} min</span>
+                      </div>
+                      <input type="range" min="10" max="180" step="5" value={addDuracao} onChange={e=>setAddDuracao(Number(e.target.value))} style={{width:"100%",accentColor:C.violet}}/>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <button onClick={salvarTreino} style={{width:"100%",background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:12,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 16px "+C.violet+"44"}}>Adicionar ao plano de hoje</button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -4331,7 +4451,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               {id:"logout", nome:tt("profile.logout", "Logout"), desc:tt("profile.logoutDesc", "Sair da conta"),                icon:"back",     cor:C.coral},
             ].map(opt=>(
               <button key={opt.id} onClick={()=>{
-                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();try{localStorage.removeItem("tr_onboarding_done");}catch{}setSession(null);setAuthUser(null);setCorridas(CORRIDAS_DEMO);setRpsDb({});setXpTotal(3240);setProvaAmb(null);setDbReady(false);setShowPerfil(false);setShowOnboarding(true);setOnboardingStep(0);setTab("home");}
+                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();try{localStorage.removeItem("tr_onboarding_done");}catch{}setSession(null);setShowPerfil(false);setShowOnboarding(true);setOnboardingStep(0);setTab("home");}
                 if(opt.id==="dados"){setShowPerfil(false);setShowDadosModal(true);}
                 if(opt.id==="config"){setShowPerfil(false);setShowConfigModal(true);}
               }} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
@@ -5033,59 +5153,8 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       );
       return (
         <div style={{display:"flex",flexDirection:"column",minHeight:565}}>
-          {(gStatus==="ativo"||gStatus==="pausado") ? (
-            <div style={{position:"relative",flex:1,minHeight:565,borderRadius:15,overflow:"hidden",margin:"0 -17px"}}>
-              <div style={{position:"absolute",inset:0}}>
-                <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={999} fillContainer/>
-              </div>
-              <div style={{position:"absolute",top:0,left:0,right:0,height:180,background:"linear-gradient(180deg,rgba(6,7,26,0.85) 0%,transparent 100%)",pointerEvents:"none"}}/>
-              <div style={{position:"absolute",bottom:0,left:0,right:0,height:220,background:"linear-gradient(0deg,rgba(6,7,26,0.95) 0%,rgba(6,7,26,0.7) 60%,transparent 100%)",pointerEvents:"none"}}/>
-              <div style={{position:"absolute",top:0,left:0,right:0,padding:"14px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start",zIndex:10}}>
-                <div>
-                  <p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p>
-                  <p style={{color:"rgba(255,255,255,0.7)",fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p>
-                </div>
-                <div style={{display:"flex",gap:6}}>
-                  <div style={{background:"rgba(6,7,26,0.7)",backdropFilter:"blur(6px)",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":C.amber+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
-                    <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
-                    <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
-                  </div>
-                  <div style={{background:"rgba(6,7,26,0.7)",backdropFilter:"blur(6px)",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
-                    <span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>cad</span>
-                    <span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gCad>0?gCad:"--"}</span>
-                  </div>
-                </div>
-              </div>
-              <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"0 20px 16px",zIndex:10}}>
-                <div style={{textAlign:"center",marginBottom:10}}>
-                  <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:58,fontWeight:800,margin:0,letterSpacing:-2,lineHeight:1,textShadow:"0 2px 20px rgba(0,0,0,0.8)"}}>{fmtT(gSeg)}</p>
-                  <p style={{color:C.cyanB,fontSize:10,fontWeight:600,margin:"2px 0 0",fontFamily:"monospace",letterSpacing:1,textTransform:"uppercase"}}>{gStatus==="ativo"?"em andamento":"pausado"}</p>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
-                  {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:gCad>0?""+gCad:"--",u:"spm",c:C.cyanB,l:"cadência"}].map((m,i)=>(
-                    <div key={i} style={{background:"rgba(6,7,26,0.65)",backdropFilter:"blur(8px)",borderRadius:12,padding:"8px 6px",textAlign:"center",border:"1px solid "+m.c+"33"}}>
-                      <p style={{color:m.c,fontFamily:"monospace",fontWeight:700,fontSize:7,textTransform:"uppercase",letterSpacing:1.1,margin:"0 0 3px",opacity:0.8}}>{m.l}</p>
-                      <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:20,margin:"0 0 1px",letterSpacing:-0.5}}>{m.v}</p>
-                      <p style={{color:"rgba(255,255,255,0.45)",fontSize:8,fontWeight:600,textTransform:"uppercase",letterSpacing:0.4,margin:0,fontFamily:"monospace"}}>{m.u}</p>
-                    </div>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:8}}>
-                  {gStatus==="ativo"
-                    ?(<><button onClick={pausar} style={{flex:1,background:"rgba(6,7,26,0.8)",backdropFilter:"blur(8px)",color:C.amber,border:"2px solid "+C.amber+"55",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
-                    :(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:"rgba(6,7,26,0.8)",backdropFilter:"blur(8px)",color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-                  }
-                </div>
-                {gpsMessage&&<div style={{marginTop:8,background:"rgba(232,98,58,0.12)",border:"1px solid "+C.coral+"33",borderRadius:10,padding:"9px 11px",display:"flex",gap:8,alignItems:"flex-start"}}>
-                  <Ic n="warning" z={14} c={C.coral} st={{flexShrink:0,marginTop:1}}/>
-                  <p style={{color:C.coral,fontSize:11,margin:0,lineHeight:1.45}}>{gpsMessage}</p>
-                </div>}
-              </div>
-            </div>
-          ) : (
-            <>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:6}}>
-            <div><p style={{color:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>● AO VIVO</p><p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p></div>
+            <div><p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p><p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p></div>
             <div style={{display:"flex",gap:6}}>
               <div style={{background:gpsStatus==="active"?C.cyanB+"22":gpsStatus==="searching"?C.amber+"22":C.coral+"22",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":gpsStatus==="searching"?C.amber+"44":C.coral+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
                 <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
@@ -5097,7 +5166,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{background:timerCardBg,borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
                 <p style={{color:darkCardMuted,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,margin:"0 0 5px",position:"relative"}}>tempo de corrida</p>
                 <p style={{color:darkCardText,fontFamily:"'Space Grotesk',sans-serif",fontSize:50,fontWeight:800,margin:"0 0 3px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{fmtT(gSeg)}</p>
-            <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>Pronto</p>
+            <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>{gStatus==="ativo"?"Em andamento":gStatus==="pausado"?"Pausado":"Pronto"}</p>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
             {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:gCad>0?""+gCad:"--",u:"spm",c:C.cyanB,l:"cadência"}].map((m,i)=>(
@@ -5119,10 +5188,10 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <p style={{color:C.coral,fontSize:11,margin:0,lineHeight:1.45}}>{gpsMessage}</p>
           </div>}
           <div style={{display:"flex",gap:8,marginTop:"auto"}}>
-            <button onClick={()=>iniciar()} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>
+            {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
+            :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
+            :(<button onClick={()=>iniciar()} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
           </div>
-            </>
-          )}
         </div>
       );
     }
