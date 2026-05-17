@@ -2162,6 +2162,10 @@ function isMeaningfulStoredValue(value) {
   return true;
 }
 
+function hasStoredValue(value) {
+  return value !== null && value !== undefined && value !== "";
+}
+
 function normalizeStoredValue(value, fallback=null) {
   if(value === null || value === undefined || value === "") return fallback;
   if(typeof value === "string") return value;
@@ -2509,36 +2513,77 @@ export default function TempoRunApp() {
 
   const SUBTREINOS = {
     rodagem:[
-      {id:"leve",    label:"Rodagem Leve",     desc:"65-70% FCmax · conversação fácil"},
-      {id:"moderada",label:"Rodagem Moderada", desc:"70-75% FCmax · confortável"},
-      {id:"progressiva",label:"Progressiva",   desc:"Começa leve e acelera gradualmente"},
+      {id:"recuperacao",label:"Recuperação",      desc:"Muito leve · dia após treino forte, soltar as pernas"},
+      {id:"leve",       label:"Rodagem Leve",      desc:"65-70% FCmax · conversação fácil"},
+      {id:"base",       label:"Rodagem Base",      desc:"Volume aeróbico · ritmo confortável sustentado"},
+      {id:"moderada",   label:"Rodagem Moderada",  desc:"70-75% FCmax · confortável"},
+      {id:"progressiva",label:"Progressiva",       desc:"Começa leve e acelera a cada km"},
+      {id:"progressiva_3", label:"Progressiva em 3", desc:"3 blocos: leve → moderado → forte"},
+      {id:"pickups",    label:"Rodagem c/ Pickups",desc:"Surtos curtos de 30s no meio do percurso"},
+      {id:"strides",    label:"Rodagem + Strides", desc:"4-6×100m acelerações ao fim · economia"},
+      {id:"fast_finish",label:"Fast Finish",       desc:"Últimos 10-15min em ritmo de limiar"},
     ],
     intervalado:[
-      {id:"400m",    label:"Tiros 400m",        desc:"6-10×400m · ritmo de prova 5k"},
-      {id:"800m",    label:"Tiros 800m",        desc:"4-6×800m · ritmo de prova 10k"},
-      {id:"1km",     label:"Tiros 1km",         desc:"4-5×1km · ritmo de prova 10k"},
-      {id:"fartlek", label:"Fartlek",           desc:"Variações livres de ritmo"},
-      {id:"piramide",label:"Pirâmide",          desc:"400-800-1200-800-400m"},
+      {id:"200m",   label:"Tiros 200m",        desc:"10-12×200m · velocidade pura, 200m recup"},
+      {id:"400m",   label:"Tiros 400m",        desc:"8-12×400m · VO2max, ritmo 5k, 90s-2min recup"},
+      {id:"600m",   label:"Tiros 600m",        desc:"6-8×600m · ponte velocidade/resistência"},
+      {id:"800m",   label:"Tiros 800m",        desc:"5-8×800m · ritmo 5k, recup 2-3min"},
+      {id:"1km",    label:"Tiros 1km",         desc:"5-8×1km · ritmo 10k, recup 2-3min"},
+      {id:"1200m",  label:"Tiros 1200m",       desc:"4-5×1200m · resistência específica"},
+      {id:"1600m",  label:"Tiros 1600m (milha)",desc:"4-6×1600m · ritmo 10k, recup 3min"},
+      {id:"piramide",label:"Pirâmide",          desc:"200-400-600-800-600-400-200m"},
+      {id:"piramide_t",label:"Pirâmide por Tempo",desc:"1-2-3-4-3-2-1min forte, 1min recup"},
+      {id:"escada", label:"Escada Crescente",   desc:"400-800-1200-1600m, ritmo constante"},
+      {id:"descendente",label:"Descendente",    desc:"1600-1200-800-400m, acelera ao encurtar"},
+      {id:"fartlek",label:"Fartlek Livre",      desc:"Variações livres de ritmo, sem cronômetro"},
+      {id:"fartlek_e",label:"Fartlek Estruturado",desc:"10×(1min forte / 1min leve)"},
+      {id:"30_30",  label:"Billat 30/30",      desc:"20×(30s forte / 30s leve) · VO2max eficiente"},
+      {id:"tabata", label:"Tabata",            desc:"8×(20s máximo / 10s recup) · só avançados"},
+      {id:"micro",  label:"Micro-intervalos",  desc:"15×(45s forte / 15s leve)"},
     ],
     tempo:[
-      {id:"continuo",  label:"Tempo Contínuo", desc:"20-40min no limiar"},
+      {id:"continuo",  label:"Tempo Contínuo",  desc:"20-40min no limiar · comfortably hard"},
+      {id:"curto",     label:"Tempo Curto",     desc:"15-20min · iniciantes ou afiação"},
+      {id:"longo",     label:"Tempo Longo",     desc:"40-60min · resistência de limiar"},
       {id:"cruise",    label:"Cruise Intervals",desc:"3×8min no limiar com 90s recuperação"},
+      {id:"threshold_1k",label:"Threshold 1km", desc:"6×1km no limiar, 60s recup"},
+      {id:"threshold_mi",label:"Threshold Milha",desc:"4-5×1 milha no limiar, 90s recup"},
+      {id:"progressivo",label:"Tempo Progressivo",desc:"Começa fácil, termina em ritmo de limiar"},
+      {id:"hill_tempo",label:"Tempo em Subida", desc:"Esforço de limiar em aclive · força+limiar"},
       {id:"race_pace", label:"Race Pace",       desc:"Segmentos no ritmo objetivo de prova"},
+      {id:"sandwich",  label:"Tempo Sanduíche", desc:"Tempo / leve / tempo · resistência mental"},
     ],
     longao:[
-      {id:"lento",   label:"Longão Lento",     desc:"60-65% FCmax · máximo km da semana"},
-      {id:"negativo",label:"Split Negativo",   desc:"Segunda metade mais rápida"},
-      {id:"maratona",label:"Ritmo Maratona",   desc:"Últimos 30% no pace objetivo"},
+      {id:"lento",    label:"Longão Lento",      desc:"60-65% FCmax · máximo km da semana"},
+      {id:"steady",   label:"Longão Steady",     desc:"Ritmo firme constante · ensina queima de gordura"},
+      {id:"negativo", label:"Split Negativo",    desc:"Segunda metade mais rápida que a primeira"},
+      {id:"progressivo",label:"Longão Progressivo",desc:"Acelera gradualmente até o fim"},
+      {id:"maratona", label:"Ritmo Maratona",    desc:"Últimos 30% no pace objetivo de prova"},
+      {id:"pickups",  label:"Longão c/ Pickups", desc:"Surtos curtos espalhados ao longo do percurso"},
+      {id:"fartlek_mp",label:"Longão Fartlek MP",desc:"6-10×2-3min no ritmo de maratona, recup leve"},
+      {id:"tempo_finish",label:"Longão Fast Finish",desc:"Últimos 3-5km em ritmo de limiar"},
+      {id:"depletion",label:"Longão Depleção",   desc:"Em jejum · adaptação metabólica · avançados"},
+      {id:"sandwich", label:"Longão Sanduíche",  desc:"Easy → tempo no meio → easy · combina sessões"},
     ],
     subidas:[
-      {id:"curtas",  label:"Subidas Curtas",   desc:"8-12×30s em aclive forte"},
-      {id:"longas",  label:"Subidas Longas",   desc:"4-6×90s em aclive moderado"},
-      {id:"ondulado",label:"Percurso Ondulado",desc:"Rota com subidas naturais"},
+      {id:"sprints",  label:"Hill Sprints",     desc:"8-12×15-20s máximo em aclive forte"},
+      {id:"curtas",   label:"Subidas Curtas",   desc:"8-12×30s em aclive forte · potência"},
+      {id:"medias",   label:"Subidas Médias",   desc:"6-8×60s em aclive moderado · força"},
+      {id:"longas",   label:"Subidas Longas",   desc:"4-6×90s em aclive moderado · força+VO2"},
+      {id:"vo2_hill", label:"Subidas VO2max",   desc:"5×2-4min em aclive · esforço VO2max"},
+      {id:"ondulado", label:"Percurso Ondulado",desc:"Rota com subidas naturais contínuas"},
+      {id:"circuito", label:"Circuito de Colinas",desc:"Tempo nos planos, forte nas subidas, jog descida"},
+      {id:"escada_h", label:"Escada em Subida", desc:"30s-60s-90s-60s-30s · jog descida recup"},
+      {id:"downhill", label:"Treino de Descida",desc:"Controle excêntrico · prep provas com descidas"},
     ],
     descanso:[
-      {id:"total",   label:"Descanso Total",   desc:"Sem atividade física"},
-      {id:"ativo",   label:"Descanso Ativo",   desc:"Caminhada leve ou yoga"},
-      {id:"natacao", label:"Natação",          desc:"Treino cruzado de baixo impacto"},
+      {id:"total",    label:"Descanso Total",   desc:"Sem atividade física · recuperação completa"},
+      {id:"ativo",    label:"Descanso Ativo",   desc:"Caminhada leve 20-30min"},
+      {id:"yoga",     label:"Yoga / Alongamento",desc:"Mobilidade e flexibilidade"},
+      {id:"natacao",  label:"Natação",          desc:"Treino cruzado de baixo impacto"},
+      {id:"bike",     label:"Bike Leve",        desc:"Pedal regenerativo · circulação"},
+      {id:"forca",    label:"Treino de Força",  desc:"Musculação · core e prevenção de lesões"},
+      {id:"mobilidade",label:"Mobilidade",      desc:"Foam roller e exercícios de mobilidade"},
     ],
   };
   const [planForm, setPlanForm]     = useState({objetivo:"",dist_semana:"",pace_atual:"5:30",dias_disponiveis:"4",historico_lesoes:"",inatividade_semanas:"0",nivel:"intermediario",glp1:"nao",glp1_nausea:"nao"});
@@ -2714,17 +2759,43 @@ export default function TempoRunApp() {
     } catch {}
   }
 
+  function storedRunsScore(value) {
+    const runs = safeParseStoredJson(normalizeStoredValue(value, "[]"), []);
+    if(!Array.isArray(runs)) return { count:-1, last:0, totalKm:0 };
+    const last = runs.reduce((max,r)=>{
+      const t = r?.timestamp ? new Date(r.timestamp).getTime() : 0;
+      return Number.isFinite(t) ? Math.max(max,t) : max;
+    },0);
+    const totalKm = runs.reduce((sum,r)=>sum+(parseFloat(r?.distancia_km)||0),0);
+    return { count:runs.length, last, totalKm };
+  }
+
+  function pickBestRemoteValue(key, rows) {
+    const values = (Array.isArray(rows) ? rows : [])
+      .map(row=>normalizeStoredValue(row?.value, null))
+      .filter(hasStoredValue);
+    if(!values.length) return null;
+    if(key==="tr5_corridas") {
+      return values.sort((a,b)=>{
+        const sa = storedRunsScore(a);
+        const sb = storedRunsScore(b);
+        return (sb.count-sa.count) || (sb.last-sa.last) || (sb.totalKm-sa.totalKm);
+      })[0];
+    }
+    return values.find(isMeaningfulStoredValue) || values[values.length-1] || null;
+  }
+
   async function loadSupabaseUserData(key, uidOverride=null) {
     const userId = uidOverride || currentUserId();
     if(!session?.access_token || !userId) return null;
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(userId)}&key=eq.${encodeURIComponent(key)}&select=value&limit=1`, {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(userId)}&key=eq.${encodeURIComponent(key)}&select=value&limit=50`, {
         headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${session.access_token}` }
       });
       if(!r.ok) return null;
       const data = await r.json().catch(()=>null);
       if(!Array.isArray(data) || !data.length) return null;
-      return normalizeStoredValue(data[0]?.value, null);
+      return pickBestRemoteValue(key, data);
     } catch { return null; }
   }
 
@@ -2736,17 +2807,40 @@ export default function TempoRunApp() {
     }
     try {
       const normalized = normalizeStoredValue(value, key==="tr5_corridas" ? "[]" : null);
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
-        method:"POST",
-        headers:{
-          "apikey":SUPABASE_ANON,
-          "Authorization":`Bearer ${session.access_token}`,
-          "Content-Type":"application/json",
-          "Prefer":"resolution=merge-duplicates"
-        },
-        body:JSON.stringify({user_id:userId,key,value:normalized})
+      if(normalized === null) return;
+      const baseHeaders = {
+        "apikey":SUPABASE_ANON,
+        "Authorization":`Bearer ${session.access_token}`,
+        "Content-Type":"application/json",
+      };
+      const rowBody = JSON.stringify({user_id:userId,key,value:normalized});
+
+      const patch = await fetch(`${SUPABASE_URL}/rest/v1/user_data?user_id=eq.${encodeURIComponent(userId)}&key=eq.${encodeURIComponent(key)}`, {
+        method:"PATCH",
+        headers:{...baseHeaders,"Prefer":"return=representation"},
+        body:JSON.stringify({value:normalized})
       });
-      if(!r.ok) console.warn("Supabase user_data save failed", key, r.status);
+      if(patch.ok) {
+        const patchedRows = await patch.json().catch(()=>[]);
+        if(Array.isArray(patchedRows) && patchedRows.length) return;
+      }
+
+      const upsert = await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
+        method:"POST",
+        headers:{...baseHeaders,"Prefer":"resolution=merge-duplicates,return=minimal"},
+        body:rowBody
+      });
+      if(upsert.ok) return;
+
+      const insert = await fetch(`${SUPABASE_URL}/rest/v1/user_data`, {
+        method:"POST",
+        headers:{...baseHeaders,"Prefer":"return=minimal"},
+        body:rowBody
+      });
+      if(!insert.ok) {
+        const msg = await insert.text().catch(()=>"");
+        console.warn("Supabase user_data save failed", key, insert.status, msg);
+      }
     } catch(e) {
       console.warn("Supabase user_data save error", key, e);
     }
@@ -2796,9 +2890,10 @@ export default function TempoRunApp() {
         const scopedRuns = readUserLocalData("tr5_corridas", loadUserId);
         if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
 
-        const rawRuns = isMeaningfulStoredValue(remoteRuns) ? remoteRuns : scopedRuns;
-        if(isMeaningfulStoredValue(remoteRuns)) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
-        if(!isMeaningfulStoredValue(remoteRuns) && isMeaningfulStoredValue(scopedRuns)) {
+        const hasRemoteRuns = hasStoredValue(remoteRuns);
+        const rawRuns = hasRemoteRuns ? remoteRuns : scopedRuns;
+        if(hasRemoteRuns) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
+        if(!hasRemoteRuns && isMeaningfulStoredValue(scopedRuns)) {
           persistSupabaseUserData("tr5_corridas", scopedRuns, loadUserId);
         }
 
@@ -2824,17 +2919,20 @@ export default function TempoRunApp() {
         const xpLocal = readUserLocalData("tr5_xp", loadUserId);
         const paLocal = readUserLocalData("tr5_prova", loadUserId);
 
-        const rpRaw = isMeaningfulStoredValue(rpRemote) ? rpRemote : rpLocal;
-        const xpRaw = isMeaningfulStoredValue(xpRemote) ? xpRemote : xpLocal;
-        const paRaw = isMeaningfulStoredValue(paRemote) ? paRemote : paLocal;
+        const hasRemoteRps = hasStoredValue(rpRemote);
+        const hasRemoteXp = hasStoredValue(xpRemote);
+        const hasRemoteProva = hasStoredValue(paRemote);
+        const rpRaw = hasRemoteRps ? rpRemote : rpLocal;
+        const xpRaw = hasRemoteXp ? xpRemote : xpLocal;
+        const paRaw = hasRemoteProva ? paRemote : paLocal;
 
-        if(isMeaningfulStoredValue(rpRemote)) writeUserLocalData("tr5_rps", rpRemote, loadUserId);
+        if(hasRemoteRps) writeUserLocalData("tr5_rps", rpRemote, loadUserId);
         else if(isMeaningfulStoredValue(rpLocal)) persistSupabaseUserData("tr5_rps", rpLocal, loadUserId);
 
-        if(isMeaningfulStoredValue(xpRemote)) writeUserLocalData("tr5_xp", xpRemote, loadUserId);
+        if(hasRemoteXp) writeUserLocalData("tr5_xp", xpRemote, loadUserId);
         else if(isMeaningfulStoredValue(xpLocal)) persistSupabaseUserData("tr5_xp", xpLocal, loadUserId);
 
-        if(isMeaningfulStoredValue(paRemote)) writeUserLocalData("tr5_prova", paRemote, loadUserId);
+        if(hasRemoteProva) writeUserLocalData("tr5_prova", paRemote, loadUserId);
         else if(isMeaningfulStoredValue(paLocal)) persistSupabaseUserData("tr5_prova", paLocal, loadUserId);
 
         const storedRps = safeParseStoredJson(rpRaw, {});
