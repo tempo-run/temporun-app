@@ -3,6 +3,7 @@ import runnerStride from './assets/runner_stride.png';
 import runnerLanding from './assets/runner_landing.png';
 import runnerOverstride from './assets/runner_overstride.png';
 import logoImg from './assets/logo.png';
+import loginLightLogo from './assets/login_light_logo.png';
 import tempoRunLogo from './assets/tempo_run_logo.png';
 import iconCircle from './assets/icon_circle.png';
 import perfilImg from './assets/perfil.png';
@@ -81,7 +82,6 @@ function Ic({ n, z=20, c="currentColor", st={} }) {
     </svg>
   );
 }
-
 function FlagIcon({ country="br", size=24, st={} }) {
   if(country==="uk") {
     return (
@@ -1260,7 +1260,7 @@ function GarminConnectModal({ open, onClose, onConfirm, connected, onDisconnect 
           </>
         ) : (
           <>
-            <div style={{background:"linear-gradient(135deg,#001120,#001930)",borderRadius:12,padding:"11px 13px",marginBottom:12,border:"1px solid "+C.garmin+"44"}}>
+            <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",borderRadius:12,padding:"11px 13px",marginBottom:12,border:"1px solid "+C.garmin+"44"}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
                 <div style={{width:8,height:8,borderRadius:"50%",background:C.green,boxShadow:"0 0 8px "+C.green}}/>
                 <p style={{color:C.green,fontFamily:"monospace",fontSize:10,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.5}}>Conectado</p>
@@ -1779,8 +1779,9 @@ function LoginScreen({ onLogin }) {
   let loginIsLight = false;
   try {
     const saved = JSON.parse(localStorage.getItem("tr_config")||"{}");
+    const prefersLight = typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches;
     loginLang = saved.idioma || "pt-BR";
-    loginIsLight = saved.tema==="light" || (saved.tema==="auto" && window.matchMedia?.("(prefers-color-scheme: light)").matches);
+    loginIsLight = saved.tema==="light" || (saved.tema==="auto" && prefersLight) || (!saved.tema && prefersLight);
     C = loginIsLight ? C_LIGHT : C_DARK;
   } catch { loginIsLight = false; C = C_DARK; }
   const tt = (key, fallback) => tr(loginLang, key, fallback);
@@ -1937,7 +1938,7 @@ function LoginScreen({ onLogin }) {
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center",background:loginIsLight?"linear-gradient(180deg,"+C.bg+","+C.bg2+")":"#000115"}}>
       <div style={{marginTop:16,marginBottom:24,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
-        <img src={logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
+        <img src={loginIsLight ? loginLightLogo : logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
         <p style={{color:C.ts,fontSize:13,margin:"0",fontWeight:400,letterSpacing:0.3}}>{tt("login.connectToContinue", "Conecte-se para continuar")}</p>
       </div>
       <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
@@ -2317,9 +2318,15 @@ export default function TempoRunApp() {
   C = tema==="light" ? C_LIGHT : C_DARK;
   const appLang = configForm.idioma || "pt-BR";
   const tt = (key, fallback) => tr(appLang, key, fallback);
-  const darkCardText = tema==="light" ? "#f0f4ff" : C.tp;
-  const darkCardSub = tema==="light" ? "#c8d3ee" : C.ts;
-  const darkCardMuted = tema==="light" ? "#93a4ca" : C.tm;
+  const isLightTheme = tema==="light";
+  const infoCardBg = isLightTheme ? "linear-gradient(135deg,"+C.s1+","+C.s2+")" : "linear-gradient(135deg,#0c0830,#0a1430)";
+  const amberInfoCardBg = isLightTheme ? "linear-gradient(135deg,#fffaf0,#fff4db)" : "linear-gradient(135deg,#1a0e00,#1e1500)";
+  const stravaInfoCardBg = isLightTheme ? "linear-gradient(135deg,#fff6f1,#fff0e8)" : "linear-gradient(135deg,#1a0800,#200e00)";
+  const successInfoCardBg = isLightTheme ? "linear-gradient(135deg,#f0fdf8,#e8fff6)" : "linear-gradient(135deg,#06180e,#08201a)";
+  const timerCardBg = isLightTheme ? "linear-gradient(160deg,"+C.s1+","+C.s2+")" : "linear-gradient(160deg,#06071a,#0c0830)";
+  const darkCardText = C.tp;
+  const darkCardSub = C.ts;
+  const darkCardMuted = C.tm;
   const [equipDropdown, setEquipDropdown] = useState(null);
   const [equipInput, setEquipInput] = useState("");
   const PAISES = ["Brasil","Irlanda","Alemanha","Angola","Argentina","Austrália","Bélgica","Bolívia","Cabo Verde","Canadá","Chile","China","Colômbia","Coreia do Sul","Dinamarca","Emirados Árabes","Equador","Espanha","Estados Unidos","França","Grécia","Guatemala","Holanda","Hungria","Índia","Itália","Japão","México","Moçambique","Noruega","Nova Zelândia","Paraguai","Peru","Polônia","Portugal","Reino Unido","Rússia","Suécia","Suíça","Turquia","Ucrânia","Uruguai","Venezuela"];
@@ -4006,12 +4013,12 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column",padding:"14px 16px 0"}}>
             {saberTab==="explorar"&&(
               <div style={{flex:1,overflowY:"auto",paddingBottom:24}}>
-                <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"33",borderRadius:12,padding:12,marginBottom:10}}>
+                <div style={{background:infoCardBg,border:"1px solid "+C.violet+"33",borderRadius:12,padding:12,marginBottom:10}}>
                   <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:"0 0 5px"}}>{tt("saber.dailyCuriosity", "curiosidade do dia")}</p>
                   <p style={{color:darkCardText,fontWeight:700,fontSize:13,margin:"0 0 6px",lineHeight:1.4}}>{tt("saber.cadenceFact", "Corredores com cadência acima de 170 spm têm 30% menos risco de lesão no joelho")}</p>
                   <button onClick={()=>sendSaber("Explique sobre cadência e como aumentar a minha")} style={{background:C.violet+"22",color:C.violetL,border:"1px solid "+C.violet+"44",borderRadius:7,padding:"5px 11px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{tt("saber.learnMore", "Saber mais")} →</button>
                 </div>
-                <div style={{background:"linear-gradient(135deg,#1a0e00,#1e1500)",border:"1px solid "+C.amber+"55",borderRadius:12,padding:12,marginBottom:10}}>
+                <div style={{background:amberInfoCardBg,border:"1px solid "+C.amber+"55",borderRadius:12,padding:12,marginBottom:10}}>
                   <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
                     <div style={{width:24,height:24,borderRadius:7,background:C.amber+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="warning" z={13} c={C.amber}/></div>
                     <p style={{color:C.amber,fontFamily:"monospace",fontSize:9,fontWeight:700,margin:0,textTransform:"uppercase",letterSpacing:0.5}}>{tt("saber.glp1Title", "Caneta Emagrecedora & Corrida")}</p>
@@ -4101,7 +4108,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div>
             {/* Card Strava — aparece uma vez, some ao conectar ou fechar */}
             {!stravaConnected && !stravaCardDismissed && (
-              <div style={{background:"linear-gradient(135deg,#1a0800,#200e00)",border:"1px solid "+C.strava+"55",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative"}}>
+              <div style={{background:stravaInfoCardBg,border:"1px solid "+C.strava+"55",borderRadius:14,padding:"12px 14px",marginBottom:14,position:"relative"}}>
                 <button onClick={()=>{setStravaCardDismissed(true);try{localStorage.setItem("strava_card_dismissed","1");}catch{}}} style={{position:"absolute",top:10,right:10,background:"none",border:"none",color:darkCardMuted,fontSize:16,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                   <div style={{width:34,height:34,borderRadius:10,background:C.strava+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid "+C.strava+"44"}}>
@@ -4175,7 +4182,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         </div>
         {planScreen==="form"&&(
           <div>
-            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+            <div style={{background:infoCardBg,border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
               <Ic n="ai" z={26} c={C.cyanB}/>
               <div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 4px",fontFamily:"'Space Grotesk',sans-serif"}}>Coach TEMPO</p><p style={{color:darkCardSub,fontSize:12,margin:0,lineHeight:1.6}}>{tt("training.planIntro", "Vamos montar um plano completo e personalizado para você.")}</p></div>
             </div>
@@ -4343,7 +4350,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         )}
         {planScreen==="result"&&planResult&&(
           <div>
-            <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:15,padding:13,marginBottom:13,display:"flex",gap:9,alignItems:"flex-start"}}>
+            <div style={{background:infoCardBg,border:"1px solid "+C.cyanB+"44",borderRadius:15,padding:13,marginBottom:13,display:"flex",gap:9,alignItems:"flex-start"}}>
               <Ic n="ai" z={22} c={C.cyanB}/>
               <div>
                 <p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:"0 0 5px",fontFamily:"'Space Grotesk',sans-serif"}}>{tt("training.planGenerated", "Plano gerado")}</p>
@@ -4407,7 +4414,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <button onClick={()=>{resetGrav();setGStatus("idle");setSubScreen(null);}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
             <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{salvando?tt("training.saving", "Salvando..."):tt("training.workoutDone", "Treino concluído")}</h1>
           </div>
-          {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>{tt("training.runSaved", "Corrida salva")}</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · {tt("training.appearsInCompleted", "aparece nos Treinos Concluídos")}</p></div></div>}
+          {!salvando&&savedRun&&<div style={{background:successInfoCardBg,border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>{tt("training.runSaved", "Corrida salva")}</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · {tt("training.appearsInCompleted", "aparece nos Treinos Concluídos")}</p></div></div>}
           {novoRP&&<div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:12,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}><Ic n="trophy" z={22} c="#fff"/><div><p style={{color:"#fff",fontWeight:800,fontSize:14,margin:0}}>Novo Recorde!</p><p style={{color:"#ffffffcc",fontSize:12,margin:0}}>{novoRP.dist} em {novoRP.tempo}</p></div></div>}
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"44",borderRadius:17,padding:16,marginBottom:12}}>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 11px"}}>resumo</p>
@@ -4515,7 +4522,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
 
             {/* Resumo */}
             {savedPlan.resumo_semanal&&typeof savedPlan.resumo_semanal==="string"&&(
-              <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.cyanB+"44",borderRadius:13,padding:12,marginBottom:12,display:"flex",gap:9,alignItems:"flex-start"}}>
+              <div style={{background:infoCardBg,border:"1px solid "+C.cyanB+"44",borderRadius:13,padding:12,marginBottom:12,display:"flex",gap:9,alignItems:"flex-start"}}>
                 <Ic n="ai" z={18} c={C.cyanB}/>
                 <p style={{color:darkCardSub,fontSize:12,margin:0,lineHeight:1.6}}>{savedPlan.resumo_semanal}</p>
               </div>
@@ -4755,7 +4762,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <button onClick={()=>{setSubScreen(null);if(gStatus==="fim"){resetGrav();setGStatus("idle");}}} style={{background:C.s2,border:"1px solid "+C.border,borderRadius:9,padding:"6px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}><Ic n="back" z={13} c={C.ts}/></button>
             <h1 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:0}}>{salvando?"Salvando...":"Treino concluído"}</h1>
           </div>
-          {!salvando&&savedRun&&<div style={{background:"linear-gradient(135deg,#06180e,#08201a)",border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>{tt("training.runSaved", "Corrida salva")}</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · {tt("training.appearsInCompleted", "aparece nos Treinos Concluídos")}</p></div></div>}
+          {!salvando&&savedRun&&<div style={{background:successInfoCardBg,border:"1px solid "+C.cyanB+"55",borderRadius:12,padding:"10px 14px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}><Ic n="save" z={17} c={C.cyanB}/><div><p style={{color:C.cyanB,fontWeight:700,fontSize:13,margin:0}}>{tt("training.runSaved", "Corrida salva")}</p><p style={{color:C.tm,fontSize:11,margin:"2px 0 0"}}>+{savedRun.xp_ganho} XP · {tt("training.appearsInCompleted", "aparece nos Treinos Concluídos")}</p></div></div>}
           {novoRP&&<div style={{background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",borderRadius:12,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 20px "+C.violet+"44"}}><Ic n="trophy" z={22} c="#fff"/><div><p style={{color:"#fff",fontWeight:800,fontSize:14,margin:0}}>Novo Recorde!</p><p style={{color:"#ffffffcc",fontSize:12,margin:0}}>{novoRP.dist} em {novoRP.tempo}</p></div></div>}
           <div style={{background:"linear-gradient(135deg,"+C.s1+","+C.s2+")",border:"1px solid "+C.cyanB+"44",borderRadius:17,padding:16,marginBottom:12}}>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 11px"}}>resumo</p>
@@ -4784,7 +4791,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               <div style={{background:zC+"22",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}><span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>fc</span><span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gCad}</span></div>
             </div>
           </div>
-          <div style={{background:"linear-gradient(160deg,#06071a,#0c0830)",borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
+          <div style={{background:timerCardBg,borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
                 <p style={{color:darkCardMuted,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,margin:"0 0 5px",position:"relative"}}>tempo de corrida</p>
                 <p style={{color:darkCardText,fontFamily:"'Space Grotesk',sans-serif",fontSize:50,fontWeight:800,margin:"0 0 3px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{fmtT(gSeg)}</p>
             <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>{gStatus==="ativo"?"Em andamento":gStatus==="pausado"?"Pausado":"Pronto"}</p>
@@ -5023,7 +5030,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         })()}
 
         {/* Coach Tempo */}
-        <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
+        <div style={{background:infoCardBg,borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid "+C.cyanB+"33"}}>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,margin:"0 0 6px"}}>{tt("training.coachTempo", "Coach Tempo")}</p>
           <p style={{color:darkCardSub,fontSize:13,margin:"0 0 10px",lineHeight:1.5}}>{tt("training.coachTip", "Hoje focamos em velocidade de limiar. Execute em ~5:10/km.")}</p>
           <div style={{display:"flex",gap:8}}>
@@ -5065,7 +5072,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           </div>
           <button onClick={()=>setAnStep("result")} title={tt("analysis.close", "Fechar")} style={{width:34,height:34,borderRadius:10,background:C.s2,border:"1px solid "+C.cyanB+"66",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.cyanB,fontSize:20,fontWeight:700,lineHeight:1,flexShrink:0}}>×</button>
         </div>
-        <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
+        <div style={{background:infoCardBg,border:"1px solid "+C.violet+"44",borderRadius:15,padding:13,marginBottom:14,display:"flex",gap:10,alignItems:"flex-start"}}>
           <div style={{width:32,height:32,borderRadius:10,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ai" z={17} c="#fff"/></div>
           <div>
             <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,margin:"0 0 5px",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Coach TEMPO</p>
@@ -5140,7 +5147,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         </div>
 
         {/* Score — visível para todos */}
-        <div style={{background:"linear-gradient(135deg,#0c0830,#0a1430)",border:"1px solid "+C.violet+"44",borderRadius:17,padding:"18px 16px",marginBottom:13,textAlign:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{background:infoCardBg,border:"1px solid "+C.violet+"44",borderRadius:17,padding:"18px 16px",marginBottom:13,textAlign:"center",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:-30,left:"50%",transform:"translateX(-50%)",width:200,height:80,borderRadius:"50%",background:C.violet+"22",filter:"blur(25px)",pointerEvents:"none"}}/>
           <p style={{color:C.cyanB,fontFamily:"monospace",fontSize:10,fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"0 0 7px",position:"relative"}}>{tt("analysis.techIndex", "Índice Técnico")}</p>
           <div style={{display:"flex",justifyContent:"center",alignItems:"baseline",gap:6,position:"relative",marginBottom:5}}>
@@ -7193,13 +7200,13 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
 
         {studioTab==="efeitos"&&(
           <div>
-            <div style={{background:"linear-gradient(145deg,#080a24,#10143a 54%,#071927)",border:"1px solid "+activeFx.color+"55",borderRadius:18,padding:15,marginBottom:15,boxShadow:"0 18px 42px #00000055, 0 0 28px "+activeFx.color+"22",overflow:"hidden",position:"relative"}}>
+            <div style={{background:infoCardBg,border:"1px solid "+activeFx.color+"55",borderRadius:18,padding:15,marginBottom:15,boxShadow:isLightTheme?"0 14px 34px rgba(15,18,32,0.08), 0 0 24px "+activeFx.color+"16":"0 18px 42px #00000055, 0 0 28px "+activeFx.color+"22",overflow:"hidden",position:"relative"}}>
               <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 18% 18%,"+C.violet+"44,transparent 33%),radial-gradient(circle at 84% 10%,"+C.cyan+"33,transparent 30%)",opacity:0.9,pointerEvents:"none"}}/>
               <div style={{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:13}}>
                 <div>
                   <Badge text="FX STUDIO" color={activeFx.color}/>
-                  <h2 style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:"8px 0 2px",letterSpacing:0}}>Live Preview</h2>
-                  <p style={{color:"#ffffff99",fontSize:11,margin:0,lineHeight:1.35}}>{activeMood.name} · {activeOverlay.name} · {activeTemplate.size}</p>
+                  <h2 style={{color:C.tp,fontFamily:"'Space Grotesk',sans-serif",fontSize:20,margin:"8px 0 2px",letterSpacing:0}}>Live Preview</h2>
+                  <p style={{color:C.tm,fontSize:11,margin:0,lineHeight:1.35}}>{activeMood.name} · {activeOverlay.name} · {activeTemplate.size}</p>
                 </div>
                 <div style={{width:42,height:42,borderRadius:12,background:activeFx.color+"22",border:"1px solid "+activeFx.color+"66",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 18px "+activeFx.color+"33"}}>
                   <Ic n={activeFx.icon} z={21} c={activeFx.color}/>
