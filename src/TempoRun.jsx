@@ -3,6 +3,7 @@ import runnerStride from './assets/runner_stride.png';
 import runnerLanding from './assets/runner_landing.png';
 import runnerOverstride from './assets/runner_overstride.png';
 import logoImg from './assets/logo.png';
+import loginLightLogo from './assets/login_light_logo.png';
 import tempoRunLogo from './assets/tempo_run_logo.png';
 import iconCircle from './assets/icon_circle.png';
 import perfilImg from './assets/perfil.png';
@@ -1714,8 +1715,9 @@ function LoginScreen({ onLogin }) {
   let loginIsLight = false;
   try {
     const saved = JSON.parse(localStorage.getItem("tr_config")||"{}");
+    const prefersLight = typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches;
     loginLang = saved.idioma || "pt-BR";
-    loginIsLight = saved.tema==="light" || (saved.tema==="auto" && window.matchMedia?.("(prefers-color-scheme: light)").matches);
+    loginIsLight = saved.tema==="light" || (saved.tema==="auto" && prefersLight) || (!saved.tema && prefersLight);
     C = loginIsLight ? C_LIGHT : C_DARK;
   } catch { loginIsLight = false; C = C_DARK; }
   const tt = (key, fallback) => tr(loginLang, key, fallback);
@@ -1872,7 +1874,7 @@ function LoginScreen({ onLogin }) {
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center",background:loginIsLight?"linear-gradient(180deg,"+C.bg+","+C.bg2+")":"#000115"}}>
       <div style={{marginTop:16,marginBottom:24,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
-        <img src={logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
+        <img src={loginIsLight ? loginLightLogo : logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
         <p style={{color:C.ts,fontSize:13,margin:"0",fontWeight:400,letterSpacing:0.3}}>{tt("login.connectToContinue", "Conecte-se para continuar")}</p>
       </div>
       <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
