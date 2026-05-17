@@ -3,7 +3,6 @@ import runnerStride from './assets/runner_stride.png';
 import runnerLanding from './assets/runner_landing.png';
 import runnerOverstride from './assets/runner_overstride.png';
 import logoImg from './assets/logo.png';
-import loginLightLogo from './assets/login_light_logo.png';
 import tempoRunLogo from './assets/tempo_run_logo.png';
 import iconCircle from './assets/icon_circle.png';
 import perfilImg from './assets/perfil.png';
@@ -1780,9 +1779,8 @@ function LoginScreen({ onLogin }) {
   let loginIsLight = false;
   try {
     const saved = JSON.parse(localStorage.getItem("tr_config")||"{}");
-    const prefersLight = typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches;
     loginLang = saved.idioma || "pt-BR";
-    loginIsLight = saved.tema==="light" || (saved.tema==="auto" && prefersLight) || (!saved.tema && prefersLight);
+    loginIsLight = saved.tema==="light" || (saved.tema==="auto" && window.matchMedia?.("(prefers-color-scheme: light)").matches);
     C = loginIsLight ? C_LIGHT : C_DARK;
   } catch { loginIsLight = false; C = C_DARK; }
   const tt = (key, fallback) => tr(loginLang, key, fallback);
@@ -1939,7 +1937,7 @@ function LoginScreen({ onLogin }) {
   return (
     <div style={{display:"flex",flexDirection:"column",minHeight:"100%",padding:"22px 17px 18px",alignItems:"center",background:loginIsLight?"linear-gradient(180deg,"+C.bg+","+C.bg2+")":"#000115"}}>
       <div style={{marginTop:16,marginBottom:24,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
-        <img src={loginIsLight ? loginLightLogo : logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
+        <img src={logoImg} alt="TempoRun" style={{width:190,height:"auto",objectFit:"contain",marginBottom:8}}/>
         <p style={{color:C.ts,fontSize:13,margin:"0",fontWeight:400,letterSpacing:0.3}}>{tt("login.connectToContinue", "Conecte-se para continuar")}</p>
       </div>
       <div style={{width:"100%",display:"flex",flexDirection:"column",gap:11,marginBottom:22}}>
@@ -2023,11 +2021,44 @@ function clearSession() {
   try { localStorage.removeItem(SESSION_KEY); } catch{}
 }
 
+
+function currentSessionUserId(session, authUser=null) {
+  return (
+    authUser?.id ||
+    session?.id ||
+    (session?.access_token ? jwtUserId(session.access_token) : "") ||
+    ""
+  );
+}
+
+function isMeaningfulStoredValue(value) {
+  if(value === null || value === undefined || value === "") return false;
+  if(value === "[]" || value === "{}") return false;
+  if(Array.isArray(value)) return value.length > 0;
+  if(typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+}
+
+function normalizeStoredValue(value, fallback=null) {
+  if(value === null || value === undefined || value === "") return fallback;
+  if(typeof value === "string") return value;
+  try { return JSON.stringify(value); } catch { return fallback; }
+}
+
+function safeParseStoredJson(value, fallback) {
+  try {
+    if(value === null || value === undefined || value === "") return fallback;
+    if(typeof value === "string") return JSON.parse(value);
+    return value;
+  } catch {
+    return fallback;
+  }
+}
 export default function TempoRunApp() {
   const [session, setSession]   = useState(()=>loadSession()); // restaura sessão salva
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // evita flash da tela de login
-  const loggedIn = !!session;
+  const loggedIn = !!session?.access_token && !!currentSessionUserId(session, authUser);
 
   // Trata o callback do Strava — redireciona para raiz com o code
   useEffect(()=>{
@@ -2459,7 +2490,7 @@ export default function TempoRunApp() {
   }
 
   function currentUserId() {
-    return session?.id || authUser?.id || (session?.access_token ? jwtUserId(session.access_token) : "") || "";
+    return currentSessionUserId(session, authUser);
   }
 
   async function resolveCurrentUserId() {
@@ -2486,7 +2517,8 @@ export default function TempoRunApp() {
   }
 
   function userStorageKey(key, uidOverride=null) {
-    const uid = uidOverride || currentUserId() || session?.email || "anon";
+    const uid = uidOverride || currentUserId();
+    if(!uid) return null;
     return `${key}_${uid}`;
   }
 
@@ -2503,7 +2535,7 @@ export default function TempoRunApp() {
     const uid = uidOverride || currentUserId();
     if(!uid) return;
     try {
-      const runs = JSON.parse(value || "[]");
+      const runs = safeParseStoredJson(value, []);
       const vault = JSON.parse(localStorage.getItem("tr_runs_by_user") || "{}");
       vault[uid] = Array.isArray(runs) ? runs : [];
       localStorage.setItem("tr_runs_by_user", JSON.stringify(vault));
@@ -2512,18 +2544,22 @@ export default function TempoRunApp() {
 
   function readUserLocalData(key, uidOverride=null) {
     try {
-      const scoped = localStorage.getItem(userStorageKey(key, uidOverride));
-      if(scoped) return scoped;
+      const scopedKey = userStorageKey(key, uidOverride);
+      const scoped = scopedKey ? localStorage.getItem(scopedKey) : null;
+      if(isMeaningfulStoredValue(scoped)) return scoped;
+
       if(key==="tr5_corridas") {
         const vaultRuns = readRunsVaultData(uidOverride);
-        if(vaultRuns) {
+        if(isMeaningfulStoredValue(vaultRuns)) {
           writeUserLocalData(key, vaultRuns, uidOverride);
           return vaultRuns;
         }
       }
+
+      // Migração apenas para trás: se havia dados antigos por email, copia para a chave por user_id.
       if(session?.email) {
         const emailScoped = localStorage.getItem(`${key}_${session.email}`);
-        if(emailScoped) {
+        if(isMeaningfulStoredValue(emailScoped)) {
           if(uidOverride || currentUserId()) writeUserLocalData(key, emailScoped, uidOverride);
           return emailScoped;
         }
@@ -2534,8 +2570,15 @@ export default function TempoRunApp() {
 
   function writeUserLocalData(key, value, uidOverride=null) {
     try {
-      localStorage.setItem(userStorageKey(key, uidOverride), value);
-      if(key==="tr5_corridas") writeRunsVaultData(value, uidOverride);
+      const scopedKey = userStorageKey(key, uidOverride);
+      if(!scopedKey) {
+        console.warn("Local save ignored without user_id", key);
+        return;
+      }
+      const normalized = normalizeStoredValue(value, key==="tr5_corridas" ? "[]" : null);
+      if(normalized === null) return;
+      localStorage.setItem(scopedKey, normalized);
+      if(key==="tr5_corridas") writeRunsVaultData(normalized, uidOverride);
     } catch {}
   }
 
@@ -2548,14 +2591,19 @@ export default function TempoRunApp() {
       });
       if(!r.ok) return null;
       const data = await r.json().catch(()=>null);
-      return Array.isArray(data) && data[0]?.value ? data[0].value : null;
+      if(!Array.isArray(data) || !data.length) return null;
+      return normalizeStoredValue(data[0]?.value, null);
     } catch { return null; }
   }
 
   async function persistSupabaseUserData(key, value, uidOverride=null) {
     const userId = uidOverride || currentUserId();
-    if(!session?.access_token || !userId) return;
+    if(!session?.access_token || !userId) {
+      console.warn("Supabase save ignored without token/user_id", { key, hasToken: !!session?.access_token, userId });
+      return;
+    }
     try {
+      const normalized = normalizeStoredValue(value, key==="tr5_corridas" ? "[]" : null);
       const r = await fetch(`${SUPABASE_URL}/rest/v1/user_data?on_conflict=user_id,key`, {
         method:"POST",
         headers:{
@@ -2564,14 +2612,20 @@ export default function TempoRunApp() {
           "Content-Type":"application/json",
           "Prefer":"resolution=merge-duplicates"
         },
-        body:JSON.stringify({user_id:userId,key,value})
+        body:JSON.stringify({user_id:userId,key,value:normalized})
       });
       if(!r.ok) console.warn("Supabase user_data save failed", key, r.status);
-    } catch {}
+    } catch(e) {
+      console.warn("Supabase user_data save error", key, e);
+    }
   }
 
   async function persistCorridas(nextCorridas) {
     const uid = await resolveCurrentUserId();
+    if(!uid) {
+      console.warn("Runs save ignored: user_id not resolved");
+      return;
+    }
     const local = localRunsOnly(nextCorridas);
     const value = JSON.stringify(local);
     writeUserLocalData("tr5_corridas", value, uid);
@@ -2581,6 +2635,10 @@ export default function TempoRunApp() {
   // Persiste qualquer chave de utilizador (RPs, XP, prova) por user_id — nunca global
   async function persistUserData(key, dataObj) {
     const uid = await resolveCurrentUserId();
+    if(!uid) {
+      console.warn("User data save ignored: user_id not resolved", key);
+      return;
+    }
     const value = JSON.stringify(dataObj);
     writeUserLocalData(key, value, uid);
     await persistSupabaseUserData(key, value, uid);
@@ -2590,15 +2648,36 @@ export default function TempoRunApp() {
     let cancelled = false;
     async function load(){
       try{
+        if(!session?.access_token) {
+          setDbReady(true);
+          return;
+        }
+
         const loadUserId = await resolveCurrentUserId();
+        if(!loadUserId) {
+          setDbReady(true);
+          return;
+        }
+
         // Corridas: SEMPRE por utilizador (Supabase → localStorage scoped). Nunca storage global.
         const remoteRuns = await loadSupabaseUserData("tr5_corridas", loadUserId);
         const scopedRuns = readUserLocalData("tr5_corridas", loadUserId);
         if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
-        const rawRuns = remoteRuns || scopedRuns || null;
-        if(remoteRuns) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
-        if(!remoteRuns && scopedRuns) persistSupabaseUserData("tr5_corridas", scopedRuns, loadUserId);
-        if(rawRuns){ const saved=JSON.parse(rawRuns).map(r=>({...r,distancia_km:parseFloat(r.distancia_km)||0})); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
+
+        const rawRuns = isMeaningfulStoredValue(remoteRuns) ? remoteRuns : scopedRuns;
+        if(isMeaningfulStoredValue(remoteRuns)) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
+        if(!isMeaningfulStoredValue(remoteRuns) && isMeaningfulStoredValue(scopedRuns)) {
+          persistSupabaseUserData("tr5_corridas", scopedRuns, loadUserId);
+        }
+
+        const savedRuns = safeParseStoredJson(rawRuns, []);
+        if(Array.isArray(savedRuns) && savedRuns.length){
+          const normalizedRuns = savedRuns.map(r=>({...r,distancia_km:parseFloat(r.distancia_km)||0}));
+          setCorridas([...CORRIDAS_DEMO,...normalizedRuns.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]);
+        } else {
+          setCorridas(CORRIDAS_DEMO);
+        }
+
         // RPs / XP / prova: por utilizador também
         const [rpRemote,xpRemote,paRemote]=await Promise.all([
           loadSupabaseUserData("tr5_rps", loadUserId),
@@ -2606,18 +2685,35 @@ export default function TempoRunApp() {
           loadSupabaseUserData("tr5_prova", loadUserId),
         ]);
         if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
-        const rpRaw = rpRemote || readUserLocalData("tr5_rps", loadUserId);
-        const xpRaw = xpRemote || readUserLocalData("tr5_xp", loadUserId);
-        const paRaw = paRemote || readUserLocalData("tr5_prova", loadUserId);
-        if(rpRaw) setRpsDb(JSON.parse(rpRaw)); else setRpsDb({});
-        if(xpRaw) setXpTotal(JSON.parse(xpRaw)); else setXpTotal(3240);
-        if(paRaw) setProvaAmb(JSON.parse(paRaw)); else setProvaAmb(null);
-      }catch(e){}
+
+        const rpLocal = readUserLocalData("tr5_rps", loadUserId);
+        const xpLocal = readUserLocalData("tr5_xp", loadUserId);
+        const paLocal = readUserLocalData("tr5_prova", loadUserId);
+
+        const rpRaw = isMeaningfulStoredValue(rpRemote) ? rpRemote : rpLocal;
+        const xpRaw = isMeaningfulStoredValue(xpRemote) ? xpRemote : xpLocal;
+        const paRaw = isMeaningfulStoredValue(paRemote) ? paRemote : paLocal;
+
+        if(isMeaningfulStoredValue(rpRemote)) writeUserLocalData("tr5_rps", rpRemote, loadUserId);
+        else if(isMeaningfulStoredValue(rpLocal)) persistSupabaseUserData("tr5_rps", rpLocal, loadUserId);
+
+        if(isMeaningfulStoredValue(xpRemote)) writeUserLocalData("tr5_xp", xpRemote, loadUserId);
+        else if(isMeaningfulStoredValue(xpLocal)) persistSupabaseUserData("tr5_xp", xpLocal, loadUserId);
+
+        if(isMeaningfulStoredValue(paRemote)) writeUserLocalData("tr5_prova", paRemote, loadUserId);
+        else if(isMeaningfulStoredValue(paLocal)) persistSupabaseUserData("tr5_prova", paLocal, loadUserId);
+
+        setRpsDb(safeParseStoredJson(rpRaw, {}));
+        setXpTotal(safeParseStoredJson(xpRaw, 3240));
+        setProvaAmb(safeParseStoredJson(paRaw, null));
+      }catch(e){
+        console.warn("User data load failed", e);
+      }
       setDbReady(true);
     }
     load();
     return ()=>{ cancelled = true; };
-  },[session?.access_token, session?.id]);
+  },[session?.access_token, session?.id, authUser?.id]);
 
   function connectStrava(){
     setStravaConnected(true);
