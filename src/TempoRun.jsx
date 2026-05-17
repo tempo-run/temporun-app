@@ -665,9 +665,38 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
   const [mbLoaded, setMbLoaded] = useState(false);
   const [mbError, setMbError] = useState(false);
   const [mbErrorMessage, setMbErrorMessage] = useState("");
+  const MAPBOX_LIVE_STYLES = {
+    street: { label:"Rua", style:"mapbox://styles/mapbox/streets-v12" },
+    satellite: { label:"Satélite", style:"mapbox://styles/mapbox/satellite-streets-v12" },
+    night: { label:"Noite", style:"mapbox://styles/mapbox/dark-v11" },
+  };
+  const [liveMapMode, setLiveMapMode] = useState(()=>{
+    try {
+      const saved = localStorage.getItem("tr_live_map_mode");
+      return MAPBOX_LIVE_STYLES[saved] ? saved : "street";
+    } catch { return "street"; }
+  });
 
   const MB_TOKEN = MAPBOX_TOKEN;
-  const liveMapStyle = "mapbox://styles/mapbox/dark-v11";
+  const liveMapStyle = MAPBOX_LIVE_STYLES[liveMapMode]?.style || MAPBOX_LIVE_STYLES.street.style;
+  function changeMapMode(mode) {
+    if(!MAPBOX_LIVE_STYLES[mode]) return;
+    setMbError(false);
+    setMbErrorMessage("");
+    setLiveMapMode(mode);
+    try { localStorage.setItem("tr_live_map_mode", mode); } catch {}
+  }
+  function renderMapStyleControl() {
+    return (
+      <div style={{position:"absolute",top:8,left:8,background:"#000000aa",border:"1px solid rgba(34,211,238,0.28)",borderRadius:8,padding:3,display:"flex",gap:3,backdropFilter:"blur(6px)",zIndex:2}}>
+        {Object.entries(MAPBOX_LIVE_STYLES).map(([mode, item])=>(
+          <button key={mode} onClick={()=>changeMapMode(mode)} style={{background:liveMapMode===mode?"linear-gradient(135deg,#7c3aed,#06b6d4)":"transparent",color:liveMapMode===mode?"#fff":"#9fb0d8",border:"none",borderRadius:6,padding:"4px 7px",fontFamily:"monospace",fontSize:8,fontWeight:800,cursor:"pointer"}}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
   const serializeMapboxError = (event) => {
     const err = event?.error || event || {};
     const rawMessage = err?.message || err?.toString?.() || String(err);
@@ -806,8 +835,16 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
       setMbErrorMessage("Erro ao iniciar o mapa online.");
       setMbError(true);
     }
-    return ()=>{ try{ resizeObserver?.disconnect(); mapRef.current?.remove(); mapRef.current=null; }catch{} };
-  }, [mbLoaded]);
+    return ()=>{
+      try{
+        resizeObserver?.disconnect();
+        mapRef.current?.remove();
+        mapRef.current = null;
+        markerRef.current = null;
+        startMarkerRef.current = null;
+      }catch{}
+    };
+  }, [mbLoaded, liveMapStyle]);
 
   // Atualiza rota e posição a cada novo ponto GPS
   useEffect(()=>{
@@ -839,6 +876,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
   if(mbError) return (
     <div style={{position:"relative",width:"100%",height:fillContainer?"100%":height,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
       <LiveMapCanvas route={route} gpsStatus={gpsStatus}/>
+      {renderMapStyleControl()}
       {mbErrorMessage&&(
         <div style={{position:"absolute",left:8,right:8,bottom:8,background:"#000000bb",border:"1px solid #22d3ee55",borderRadius:8,padding:"5px 8px",backdropFilter:"blur(4px)"}}>
           <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:8,fontWeight:800,lineHeight:1.35,display:"block",textAlign:"center"}}>{mbErrorMessage}</span>
@@ -866,12 +904,13 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
   return (
     <div style={{position:"relative",width:"100%",height:fillContainer?"100%":height,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
       <div ref={mapContainer} style={{width:"100%",height:fillContainer?"100%":height+"px",position:"absolute",top:0,left:0}}/>
+      {renderMapStyleControl()}
       <div style={{position:"absolute",top:8,right:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)"}}>
         <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:9,fontWeight:800}}>
           {gpsStatus==="active"?`● GPS ±${accuracy||"?"}m`:"● AO VIVO"}
         </span>
       </div>
-      <div style={{position:"absolute",bottom:8,left:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:5}}>
+      <div style={{position:"absolute",bottom:8,right:8,background:"#000000bb",borderRadius:6,padding:"3px 8px",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:5}}>
         <span style={{fontSize:9,color:"#aaa",fontFamily:"monospace"}}>lento</span>
         <div style={{width:36,height:3,borderRadius:2,background:"linear-gradient(90deg,#3b82f6,#22c55e,#f59e0b,#ef4444)"}}/>
         <span style={{fontSize:9,color:"#aaa",fontFamily:"monospace"}}>rápido</span>
