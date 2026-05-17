@@ -8,6 +8,7 @@ import tempoRunLogo from './assets/tempo_run_logo.png';
 import iconCircle from './assets/icon_circle.png';
 import perfilImg from './assets/perfil.png';
 import inicioTreino from './assets/inicio_treino.png';
+import runnerNavIcon from './assets/directions_run.svg';
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
@@ -41,7 +42,7 @@ function Ic({ n, z=20, c="currentColor", st={} }) {
   const paths = {
     home:     <><path d="M3 10.5L12 3l9 7.5V21h-6v-6H9v6H3V10.5z" stroke={c} strokeWidth="1.7" strokeLinejoin="round" fill="none"/></>,
     run:      <><path d="M15 2.5 Q16.5 2 17.5 3 Q18.5 4.5 17 5.5 Q15 6 14 4.5 Q13.5 3 15 2.5Z" stroke={c} strokeWidth="1.3" fill="none"/><path d="M16 6 Q14.5 8 13.5 10 Q11 13 10 15 Q9 17 10 19 Q11 20.5 13 21" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/><path d="M13.5 10 Q16 11 18 10.5 Q19.5 10 20 8.5" stroke={c} strokeWidth="1.4" strokeLinecap="round" fill="none"/><path d="M10 15 Q8 16.5 7 18.5 Q6.5 20 7.5 21.5" stroke={c} strokeWidth="1.4" strokeLinecap="round" fill="none"/><path d="M13 21 Q14.5 22 16 21.5 Q17 20.5 16.5 19 Q15.5 17 14 16.5" stroke={c} strokeWidth="1.4" strokeLinecap="round" fill="none"/><line x1="2" y1="11" x2="7" y2="11" stroke={c} strokeWidth="1.4" strokeLinecap="round"/><line x1="2.5" y1="13.5" x2="8" y2="13.5" stroke={c} strokeWidth="1.4" strokeLinecap="round"/><line x1="3" y1="16" x2="7.5" y2="16" stroke={c} strokeWidth="1.4" strokeLinecap="round"/></>,
-    explore:  <><path d="M2 19l7-12 4 7 3-4 6 9H2z" stroke={c} strokeWidth="1.6" strokeLinejoin="round"/></>,
+    explore:  <><path d="M4 13a8 8 0 0 1 7 7a6 6 0 0 0 3 -5a9 9 0 0 0 6 -8a3 3 0 0 0 -3 -3a9 9 0 0 0 -8 6a6 6 0 0 0 -5 3" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/><path d="M7 14a6 6 0 0 0 -3 6a6 6 0 0 0 6 -3M15 9m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/></>,
     studio:   <><rect x="3" y="3" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke={c} strokeWidth="1.5"/></>,
     science:  <><path d="M8 4C8 4 16 7 16 12C16 17 8 20 8 20M16 4C16 4 8 7 8 12C8 17 16 20 16 20" stroke={c} strokeWidth="1.6" strokeLinecap="round"/><path d="M8.5 8.5h7M8.5 15.5h7" stroke={c} strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/></>,
     report:   <><rect x="4" y="2" width="16" height="20" rx="2" stroke={c} strokeWidth="1.5" strokeLinejoin="round"/><path d="M8 14l3-4 3 3 3-4" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 8h8" stroke={c} strokeWidth="1.3" strokeLinecap="round" opacity="0.45"/></>,
@@ -1733,7 +1734,7 @@ const TR_I18N = {
     "profile.logout": "Logout",
     "profile.logoutDesc": "Sign out",
     "nav.home": "Home",
-    "nav.explore": "Explore",
+    "nav.explore": "TempoHub",
     "nav.training": "Training",
     "nav.analysis": "Analysis",
     "nav.studio": "Studio",
@@ -2341,6 +2342,8 @@ export default function TempoRunApp() {
     }).catch(()=>{});
   },[session?.access_token, session?.id]);
   const [tab, setTab] = useState("home");
+  // No app nativo (APK Android/iOS) ocupa a tela inteira; no browser/desktop mantém o mockup de telefone
+  const isNative = (()=>{ try { return Capacitor.isNativePlatform(); } catch { return false; } })();
   const [subScreen, setSubScreen] = useState(null);
   const [treinoTab, setTreinoTab] = useState("iniciar");
   const [dbReady, setDbReady] = useState(false);
@@ -5299,7 +5302,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
         </div>
       );
       return (
-        <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 160px)",maxHeight:620,gap:0}}>
+        <div style={{display:"flex",flexDirection:"column",height:"calc(100dvh - 160px)",maxHeight:isNative?"none":620,gap:0}}>
 
           {(gStatus==="ativo"||gStatus==="pausado") ? (
             /* ── MODO ATIVO/PAUSADO: mapa fullscreen com dados sobrepostos ── */
@@ -5311,26 +5314,27 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               <div style={{position:"absolute",top:0,left:0,right:0,height:200,background:"linear-gradient(180deg,rgba(6,7,26,0.88) 0%,transparent 100%)",pointerEvents:"none"}}/>
               <div style={{position:"absolute",bottom:0,left:0,right:0,height:230,background:"linear-gradient(0deg,rgba(6,7,26,0.95) 0%,rgba(6,7,26,0.72) 60%,transparent 100%)",pointerEvents:"none"}}/>
 
-              {/* Topo: status + GPS + timer + métricas */}
-              <div style={{position:"absolute",top:0,left:0,right:0,padding:"14px 20px 0",zIndex:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div>
-                    <p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p>
-                    {selectedTreino?.nome&&<p style={{color:"rgba(255,255,255,0.7)",fontSize:12,margin:"2px 0 0",fontWeight:600}}>{selectedTreino.nome}</p>}
-                  </div>
-                  <div style={{display:"flex",gap:6}}>
-                    <div style={{background:"rgba(6,7,26,0.7)",backdropFilter:"blur(6px)",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":C.amber+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
-                      <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
-                      <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
-                    </div>
+              {/* Topo: status + GPS + cadência */}
+              <div style={{position:"absolute",top:0,left:0,right:0,padding:"14px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start",zIndex:10}}>
+                <div>
+                  <p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p>
+                  {selectedTreino?.nome&&<p style={{color:"rgba(255,255,255,0.7)",fontSize:12,margin:"2px 0 0",fontWeight:600}}>{selectedTreino.nome}</p>}
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <div style={{background:"rgba(6,7,26,0.7)",backdropFilter:"blur(6px)",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":C.amber+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                    <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
+                    <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
                   </div>
                 </div>
-                {/* Timer + métricas — logo abaixo do status */}
-                <div style={{textAlign:"center",marginTop:8,marginBottom:10}}>
+              </div>
+
+              {/* Base: timer + métricas + botões */}
+              <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"0 20px 8px",zIndex:10}}>
+                <div style={{textAlign:"center",marginBottom:10}}>
                   <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:58,fontWeight:800,margin:0,letterSpacing:-2,lineHeight:1,textShadow:"0 2px 20px rgba(0,0,0,0.85)"}}>{fmtT(gSeg)}</p>
                   <p style={{color:C.cyanB,fontSize:10,fontWeight:600,margin:"2px 0 0",fontFamily:"monospace",letterSpacing:1,textTransform:"uppercase"}}>{gStatus==="ativo"?"em andamento":"pausado"}</p>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
                   {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:gCad>0?""+gCad:"--",u:"spm",c:C.cyanB,l:"cadência"}].map((m,i)=>(
                     <div key={i} style={{background:"rgba(6,7,26,0.65)",backdropFilter:"blur(8px)",borderRadius:12,padding:"8px 6px",textAlign:"center",border:"1px solid "+m.c+"33"}}>
                       <p style={{color:m.c,fontFamily:"monospace",fontWeight:700,fontSize:7,textTransform:"uppercase",letterSpacing:1.1,margin:"0 0 3px",opacity:0.8}}>{m.l}</p>
@@ -5339,10 +5343,6 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Base: aviso GPS + botões */}
-              <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"0 20px 8px",zIndex:10}}>
                 {gpsMessage&&<div style={{marginBottom:8,background:"rgba(232,98,58,0.14)",border:"1px solid "+C.coral+"33",borderRadius:10,padding:"8px 11px",display:"flex",gap:8,alignItems:"flex-start"}}>
                   <Ic n="warning" z={13} c={C.coral} st={{flexShrink:0,marginTop:1}}/>
                   <p style={{color:C.coral,fontSize:11,margin:0,lineHeight:1.4}}>{gpsMessage}</p>
@@ -7433,19 +7433,31 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
               {/* Distância */}
               <div style={{textAlign:"center",padding:"8px 0",width:"100%"}}>
                 <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>Distância</p>
-                <p style={{color:"#f0f4ff",fontSize:34,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1,lineHeight:1,margin:0}}>{dist} <span style={{fontSize:14,opacity:0.5,fontWeight:500}}>km</span></p>
+                <p style={{width:150,margin:"0 auto",display:"grid",gridTemplateColumns:"30px 1fr 30px",alignItems:"baseline",color:"#f0f4ff",fontFamily:"'Space Grotesk',sans-serif",lineHeight:1}}>
+                  <span/>
+                  <span style={{fontSize:34,fontWeight:800,letterSpacing:-1,textAlign:"center"}}>{dist}</span>
+                  <span style={{fontSize:14,opacity:0.5,fontWeight:500,textAlign:"left"}}>km</span>
+                </p>
               </div>
               <div style={{width:40,height:1,background:"linear-gradient(90deg,transparent,#ffffff18,transparent)",margin:"2px 0"}}/>
               {/* Pace */}
               <div style={{textAlign:"center",padding:"8px 0",width:"100%"}}>
                 <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>Pace</p>
-                <p style={{color:"#f0f4ff",fontSize:34,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1,lineHeight:1,margin:0}}>{pace} <span style={{fontSize:14,opacity:0.5,fontWeight:500}}>/km</span></p>
+                <p style={{width:150,margin:"0 auto",display:"grid",gridTemplateColumns:"30px 1fr 30px",alignItems:"baseline",color:"#f0f4ff",fontFamily:"'Space Grotesk',sans-serif",lineHeight:1}}>
+                  <span/>
+                  <span style={{fontSize:34,fontWeight:800,letterSpacing:-1,textAlign:"center"}}>{pace}</span>
+                  <span style={{fontSize:14,opacity:0.5,fontWeight:500,textAlign:"left"}}>/km</span>
+                </p>
               </div>
               <div style={{width:40,height:1,background:"linear-gradient(90deg,transparent,#ffffff18,transparent)",margin:"2px 0"}}/>
               {/* Tempo */}
               <div style={{textAlign:"center",padding:"8px 0",width:"100%"}}>
                 <p style={{color:"#ffffff33",fontFamily:"monospace",fontSize:8,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",margin:"0 0 4px"}}>Tempo Total</p>
-                <p style={{color:"#f0f4ff",fontSize:34,fontWeight:800,fontFamily:"'Space Grotesk',sans-serif",letterSpacing:-1,lineHeight:1,margin:0}}>{dur}</p>
+                <p style={{width:150,margin:"0 auto",display:"grid",gridTemplateColumns:"30px 1fr 30px",alignItems:"baseline",color:"#f0f4ff",fontFamily:"'Space Grotesk',sans-serif",lineHeight:1}}>
+                  <span/>
+                  <span style={{fontSize:34,fontWeight:800,letterSpacing:-1,textAlign:"center"}}>{dur}</span>
+                  <span/>
+                </p>
               </div>
             </div>
           </div>
@@ -8351,7 +8363,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
   const screenKey = tab+(subScreen||"");
   const navInactive = tema==="light" ? C.tm : "#5567a0";
   return (
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:tema==="light"?"#e8ebf8":"#030410",minHeight:"100vh",display:"flex",justifyContent:"center",alignItems:"center",padding:16,transition:"background 0.3s"}}>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:tema==="light"?"#e8ebf8":"#030410",minHeight:"100dvh",display:"flex",justifyContent:"center",alignItems:isNative?"stretch":"center",padding:isNative?0:16,transition:"background 0.3s"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap');
         *{box-sizing:border-box;transition:background-color 0.25s,border-color 0.25s,color 0.15s}
@@ -8366,13 +8378,13 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
         a:hover{opacity:0.85}
       `}</style>
 
-      <div style={{width:390,background:C.bg2,borderRadius:30,overflow:"hidden",boxShadow:"0 30px 80px rgba(0,0,50,.8), 0 0 0 1px "+C.violet+"22",border:"1px solid "+C.border,position:"relative"}}>
-        <div style={{background:C.bg,padding:"11px 22px 7px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{width:isNative?"100%":390,maxWidth:isNative?"100%":390,background:C.bg2,borderRadius:isNative?0:30,overflow:"hidden",boxShadow:isNative?"none":"0 30px 80px rgba(0,0,50,.8), 0 0 0 1px "+C.violet+"22",border:isNative?"none":"1px solid "+C.border,position:"relative",display:"flex",flexDirection:"column",height:isNative?"100dvh":"auto"}}>
+        <div style={{background:C.bg,padding:isNative?"max(11px, env(safe-area-inset-top, 11px)) 22px 7px":"11px 22px 7px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <span style={{color:C.tp,fontSize:13,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>9:41</span>
           <span style={{color:C.td,fontFamily:"monospace",fontSize:9,letterSpacing:0.8}}>GPS · WiFi · BAT</span>
         </div>
 
-        <div className="sc" key={loggedIn?screenKey:"login"} style={{height:615,overflowY:"auto",padding:loggedIn?"0 17px 13px":"0",position:"relative"}}
+        <div className="sc" key={loggedIn?screenKey:"login"} style={{height:isNative?"auto":615,flex:isNative?1:"none",overflowY:"auto",padding:loggedIn?"0 17px 13px":"0",position:"relative"}}
           onTouchStart={e=>{if(!loggedIn)return;window._swipeX=e.touches[0].clientX;window._swipeY=e.touches[0].clientY;}}
           onTouchEnd={e=>{
             if(!loggedIn||!window._swipeX)return;
@@ -8413,7 +8425,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
         <div style={{background:C.bg,borderTop:"1px solid "+C.border,padding:"7px 4px 12px",display:"flex",alignItems:"center",position:"relative"}}>
           {[
             {id:"home",   n:"home",   l:tt("nav.home", "Início")},
-            {id:"explorar",n:"explore",l:tt("nav.explore", "Explorar")},
+            {id:"explorar",n:"explore",l:tt("nav.explore", "TempoHub")},
           ].map(t=>{
             const active = loggedIn ? tab===t.id : t.id==="home";
             const disabled = !loggedIn && t.id!=="home";
@@ -8427,22 +8439,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
           })}
           <button disabled={!loggedIn} onClick={()=>{if(loggedIn){if(gStatus==="fim"){resetGrav();setGStatus("idle");}setTab("treino");setSubScreen(null);}}} style={{background:"none",border:"none",cursor:loggedIn?"pointer":"default",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"0 10px",opacity:loggedIn?1:0.85}}>
             <div style={{width:52,height:52,borderRadius:16,background:loggedIn&&tab==="treino"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"linear-gradient(135deg,"+C.s2+","+C.s3+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:loggedIn&&tab==="treino"?"0 4px 22px "+C.violet+"55":"none",border:"1px solid "+(loggedIn&&tab==="treino"?C.violet+"66":C.border),marginTop:subScreen==="gravacao"?0:-20}}>
-              <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Cabeça */}
-                <circle cx="16" cy="3.5" r="2.2" fill={loggedIn&&tab==="treino"?"#fff":navInactive}/>
-                {/* Torso inclinado */}
-                <line x1="15" y1="5.5" x2="11" y2="13" stroke={loggedIn&&tab==="treino"?"#fff":navInactive} strokeWidth="2" strokeLinecap="round"/>
-                {/* Braço direito (para frente) */}
-                <line x1="14" y1="8" x2="18" y2="12" stroke={loggedIn&&tab==="treino"?"#fff":navInactive} strokeWidth="1.8" strokeLinecap="round"/>
-                {/* Braço esquerdo (para trás) */}
-                <line x1="13" y1="8.5" x2="9" y2="11" stroke={loggedIn&&tab==="treino"?"#fff":navInactive} strokeWidth="1.8" strokeLinecap="round"/>
-                {/* Perna direita (para frente-baixo) */}
-                <line x1="11" y1="13" x2="14" y2="19" stroke={loggedIn&&tab==="treino"?"#fff":navInactive} strokeWidth="2" strokeLinecap="round"/>
-                <line x1="14" y1="19" x2="18" y2="22" stroke={loggedIn&&tab==="treino"?"#fff":navInactive} strokeWidth="1.8" strokeLinecap="round"/>
-                {/* Perna esquerda (para trás-cima) */}
-                <line x1="11" y1="13" x2="8" y2="18" stroke={loggedIn&&tab==="treino"?"#fff":navInactive} strokeWidth="2" strokeLinecap="round"/>
-                <line x1="8" y1="18" x2="5" y2="16" stroke={loggedIn&&tab==="treino"?"#fff":navInactive} strokeWidth="1.8" strokeLinecap="round"/>
-              </svg>
+              <div style={{width:35,height:35,background:loggedIn&&tab==="treino"?"#fff":navInactive,WebkitMask:`url(${runnerNavIcon}) center / contain no-repeat`,mask:`url(${runnerNavIcon}) center / contain no-repeat`}}/>
             </div>
             <span style={{fontSize:8.5,fontWeight:700,color:loggedIn&&tab==="treino"?C.tp:navInactive,letterSpacing:0.2,fontFamily:"monospace",textTransform:"uppercase",marginTop:2}}>{tt("nav.training", "Treino")}</span>
           </button>
