@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>TempoRun</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,11 @@
         min-height: 100vh;
         font-family: 'Space Grotesk', sans-serif;
       }
-      #root { width: 100%; }
+      html, body, #root {
+        width: 100%;
+        min-height: 100%;
+      }
+      #root { min-height: 100dvh; }
     </style>
   </head>
   <body>

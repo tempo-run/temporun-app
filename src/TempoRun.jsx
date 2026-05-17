@@ -2194,7 +2194,25 @@ export default function TempoRunApp() {
   const [session, setSession]   = useState(()=>loadSession()); // restaura sessão salva
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // evita flash da tela de login
+  const [viewport, setViewport] = useState(()=>({
+    w: typeof window !== "undefined" ? window.innerWidth : 390,
+    h: typeof window !== "undefined" ? window.innerHeight : 844,
+  }));
   const loggedIn = !!session?.access_token && !!currentSessionUserId(session, authUser);
+
+  useEffect(()=>{
+    const updateViewport = () => setViewport({
+      w: window.visualViewport?.width || window.innerWidth,
+      h: window.visualViewport?.height || window.innerHeight,
+    });
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    return ()=>{
+      window.removeEventListener("resize", updateViewport);
+      window.visualViewport?.removeEventListener("resize", updateViewport);
+    };
+  },[]);
 
   // Trata o callback do Strava — redireciona para raiz com o code
   useEffect(()=>{
@@ -8362,8 +8380,10 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
   // ── FINAL RENDER ─────────────────────────────────────────────────────────────
   const screenKey = tab+(subScreen||"");
   const navInactive = tema==="light" ? C.tm : "#5567a0";
+  const isMobileViewport = viewport.w <= 560 || viewport.h <= 720;
+  const fullViewportShell = isNative || isMobileViewport;
   return (
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:tema==="light"?"#e8ebf8":"#030410",minHeight:"100dvh",display:"flex",justifyContent:"center",alignItems:isNative?"stretch":"center",padding:isNative?0:16,transition:"background 0.3s"}}>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:tema==="light"?"#e8ebf8":"#030410",minHeight:"100dvh",height:fullViewportShell?"100dvh":"auto",display:"flex",justifyContent:"center",alignItems:fullViewportShell?"stretch":"center",padding:fullViewportShell?0:16,transition:"background 0.3s",overflow:fullViewportShell?"hidden":"visible"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap');
         *{box-sizing:border-box;transition:background-color 0.25s,border-color 0.25s,color 0.15s}
@@ -8378,13 +8398,13 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
         a:hover{opacity:0.85}
       `}</style>
 
-      <div style={{width:isNative?"100%":390,maxWidth:isNative?"100%":390,background:C.bg2,borderRadius:isNative?0:30,overflow:"hidden",boxShadow:isNative?"none":"0 30px 80px rgba(0,0,50,.8), 0 0 0 1px "+C.violet+"22",border:isNative?"none":"1px solid "+C.border,position:"relative",display:"flex",flexDirection:"column",height:isNative?"100dvh":"auto"}}>
-        <div style={{background:C.bg,padding:isNative?"max(11px, env(safe-area-inset-top, 11px)) 22px 7px":"11px 22px 7px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+      <div style={{width:fullViewportShell?"100%":390,maxWidth:fullViewportShell?"100%":390,background:C.bg2,borderRadius:fullViewportShell?0:30,overflow:"hidden",boxShadow:fullViewportShell?"none":"0 30px 80px rgba(0,0,50,.8), 0 0 0 1px "+C.violet+"22",border:fullViewportShell?"none":"1px solid "+C.border,position:"relative",display:"flex",flexDirection:"column",height:fullViewportShell?"100dvh":"auto"}}>
+        <div style={{background:C.bg,padding:fullViewportShell?"max(11px, env(safe-area-inset-top, 11px)) 22px 7px":"11px 22px 7px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <span style={{color:C.tp,fontSize:13,fontWeight:600,fontFamily:"'Space Grotesk',sans-serif"}}>9:41</span>
           <span style={{color:C.td,fontFamily:"monospace",fontSize:9,letterSpacing:0.8}}>GPS · WiFi · BAT</span>
         </div>
 
-        <div className="sc" key={loggedIn?screenKey:"login"} style={{height:isNative?"auto":615,flex:isNative?1:"none",overflowY:"auto",padding:loggedIn?"0 17px 13px":"0",position:"relative"}}
+        <div className="sc" key={loggedIn?screenKey:"login"} style={{height:fullViewportShell?"auto":615,flex:fullViewportShell?1:"none",overflowY:"auto",padding:loggedIn?"0 17px 13px":"0",position:"relative"}}
           onTouchStart={e=>{if(!loggedIn)return;window._swipeX=e.touches[0].clientX;window._swipeY=e.touches[0].clientY;}}
           onTouchEnd={e=>{
             if(!loggedIn||!window._swipeX)return;
@@ -8439,7 +8459,21 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
           })}
           <button disabled={!loggedIn} onClick={()=>{if(loggedIn){if(gStatus==="fim"){resetGrav();setGStatus("idle");}setTab("treino");setSubScreen(null);}}} style={{background:"none",border:"none",cursor:loggedIn?"pointer":"default",display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"0 10px",opacity:loggedIn?1:0.85}}>
             <div style={{width:52,height:52,borderRadius:16,background:loggedIn&&tab==="treino"?"linear-gradient(135deg,"+C.violet+","+C.cyan+")":"linear-gradient(135deg,"+C.s2+","+C.s3+")",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:loggedIn&&tab==="treino"?"0 4px 22px "+C.violet+"55":"none",border:"1px solid "+(loggedIn&&tab==="treino"?C.violet+"66":C.border),marginTop:subScreen==="gravacao"?0:-20}}>
-              <div style={{width:35,height:35,background:loggedIn&&tab==="treino"?"#fff":navInactive,WebkitMask:`url(${runnerNavIcon}) center / contain no-repeat`,mask:`url(${runnerNavIcon}) center / contain no-repeat`}}/>
+              <img
+                src={runnerNavIcon}
+                alt=""
+                aria-hidden="true"
+                style={{
+                  width:35,
+                  height:35,
+                  display:"block",
+                  objectFit:"contain",
+                  filter:loggedIn&&tab==="treino"
+                    ?"brightness(0) invert(1)"
+                    :"invert(47%) sepia(14%) saturate(1048%) hue-rotate(190deg) brightness(88%) contrast(86%)",
+                  opacity:loggedIn&&tab==="treino"?1:0.72,
+                }}
+              />
             </div>
             <span style={{fontSize:8.5,fontWeight:700,color:loggedIn&&tab==="treino"?C.tp:navInactive,letterSpacing:0.2,fontFamily:"monospace",textTransform:"uppercase",marginTop:2}}>{tt("nav.training", "Treino")}</span>
           </button>
