@@ -2916,7 +2916,10 @@ export default function TempoRunApp() {
 
   async function saveCorridaRow(run, uidOverride=null) {
     const userIds = await resolveCorridasUserIds(uidOverride);
-    if(!session?.access_token || !userIds.length || !run?.timestamp || !isPersistableRun(run)) return false;
+    if(!session?.access_token) return {ok:false,status:"auth",msg:"Sem access_token ativo."};
+    if(!userIds.length) return {ok:false,status:"user",msg:"Nenhum user_id resolvido para a corrida."};
+    if(!run?.timestamp) return {ok:false,status:"run",msg:"Corrida sem timestamp."};
+    if(!isPersistableRun(run)) return {ok:false,status:"run",msg:"Corrida sem duração válida."};
     const baseHeaders = {
       "apikey":SUPABASE_ANON,
       "Authorization":`Bearer ${session.access_token}`,
@@ -2935,7 +2938,7 @@ export default function TempoRunApp() {
         });
         if(patch.ok) {
           const patchedRows = await patch.json().catch(()=>[]);
-          if(Array.isArray(patchedRows) && patchedRows.length) return true;
+          if(Array.isArray(patchedRows) && patchedRows.length) return {ok:true};
         }
 
         const insert = await fetch(`${SUPABASE_URL}/rest/v1/corridas`, {
@@ -2943,7 +2946,7 @@ export default function TempoRunApp() {
           headers:{...baseHeaders,"Prefer":"return=minimal"},
           body:JSON.stringify({id:newUuid(),...payload})
         });
-        if(insert.ok) return true;
+        if(insert.ok) return {ok:true};
         const insertMsg = await insert.text().catch(()=>"");
         lastFailure = { status:insert.status, msg:insertMsg, payload };
 
@@ -2955,7 +2958,7 @@ export default function TempoRunApp() {
           });
           if(minimalInsert.ok) {
             console.warn("Supabase corridas saved with minimal schema. Apply supabase/corridas_schema.sql to persist full metrics.", { minimalPayload });
-            return true;
+            return {ok:true,minimal:true};
           }
           lastFailure = { status:minimalInsert.status, msg:await minimalInsert.text().catch(()=>""), payload:minimalPayload };
         }
@@ -2963,8 +2966,9 @@ export default function TempoRunApp() {
       if(lastFailure) console.warn("Supabase corridas save failed", lastFailure.status, lastFailure.msg, { payload:lastFailure.payload });
     } catch(e) {
       console.warn("Supabase corridas save error", e);
+      return {ok:false,status:"exception",msg:e?.message||String(e)};
     }
-    return false;
+    return {ok:false,status:lastFailure?.status||"unknown",msg:lastFailure?.msg||"Supabase recusou a gravação.",payload:lastFailure?.payload};
   }
 
   async function deleteCorridaRow(run, uidOverride=null) {
@@ -3000,9 +3004,11 @@ export default function TempoRunApp() {
   }
 
   async function syncCorridasRows(runs, uidOverride=null) {
-    if(!session?.access_token) return;
+    if(!session?.access_token) return {ok:false,status:"auth",msg:"Sem sessão autenticada."};
     const local = localRunsOnly(runs).filter(isPersistableRun);
-    await Promise.all(local.map(run=>saveCorridaRow(run, uidOverride)));
+    if(!local.length) return {ok:true,skipped:true};
+    const results = await Promise.all(local.map(run=>saveCorridaRow(run, uidOverride)));
+    return results.find(r=>!r?.ok) || {ok:true};
   }
 
   async function loadSupabaseUserData(key, uidOverride=null) {
@@ -3075,7 +3081,7 @@ export default function TempoRunApp() {
     const local = localRunsOnly(nextCorridas);
     const value = JSON.stringify(local);
     writeUserLocalData("tr5_corridas", value, uid);
-    await syncCorridasRows(local, uid);
+    return await syncCorridasRows(local, uid);
   }
 
   // Persiste qualquer chave de utilizador (RPs, XP, prova) por user_id — nunca global
@@ -3309,9 +3315,18 @@ export default function TempoRunApp() {
       nRP.total = rpHits.length;
       nRP.all = rpHits;
     }
-    if(provaAmb){const np={...provaAmb,treinos:[run,...(provaAmb.treinos||[])]};setProvaAmb(np);await persistUserData("tr5_prova",np);}
-    try{await Promise.all([persistCorridas(newC),persistUserData("tr5_rps",newRps),persistUserData("tr5_xp",newXp)]);}catch(e){}
+    if(provaAmb){const np={...provaAmb,treinos:[run,...(provaAmb.treinos||[]) ]};setProvaAmb(np);await persistUserData("tr5_prova",np);}
+    let corridaSync = {ok:true};
+    try{
+      const [runSync] = await Promise.all([persistCorridas(newC),persistUserData("tr5_rps",newRps),persistUserData("tr5_xp",newXp)]);
+      corridaSync = runSync || {ok:true};
+    }catch(e){
+      corridaSync = {ok:false,status:"exception",msg:e?.message||String(e)};
+    }
     setCorridas(newC);setRpsDb(newRps);setXpTotal(newXp);setSavedRun(run);
+    if(!corridaSync.ok) {
+      alert(`Corrida salva no app, mas não no Supabase.\nStatus: ${corridaSync.status}\n${corridaSync.msg||""}`);
+    }
     if(nRP){setNovoRP(nRP);setTimeout(()=>setNovoRP(null),4500);}
     setSalvando(false);
   }
