@@ -664,17 +664,36 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
   const startMarkerRef = useRef(null);
   const [mbLoaded, setMbLoaded] = useState(false);
   const [mbError, setMbError] = useState(false);
+  const [mbErrorMessage, setMbErrorMessage] = useState("");
 
   const MB_TOKEN = MAPBOX_TOKEN;
   const liveMapStyle = "mapbox://styles/mapbox/dark-v11";
+  const serializeMapboxError = (event) => {
+    const err = event?.error || event || {};
+    const rawMessage = err?.message || err?.toString?.() || String(err);
+    const statusMatch = rawMessage.match(/\((\d{3})\)/);
+    const urlMatch = rawMessage.match(/https?:\/\/\S+/);
+    return {
+      message: rawMessage,
+      status: err?.status || err?.statusCode || (statusMatch ? Number(statusMatch[1]) : null),
+      url: err?.url || urlMatch?.[0] || "",
+      sourceId: event?.sourceId || "",
+      tile: event?.tile?.tileID ? {
+        z: event.tile.tileID.canonical?.z,
+        x: event.tile.tileID.canonical?.x,
+        y: event.tile.tileID.canonical?.y,
+      } : null,
+    };
+  };
 
   // Mapbox vem empacotado pelo Vite. Isso evita falhas de CDN no WebView Android.
   useEffect(()=>{
     if(mapboxgl){
-      console.info("[TempoRun][Mapbox] mapbox-gl loaded", { platform: Capacitor.getPlatform(), hasToken: !!MB_TOKEN });
+      console.info("[TempoRun][Mapbox] mapbox-gl loaded", { platform: Capacitor.getPlatform(), hasToken: !!MB_TOKEN, tokenSource: MAPBOX_TOKEN_SOURCE });
       setMbLoaded(true);
     } else {
       console.error("[TempoRun][Mapbox] mapbox-gl unavailable in bundle");
+      setMbErrorMessage("Mapa online indisponivel neste dispositivo.");
       setMbError(true);
     }
   }, []);
@@ -684,6 +703,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
     if(!mbLoaded || !mapContainer.current || mapRef.current) return;
     if(!MB_TOKEN){
       console.error("[TempoRun][Mapbox] Missing Mapbox token. Set VITE_MAPBOX_TOKEN before building.");
+      setMbErrorMessage("Token do Mapbox ausente no build.");
       setMbError(true);
       return;
     }
@@ -696,6 +716,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
         platform: Capacitor.getPlatform(),
         center,
         tokenPrefix: MB_TOKEN.slice(0, 8),
+        tokenSource: MAPBOX_TOKEN_SOURCE,
         style: liveMapStyle,
         webglSupported,
         userAgent: navigator.userAgent,
@@ -703,6 +724,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
       });
       if(!webglSupported){
         console.error("[TempoRun][Mapbox] WebGL not supported in this WebView/emulator");
+        setMbErrorMessage("WebGL indisponivel neste WebView.");
         setMbError(true);
         return;
       }
@@ -719,7 +741,13 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
       });
       mapRef.current = map;
       map.on("error", (e)=>{
-        console.error("[TempoRun][Mapbox] runtime error", e?.error || e);
+        const details = serializeMapboxError(e);
+        console.error("[TempoRun][Mapbox] runtime error", details);
+        if(details.status === 401 || details.status === 403){
+          setMbErrorMessage("Token do Mapbox recusado. Verifique VITE_MAPBOX_TOKEN e as restricoes do token.");
+          try { map.remove(); mapRef.current = null; } catch {}
+          setMbError(true);
+        }
       });
       map.on("styledata", ()=>console.info("[TempoRun][Mapbox] styledata"));
       map.on("sourcedata", (e)=>{
@@ -775,6 +803,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
       }
     } catch(e) {
       console.error("[TempoRun][Mapbox] init error:", e);
+      setMbErrorMessage("Erro ao iniciar o mapa online.");
       setMbError(true);
     }
     return ()=>{ try{ resizeObserver?.disconnect(); mapRef.current?.remove(); mapRef.current=null; }catch{} };
@@ -807,7 +836,16 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
   }, [tick, route.length]);
 
   // Fallback canvas quando Mapbox não disponível
-  if(mbError) return <LiveMapCanvas route={route} gpsStatus={gpsStatus}/>;
+  if(mbError) return (
+    <div style={{position:"relative",width:"100%",height:fillContainer?"100%":height,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
+      <LiveMapCanvas route={route} gpsStatus={gpsStatus}/>
+      {mbErrorMessage&&(
+        <div style={{position:"absolute",left:8,right:8,bottom:8,background:"#000000bb",border:"1px solid #22d3ee55",borderRadius:8,padding:"5px 8px",backdropFilter:"blur(4px)"}}>
+          <span style={{color:"#22d3ee",fontFamily:"monospace",fontSize:8,fontWeight:800,lineHeight:1.35,display:"block",textAlign:"center"}}>{mbErrorMessage}</span>
+        </div>
+      )}
+    </div>
+  );
 
   // GPS desligado e sem rota — estado inicial
   if(!mbLoaded && gpsStatus==="off" && route.length===0) return (
@@ -1023,6 +1061,7 @@ function RunDetailModal({ run, onClose, onShare }) {
   // Mapa via Mapbox Static com polyline real
   const mapboxStaticUrl = (()=>{
     try {
+      if(!MAPBOX_TOKEN) return null;
       if(!run.polyline||run.polyline.length<2) return null;
       const sample = run.polyline[0];
       if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
@@ -1400,7 +1439,8 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 }
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
-const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
+const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN || "";
+const MAPBOX_TOKEN_SOURCE = import.meta.env.VITE_MAPBOX_TOKEN ? "VITE_MAPBOX_TOKEN" : "missing";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
@@ -5825,6 +5865,7 @@ Retorne APENAS JSON com onde comprar online no Brasil (sem markdown):
     // URL do Mapbox Static para os cards
     const mapboxCardUrl = (w, h) => {
       try {
+        if(!MAPBOX_TOKEN) return null;
         if(!run?.polyline||run.polyline.length<2) return null;
         const sample = run.polyline[0];
         if(!sample||sample[0]===undefined||sample[1]===undefined) return null;
