@@ -2883,7 +2883,7 @@ export default function TempoRunApp() {
   }
 
   function isPersistableRun(run) {
-    return !!run && !isMockRun(run) && (parseFloat(run.distancia_km) || 0) > 0.1 && (parseInt(run.duracao_seg) || 0) > 0;
+    return !!run && !isMockRun(run) && (parseInt(run.duracao_seg) || 0) > 0;
   }
 
   async function loadCorridasTableData(uidOverride=null) {
@@ -3278,12 +3278,6 @@ export default function TempoRunApp() {
   async function salvarCorrida(seg,km,bpm,pace,polyline=[]){
     setSalvando(true);
     const now=new Date();
-    if((parseFloat(km)||0) <= 0.1) {
-      setSalvando(false);
-      setSavedRun(null);
-      alert("Corrida muito curta para salvar. Registre pelo menos 0,1 km.");
-      return;
-    }
     // Nome: usa treino selecionado ou "Corrida livre"
     const nomeRun = selectedTreino?.nome || "Corrida livre";
     // Filtrar pontos válidos do polyline
