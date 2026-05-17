@@ -666,6 +666,7 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
   const [mbError, setMbError] = useState(false);
 
   const MB_TOKEN = MAPBOX_TOKEN;
+  const liveMapStyle = "mapbox://styles/mapbox/dark-v11";
 
   // Mapbox vem empacotado pelo Vite. Isso evita falhas de CDN no WebView Android.
   useEffect(()=>{
@@ -686,23 +687,35 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
       setMbError(true);
       return;
     }
+    let resizeObserver = null;
     try {
       mapboxgl.accessToken = MB_TOKEN;
       const center = route.length > 0 ? [route[route.length-1][1], route[route.length-1][0]] : [-6.2603, 53.3498];
+      const webglSupported = mapboxgl.supported({ failIfMajorPerformanceCaveat:false });
       console.info("[TempoRun][Mapbox] init", {
         platform: Capacitor.getPlatform(),
         center,
         tokenPrefix: MB_TOKEN.slice(0, 8),
+        style: liveMapStyle,
+        webglSupported,
+        userAgent: navigator.userAgent,
         container: { w: mapContainer.current.clientWidth, h: mapContainer.current.clientHeight },
       });
+      if(!webglSupported){
+        console.error("[TempoRun][Mapbox] WebGL not supported in this WebView/emulator");
+        setMbError(true);
+        return;
+      }
       const map = new mapboxgl.Map({
         container: mapContainer.current,
-        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        style: liveMapStyle,
         center,
         zoom: 15,
         attributionControl: false,
         logoPosition: "bottom-left",
         failIfMajorPerformanceCaveat: false,
+        trackResize: true,
+        collectResourceTiming: true,
       });
       mapRef.current = map;
       map.on("error", (e)=>{
@@ -752,11 +765,19 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
       map.once("idle", ()=>console.info("[TempoRun][Mapbox] idle"));
       requestAnimationFrame(()=>map.resize());
       setTimeout(()=>map.resize(), 250);
+      if(typeof ResizeObserver !== "undefined"){
+        resizeObserver = new ResizeObserver(entries=>{
+          const rect = entries?.[0]?.contentRect;
+          console.info("[TempoRun][Mapbox] container resize", { w: rect?.width, h: rect?.height });
+          map.resize();
+        });
+        resizeObserver.observe(mapContainer.current);
+      }
     } catch(e) {
       console.error("[TempoRun][Mapbox] init error:", e);
       setMbError(true);
     }
-    return ()=>{ try{ mapRef.current?.remove(); mapRef.current=null; }catch{} };
+    return ()=>{ try{ resizeObserver?.disconnect(); mapRef.current?.remove(); mapRef.current=null; }catch{} };
   }, [mbLoaded]);
 
   // Atualiza rota e posição a cada novo ponto GPS
