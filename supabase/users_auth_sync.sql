@@ -53,3 +53,36 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_auth_user();
+
+create or replace function public.current_public_user_id()
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  public_user_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select id
+  into public_user_id
+  from public.users
+  where auth_id = auth.uid()
+  limit 1;
+
+  if public_user_id is null then
+    insert into public.users (auth_id, email)
+    values (auth.uid(), auth.jwt() ->> 'email')
+    on conflict (auth_id) do update
+    set email = excluded.email
+    returning id into public_user_id;
+  end if;
+
+  return public_user_id;
+end;
+$$;
+
+grant execute on function public.current_public_user_id() to authenticated;

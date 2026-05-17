@@ -2697,6 +2697,24 @@ export default function TempoRunApp() {
     const authId = uidOverride || await resolveCurrentUserId();
     if(!session?.access_token || !authId) return "";
     try {
+      const rpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/current_public_user_id`, {
+        method:"POST",
+        headers:{
+          "apikey":SUPABASE_ANON,
+          "Authorization":`Bearer ${session.access_token}`,
+          "Content-Type":"application/json"
+        },
+        body:"{}"
+      });
+      if(rpc.ok) {
+        const data = await rpc.json().catch(()=>null);
+        if(typeof data === "string" && data) return data;
+        if(data?.id) return data.id;
+      }
+    } catch(e) {
+      console.warn("Public user id RPC lookup error", e);
+    }
+    try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/users?auth_id=eq.${encodeURIComponent(authId)}&select=id&limit=1`, {
         headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}` }
       });
