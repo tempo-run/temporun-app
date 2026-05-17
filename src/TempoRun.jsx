@@ -119,11 +119,68 @@ function Bar({ value, max=100, color }) {
 function SL({ children, mt=0 }) {
   return <p style={{color:C.ts,fontSize:11,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",margin:`${mt}px 0 10px`,display:"flex",alignItems:"center",gap:6}}>{children}</p>;
 }
+function normalizeAiText(text="") {
+  return String(text)
+    .replace(/\r/g, "")
+    .replace(/([^\n])\s+(#{1,3})\s+/g, "$1\n$2 ")
+    .replace(/([.:;])\s+-\s+/g, "$1\n- ")
+    .replace(/([^\n])\s+(\d+\.\s+)/g, "$1\n$2")
+    .trim();
+}
+function InlineRich({ text }) {
+  const parts = String(text||"").split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx)=>{
+    if(part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={idx} style={{fontWeight:800,color:C.tp}}>{part.slice(2,-2)}</strong>;
+    }
+    return <span key={idx}>{part}</span>;
+  });
+}
+function RichText({ text, compact=false }) {
+  const lines = normalizeAiText(text).split("\n").map(l=>l.trim()).filter(Boolean);
+  const blocks = [];
+  let list = [];
+  const flushList = () => {
+    if(!list.length) return;
+    const items = list;
+    list = [];
+    blocks.push(
+      <ul key={"ul-"+blocks.length} style={{margin:compact?"4px 0":"7px 0",paddingLeft:18,color:C.tp}}>
+        {items.map((item,i)=><li key={i} style={{margin:"3px 0",lineHeight:1.55}}><InlineRich text={item}/></li>)}
+      </ul>
+    );
+  };
+
+  lines.forEach((line)=>{
+    const bullet = line.match(/^[-•]\s+(.+)/);
+    if(bullet) { list.push(bullet[1]); return; }
+    flushList();
+    const heading = line.match(/^(#{1,3})\s+(.+)/);
+    if(heading) {
+      const level = heading[1].length;
+      blocks.push(
+        <p key={"h-"+blocks.length} style={{color:C.tp,fontWeight:900,fontSize:level===1?15:14,margin:blocks.length?"10px 0 5px":"0 0 6px",lineHeight:1.28,fontFamily:"'Space Grotesk',sans-serif"}}>
+          <InlineRich text={heading[2]}/>
+        </p>
+      );
+      return;
+    }
+    blocks.push(
+      <p key={"p-"+blocks.length} style={{color:C.tp,fontSize:compact?12:13,margin:blocks.length?"7px 0 0":"0",lineHeight:1.58}}>
+        <InlineRich text={line}/>
+      </p>
+    );
+  });
+  flushList();
+  return <>{blocks}</>;
+}
 function Bubble({ m }) {
   const u = m.from==="user";
   return (
     <div style={{marginBottom:9,display:"flex",justifyContent:u?"flex-end":"flex-start"}}>
-      <div style={{background:u?"#4c1d95":C.s2,border:u?"none":"1px solid "+C.bsub,borderRadius:u?"14px 14px 4px 14px":"4px 14px 14px 14px",padding:"9px 13px",maxWidth:"82%",color:u?"#fff":C.tp,fontSize:13,lineHeight:1.65}}>{m.text}</div>
+      <div style={{background:u?"#4c1d95":C.s2,border:u?"none":"1px solid "+C.bsub,borderRadius:u?"14px 14px 4px 14px":"4px 14px 14px 14px",padding:u?"9px 13px":"12px 14px",maxWidth:u?"82%":"92%",color:u?"#fff":C.tp,fontSize:13,lineHeight:1.6}}>
+        {u ? m.text : <RichText text={m.text}/>}
+      </div>
     </div>
   );
 }
@@ -268,7 +325,15 @@ Para cada métrica: descreva o que viu nos frames, impacto na performance/lesão
 Drills, cues e plano devem ser 100% personalizados para os problemas detectados.
 Responda APENAS o JSON.`;
 
-const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro. Máximo 3 parágrafos objetivos.
+const SYS_SABER=`Você é SABER, especialista em ciência da corrida do TempoRun. Responde com base em evidências científicas atuais. Português brasileiro.
+FORMATO DA RESPOSTA:
+- Use no máximo 1 título curto.
+- Use subtítulos curtos quando ajudar.
+- Separe ideias em parágrafos pequenos.
+- Use bullets para recomendações práticas.
+- Não escreva blocos longos em uma única linha.
+- Evite markdown excessivo, tabelas e listas numeradas longas.
+- Seja objetivo, com leitura fácil em tela mobile.
 
 BASE DE CONHECIMENTO:
 BIOMECÂNICA: Cadência ideal 170-180 spm (Heiderscheit 2011). Overstriding aumenta força de impacto 3x. Oscilação vertical ideal <8cm. Aterrissagem sob o CG reduz lesões. Inclinação anterior 5-10° melhora economia. Fonte: BJSM, Journal of Biomechanics.
