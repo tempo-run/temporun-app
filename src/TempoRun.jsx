@@ -1253,33 +1253,40 @@ function RunDetailModal({ run, onClose, onShare }) {
           </div>
         )}
 
-        {/* PACE ZONES — barras verticais gradiente */}
-        <div style={{marginBottom:16,borderTop:"1px solid "+C.cyanB+"33",borderBottom:"1px solid "+C.cyanB+"33",paddingTop:12,paddingBottom:8}}>
-          <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 8px"}}>Pace Zones</p>
-          <svg width="100%" height={SPH+28} viewBox={"0 0 "+(SPW*5+60)+" "+(SPH+28)}>
-            <defs>
-              {pZones.map((z,i)=>(
-                <linearGradient key={i} id={"pzg"+i} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={C.violet} stopOpacity="1"/>
-                  <stop offset="100%" stopColor={C.cyanB} stopOpacity="0.7"/>
-                </linearGradient>
-              ))}
-            </defs>
-            {pZones.map((z,i)=>{
-              const x=i*(SPW+12)+6;
-              const barH=Math.round(z.pct/100*SPH);
-              const y=SPH-barH;
-              return (
-                <g key={i}>
-                  <rect x={x} y={y} width={SPW} height={barH} rx="5" fill={"url(#pzg"+i+")"}/>
-                  <text x={x+SPW/2} y={y-4} textAnchor="middle" fill={C.cyanB} fontSize="9" fontWeight="700" fontFamily="monospace">{z.pct}%</text>
-                  <text x={x+SPW/2} y={SPH+12} textAnchor="middle" fill={C.tm} fontSize="9" fontFamily="monospace">{z.z}</text>
-                  <text x={x+SPW/2} y={SPH+22} textAnchor="middle" fill={C.td} fontSize="7" fontFamily="monospace">{z.label}</text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+        {/* PACE ZONES — barras horizontais, gradiente global violet→cyan por percentual */}
+        {(()=>{
+          const maxPct = Math.max(...pZones.map(z=>z.pct));
+          function zoneColor(pct) {
+            const t = maxPct > 0 ? pct / maxPct : 0;
+            const h = Math.round(192 + (263-192)*t);
+            const s = Math.round(49 + (82-49)*t);
+            const l = Math.round(58 + (49-58)*t);
+            return `hsl(${h},${s}%,${l}%)`;
+          }
+          return (
+            <div style={{marginBottom:16,borderTop:"1px solid "+C.cyanB+"33",borderBottom:"1px solid "+C.cyanB+"33",paddingTop:12,paddingBottom:12}}>
+              <p style={{color:C.ts,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,margin:"0 0 10px"}}>Pace Zones</p>
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {pZones.map((z,i)=>{
+                  const barW = maxPct>0 ? Math.round(z.pct/maxPct*100) : 0;
+                  const color = zoneColor(z.pct);
+                  return (
+                    <div key={i} style={{display:"grid",gridTemplateColumns:"52px 1fr 32px",gap:8,alignItems:"center"}}>
+                      <div style={{textAlign:"right"}}>
+                        <span style={{color:C.tm,fontSize:9,fontFamily:"monospace",fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>{z.z}</span>
+                        <span style={{color:C.td,fontSize:7,fontFamily:"monospace",display:"block",marginTop:1}}>{z.label}</span>
+                      </div>
+                      <div style={{background:C.s3,borderRadius:4,height:10,overflow:"hidden"}}>
+                        <div style={{width:barW+"%",height:"100%",borderRadius:4,background:color,boxShadow:"0 0 8px "+color+"99",transition:"width .4s ease"}}/>
+                      </div>
+                      <span style={{color:color,fontSize:10,fontFamily:"monospace",fontWeight:800,textAlign:"right"}}>{z.pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* CADÊNCIA */}
         {cadSeries.length>1&&(
@@ -3056,12 +3063,12 @@ ${parts.join(" | ")}` : "";
     // Estimar cadência pela velocidade GPS
     if(last){
       const dt2=(Date.now()-last.ts)/1000;
-      const sp2=dt2>0?(haversine(last.lat,last.lng,lat,lng)/dt2):0; // m/s
-      if(sp2>0.5){ // mínimo 1.8km/h para calcular
-        const paceMin=sp2>0?1000/(sp2*60):0; // min/km
-        const cadEst=Math.round(Math.min(200,Math.max(140, 155+(6.0-Math.min(paceMin,8.0))*8)));
-        // Suavizar com média móvel
-        gCR.current=gCR.current>0?Math.round(gCR.current*0.7+cadEst*0.3):cadEst;
+      const dist2=haversine(last.lat,last.lng,lat,lng);
+      const sp2=dt2>0?dist2/dt2:0; // m/s
+      if(sp2>0.3){ // mínimo ~1 km/h
+        const paceMin=sp2>0?1000/(sp2*60):10;
+        const cadEst=Math.round(Math.min(205,Math.max(150, 160+(7.0-Math.min(paceMin,9.0))*5)));
+        gCR.current=gCR.current>0?Math.round(gCR.current*0.75+cadEst*0.25):cadEst;
         setGCad(gCR.current);
       }
     }
@@ -4324,7 +4331,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
               {id:"logout", nome:tt("profile.logout", "Logout"), desc:tt("profile.logoutDesc", "Sair da conta"),                icon:"back",     cor:C.coral},
             ].map(opt=>(
               <button key={opt.id} onClick={()=>{
-                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();try{localStorage.removeItem("tr_onboarding_done");}catch{}setSession(null);setShowPerfil(false);setShowOnboarding(true);setOnboardingStep(0);setTab("home");}
+                if(opt.id==="logout"){sb.signOut(session?.access_token);clearSession();try{localStorage.removeItem("tr_onboarding_done");}catch{}setSession(null);setAuthUser(null);setCorridas(CORRIDAS_DEMO);setRpsDb({});setXpTotal(3240);setProvaAmb(null);setDbReady(false);setShowPerfil(false);setShowOnboarding(true);setOnboardingStep(0);setTab("home");}
                 if(opt.id==="dados"){setShowPerfil(false);setShowDadosModal(true);}
                 if(opt.id==="config"){setShowPerfil(false);setShowConfigModal(true);}
               }} style={{background:C.s3,border:"1px solid "+opt.cor+"22",borderRadius:11,padding:"10px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,textAlign:"left",fontFamily:"inherit"}}>
@@ -5026,8 +5033,59 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
       );
       return (
         <div style={{display:"flex",flexDirection:"column",minHeight:565}}>
+          {(gStatus==="ativo"||gStatus==="pausado") ? (
+            <div style={{position:"relative",flex:1,minHeight:565,borderRadius:15,overflow:"hidden",margin:"0 -17px"}}>
+              <div style={{position:"absolute",inset:0}}>
+                <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={999} fillContainer/>
+              </div>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:180,background:"linear-gradient(180deg,rgba(6,7,26,0.85) 0%,transparent 100%)",pointerEvents:"none"}}/>
+              <div style={{position:"absolute",bottom:0,left:0,right:0,height:220,background:"linear-gradient(0deg,rgba(6,7,26,0.95) 0%,rgba(6,7,26,0.7) 60%,transparent 100%)",pointerEvents:"none"}}/>
+              <div style={{position:"absolute",top:0,left:0,right:0,padding:"14px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start",zIndex:10}}>
+                <div>
+                  <p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p>
+                  <p style={{color:"rgba(255,255,255,0.7)",fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <div style={{background:"rgba(6,7,26,0.7)",backdropFilter:"blur(6px)",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":C.amber+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                    <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
+                    <span style={{color:gpsStatus==="active"?C.cyanB:C.amber,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gpsStatus==="active"?`±${gpsAccuracy||"?"}m`:gpsStatus==="searching"?"...":"off"}</span>
+                  </div>
+                  <div style={{background:"rgba(6,7,26,0.7)",backdropFilter:"blur(6px)",border:"1px solid "+zC+"44",borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                    <span style={{color:zC,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>cad</span>
+                    <span style={{color:zC,fontWeight:800,fontSize:11,fontFamily:"'Space Grotesk',sans-serif"}}>{gCad>0?gCad:"--"}</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"0 20px 16px",zIndex:10}}>
+                <div style={{textAlign:"center",marginBottom:10}}>
+                  <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontSize:58,fontWeight:800,margin:0,letterSpacing:-2,lineHeight:1,textShadow:"0 2px 20px rgba(0,0,0,0.8)"}}>{fmtT(gSeg)}</p>
+                  <p style={{color:C.cyanB,fontSize:10,fontWeight:600,margin:"2px 0 0",fontFamily:"monospace",letterSpacing:1,textTransform:"uppercase"}}>{gStatus==="ativo"?"em andamento":"pausado"}</p>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+                  {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:gCad>0?""+gCad:"--",u:"spm",c:C.cyanB,l:"cadência"}].map((m,i)=>(
+                    <div key={i} style={{background:"rgba(6,7,26,0.65)",backdropFilter:"blur(8px)",borderRadius:12,padding:"8px 6px",textAlign:"center",border:"1px solid "+m.c+"33"}}>
+                      <p style={{color:m.c,fontFamily:"monospace",fontWeight:700,fontSize:7,textTransform:"uppercase",letterSpacing:1.1,margin:"0 0 3px",opacity:0.8}}>{m.l}</p>
+                      <p style={{color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:800,fontSize:20,margin:"0 0 1px",letterSpacing:-0.5}}>{m.v}</p>
+                      <p style={{color:"rgba(255,255,255,0.45)",fontSize:8,fontWeight:600,textTransform:"uppercase",letterSpacing:0.4,margin:0,fontFamily:"monospace"}}>{m.u}</p>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  {gStatus==="ativo"
+                    ?(<><button onClick={pausar} style={{flex:1,background:"rgba(6,7,26,0.8)",backdropFilter:"blur(8px)",color:C.amber,border:"2px solid "+C.amber+"55",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
+                    :(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:"rgba(6,7,26,0.8)",backdropFilter:"blur(8px)",color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
+                  }
+                </div>
+                {gpsMessage&&<div style={{marginTop:8,background:"rgba(232,98,58,0.12)",border:"1px solid "+C.coral+"33",borderRadius:10,padding:"9px 11px",display:"flex",gap:8,alignItems:"flex-start"}}>
+                  <Ic n="warning" z={14} c={C.coral} st={{flexShrink:0,marginTop:1}}/>
+                  <p style={{color:C.coral,fontSize:11,margin:0,lineHeight:1.45}}>{gpsMessage}</p>
+                </div>}
+              </div>
+            </div>
+          ) : (
+            <>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:10,paddingBottom:6}}>
-            <div><p style={{color:gStatus==="pausado"?C.amber:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>{gStatus==="pausado"?"PAUSADO":"● AO VIVO"}</p><p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p></div>
+            <div><p style={{color:C.coral,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1,margin:0}}>● AO VIVO</p><p style={{color:C.ts,fontSize:12,margin:"2px 0 0"}}>Intervalado 6×800m</p></div>
             <div style={{display:"flex",gap:6}}>
               <div style={{background:gpsStatus==="active"?C.cyanB+"22":gpsStatus==="searching"?C.amber+"22":C.coral+"22",border:"1px solid "+(gpsStatus==="active"?C.cyanB+"44":gpsStatus==="searching"?C.amber+"44":C.coral+"44"),borderRadius:8,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center"}}>
                 <span style={{color:gpsStatus==="active"?C.cyanB:gpsStatus==="searching"?C.amber:C.coral,fontFamily:"monospace",fontSize:7,fontWeight:700,letterSpacing:1,textTransform:"uppercase",lineHeight:1}}>gps</span>
@@ -5039,7 +5097,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{background:timerCardBg,borderRadius:20,padding:"20px 18px",marginBottom:11,border:"1px solid "+C.violet+"22",textAlign:"center",position:"relative",overflow:"hidden"}}>
                 <p style={{color:darkCardMuted,fontFamily:"monospace",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,margin:"0 0 5px",position:"relative"}}>tempo de corrida</p>
                 <p style={{color:darkCardText,fontFamily:"'Space Grotesk',sans-serif",fontSize:50,fontWeight:800,margin:"0 0 3px",letterSpacing:-2,lineHeight:1,position:"relative"}}>{fmtT(gSeg)}</p>
-            <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>{gStatus==="ativo"?"Em andamento":gStatus==="pausado"?"Pausado":"Pronto"}</p>
+            <p style={{color:C.cyanB,fontSize:12,fontWeight:600,margin:0,position:"relative"}}>Pronto</p>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
             {[{v:gKm.toFixed(2),u:"km",c:C.cyanB,l:"distância"},{v:pace,u:"/km",c:C.cyan,l:"pace"},{v:gCad>0?""+gCad:"--",u:"spm",c:C.cyanB,l:"cadência"}].map((m,i)=>(
@@ -5061,10 +5119,10 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             <p style={{color:C.coral,fontSize:11,margin:0,lineHeight:1.45}}>{gpsMessage}</p>
           </div>}
           <div style={{display:"flex",gap:8,marginTop:"auto"}}>
-            {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
-            :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
-            :(<button onClick={()=>iniciar()} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>)}
+            <button onClick={()=>iniciar()} style={{flex:1,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif",boxShadow:"0 4px 20px "+C.violet+"44"}}>INICIAR</button>
           </div>
+            </>
+          )}
         </div>
       );
     }
