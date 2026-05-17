@@ -9,6 +9,8 @@ import iconCircle from './assets/icon_circle.png';
 import perfilImg from './assets/perfil.png';
 import inicioTreino from './assets/inicio_treino.png';
 import { useState, useEffect, useRef, useMemo } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
 
 // ─── PALETTE ──────────────────────────────────────────────────────────────────
 const C_DARK = {
@@ -2430,9 +2432,12 @@ export default function TempoRunApp() {
   const [gCad, setGCad]       = useState(0);
   const timerRef=useRef(null); const gSR=useRef(0); const gKR=useRef(0); const gBR=useRef(0); const gCR=useRef(0); const isRunningRef=useRef(false);
   const watchRef=useRef(null);        // GPS watchPosition ID
+  const watchProviderRef=useRef(null); // "capacitor" | "browser"
+  const gpsStartingRef=useRef(false);
   const lastPosRef=useRef(null);      // última posição GPS {lat,lng,ts}
   const routeRef=useRef([]);          // array de pontos [[lat,lng],...]
   const [gpsStatus, setGpsStatus]=useState("off"); // off|searching|active|error
+  const [gpsMessage, setGpsMessage]=useState("");
   const [gpsAccuracy, setGpsAccuracy]=useState(null);
   const [routeTick, setRouteTick]=useState(0);  // força re-render do LiveMap
   const [explTab, setExplTab] = useState("rotas");
@@ -2867,52 +2872,127 @@ ${parts.join(" | ")}` : "";
 
   function startTimer(){timerRef.current=setInterval(()=>{gSR.current+=1;setGSeg(gSR.current);},1000);}
 
-  function startGPS(){
-    if(!navigator.geolocation){setGpsStatus("error");return;}
-    if(watchRef.current!==null) return; // já tem watch ativo — reusar
-    setGpsStatus("searching");
-    watchRef.current=navigator.geolocation.watchPosition(
-      (pos)=>{
-        const {latitude:lat,longitude:lng,accuracy}=pos.coords;
-        setGpsAccuracy(Math.round(accuracy));
-        setGpsStatus("active");
-        const last=lastPosRef.current;
-        if(last && isRunningRef.current){ // só grava distância se a corrida já iniciou
-          const dist=haversine(last.lat,last.lng,lat,lng);
-          const dt=(Date.now()-last.ts)/1000;
-          const speed=dt>0?dist/dt:0;
-          if(accuracy<=30&&speed<0.1){
-            gKR.current=Math.round((gKR.current+dist)*10000)/10000;
-            setGKm(gKR.current);
-          }
-        }
-        // Estimar cadência pela velocidade GPS
-        if(last){
-          const dt2=(Date.now()-last.ts)/1000;
-          const sp2=dt2>0?(haversine(last.lat,last.lng,lat,lng)/dt2):0; // m/s
-          if(sp2>0.5){ // mínimo 1.8km/h para calcular
-            const paceMin=sp2>0?1000/(sp2*60):0; // min/km
-            const cadEst=Math.round(Math.min(200,Math.max(140, 155+(6.0-Math.min(paceMin,8.0))*8)));
-            // Suavizar com média móvel
-            gCR.current=gCR.current>0?Math.round(gCR.current*0.7+cadEst*0.3):cadEst;
-            setGCad(gCR.current);
-          }
-        }
-        // Atualiza posição sempre (para o mapa)
-        if(isRunningRef.current) routeRef.current.push([lat,lng]); // só grava rota se corrida ativa
-        lastPosRef.current={lat,lng,ts:Date.now()};
-        // Centraliza mapa na posição atual sempre
-        if(!isRunningRef.current) routeRef.current=[[lat,lng]]; // pré-aquecimento: só posição atual
-        setRouteTick(t=>t+1);
-      },
-      (err)=>{console.warn("GPS:",err.message);setGpsStatus("error");},
-      {enableHighAccuracy:true,timeout:15000,maximumAge:10000}
-    );
+  function handleGpsPosition(pos){
+    const coords = pos?.coords;
+    if(!coords) return;
+    const {latitude:lat, longitude:lng} = coords;
+    const accuracy = coords.accuracy ?? 999;
+    if(lat===undefined||lng===undefined) return;
+    setGpsAccuracy(Math.round(accuracy));
+    setGpsStatus("active");
+    setGpsMessage("");
+    const last=lastPosRef.current;
+    if(last && isRunningRef.current){ // só grava distância se a corrida já iniciou
+      const dist=haversine(last.lat,last.lng,lat,lng);
+      const dt=(Date.now()-last.ts)/1000;
+      const speed=dt>0?dist/dt:0;
+      if(accuracy<=30&&speed<0.1){
+        gKR.current=Math.round((gKR.current+dist)*10000)/10000;
+        setGKm(gKR.current);
+      }
+    }
+    // Estimar cadência pela velocidade GPS
+    if(last){
+      const dt2=(Date.now()-last.ts)/1000;
+      const sp2=dt2>0?(haversine(last.lat,last.lng,lat,lng)/dt2):0; // m/s
+      if(sp2>0.5){ // mínimo 1.8km/h para calcular
+        const paceMin=sp2>0?1000/(sp2*60):0; // min/km
+        const cadEst=Math.round(Math.min(200,Math.max(140, 155+(6.0-Math.min(paceMin,8.0))*8)));
+        // Suavizar com média móvel
+        gCR.current=gCR.current>0?Math.round(gCR.current*0.7+cadEst*0.3):cadEst;
+        setGCad(gCR.current);
+      }
+    }
+    // Atualiza posição sempre (para o mapa)
+    if(isRunningRef.current) routeRef.current.push([lat,lng]); // só grava rota se corrida ativa
+    lastPosRef.current={lat,lng,ts:Date.now()};
+    // Centraliza mapa na posição atual sempre
+    if(!isRunningRef.current) routeRef.current=[[lat,lng]]; // pré-aquecimento: só posição atual
+    setRouteTick(t=>t+1);
   }
 
-  function stopGPS(){if(watchRef.current!==null){navigator.geolocation.clearWatch(watchRef.current);watchRef.current=null;}setGpsStatus("off");}
+  function handleGpsError(err){
+    console.warn("GPS:", err?.message || err);
+    setGpsStatus("error");
+    setGpsMessage("Não conseguimos acessar sua localização. Verifique a permissão de GPS e tente novamente.");
+  }
 
-  function iniciar(){
+  async function ensureLocationPermission(){
+    if(Capacitor.getPlatform()!=="android") return true;
+    try {
+      let perm = await Geolocation.checkPermissions();
+      const granted = perm.location==="granted" || perm.coarseLocation==="granted";
+      if(granted) return true;
+      perm = await Geolocation.requestPermissions({ permissions:["location"] });
+      if(perm.location==="granted" || perm.coarseLocation==="granted") return true;
+      setGpsStatus("error");
+      setGpsMessage("Permissão de localização negada. Ative o GPS para registrar sua corrida.");
+      return false;
+    } catch(e) {
+      handleGpsError(e);
+      return false;
+    }
+  }
+
+  async function startGPS(){
+    if(watchRef.current!==null || gpsStartingRef.current) return true; // já tem watch ativo — reusar
+    setGpsStatus("searching");
+    setGpsMessage("");
+    gpsStartingRef.current = true;
+    try {
+      const useCapacitorGeo = Capacitor.getPlatform()==="android";
+      if(useCapacitorGeo){
+        const allowed = await ensureLocationPermission();
+        if(!allowed) return false;
+        const id = await Geolocation.watchPosition(
+          { enableHighAccuracy:true, timeout:15000, maximumAge:10000 },
+          (pos, err)=>{
+            if(err){ handleGpsError(err); return; }
+            handleGpsPosition(pos);
+          }
+        );
+        watchRef.current = id;
+        watchProviderRef.current = "capacitor";
+        return true;
+      }
+      if(!navigator.geolocation){
+        setGpsStatus("error");
+        setGpsMessage("GPS indisponível neste dispositivo.");
+        return false;
+      }
+      watchRef.current=navigator.geolocation.watchPosition(
+        handleGpsPosition,
+        handleGpsError,
+        {enableHighAccuracy:true,timeout:15000,maximumAge:10000}
+      );
+      watchProviderRef.current = "browser";
+      return true;
+    } catch(e) {
+      handleGpsError(e);
+      return false;
+    } finally {
+      gpsStartingRef.current = false;
+    }
+  }
+
+  async function stopGPS(){
+    if(watchRef.current!==null){
+      try {
+        if(watchProviderRef.current==="capacitor") await Geolocation.clearWatch({ id:String(watchRef.current) });
+        else navigator.geolocation?.clearWatch(watchRef.current);
+      } catch(e) { console.warn("GPS clearWatch:", e); }
+      watchRef.current=null;
+      watchProviderRef.current=null;
+    }
+    gpsStartingRef.current=false;
+    setGpsStatus("off");
+  }
+
+  async function iniciar(){
+    if(watchRef.current===null){
+      const ready = await startGPS();
+      if(!ready) return;
+    }
     // Reseta só os contadores — NÃO para o GPS (já está ativo do pré-aquecimento)
     isRunningRef.current=true;
     gSR.current=0;gKR.current=0;gCR.current=0;
@@ -2922,12 +3002,11 @@ ${parts.join(" | ")}` : "";
     setGStatus("ativo");setGSeg(0);setGKm(0);setGCad(0);setSavedRun(null);
     startTimer();
     // GPS: só liga se não estiver já ativo
-    if(watchRef.current===null) startGPS();
   }
   function pausar(){isRunningRef.current=false;clearInterval(timerRef.current);stopGPS();setGStatus("pausado");}
-  function retomar(){isRunningRef.current=true;setGStatus("ativo");startTimer();startGPS();}
+  async function retomar(){const ready=await startGPS();if(!ready)return;isRunningRef.current=true;setGStatus("ativo");startTimer();}
   async function finalizar(){clearInterval(timerRef.current);stopGPS();setGStatus("fim");const p=calcPace(gKR.current,gSR.current);await salvarCorrida(gSR.current,gKR.current,gCR.current,p,routeRef.current);}
-  function resetGrav(keepGPS=false){isRunningRef.current=false;clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];if(!keepGPS)lastPosRef.current=null;setRouteTick(0);}
+  function resetGrav(keepGPS=false){isRunningRef.current=false;clearInterval(timerRef.current);if(!keepGPS)stopGPS();setGStatus("idle");setGSeg(0);setGKm(0);setGCad(0);if(!keepGPS){setGpsStatus("off");setGpsAccuracy(null);setGpsMessage("");}setSavedRun(null);gSR.current=0;gKR.current=0;gCR.current=0;routeRef.current=[];if(!keepGPS)lastPosRef.current=null;setRouteTick(0);}
   useEffect(()=>()=>{clearInterval(timerRef.current);stopGPS();},[]);
 
   // Ouvir evento de share do RunDetailModal
@@ -4463,6 +4542,10 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
           <div style={{borderRadius:15,overflow:"hidden",margin:"10px 0 0",flex:1,minHeight:200,position:"relative"}}>
             <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick} height={999} fillContainer/>
           </div>
+          {gpsMessage&&<div style={{marginTop:8,background:C.coral+"12",border:"1px solid "+C.coral+"33",borderRadius:10,padding:"9px 11px",display:"flex",gap:8,alignItems:"flex-start"}}>
+            <Ic n="warning" z={14} c={C.coral} st={{flexShrink:0,marginTop:1}}/>
+            <p style={{color:C.coral,fontSize:11,margin:0,lineHeight:1.45}}>{gpsMessage}</p>
+          </div>}
 
           {/* Botões */}
           <div style={{display:"flex",gap:8,paddingTop:8,paddingBottom:4}}>
@@ -4811,6 +4894,10 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
             </div>
             <LiveMap route={[...routeRef.current]} gpsStatus={gpsStatus} accuracy={gpsAccuracy} tick={routeTick}/>
           </div>
+          {gpsMessage&&<div style={{marginBottom:10,background:C.coral+"12",border:"1px solid "+C.coral+"33",borderRadius:10,padding:"9px 11px",display:"flex",gap:8,alignItems:"flex-start"}}>
+            <Ic n="warning" z={14} c={C.coral} st={{flexShrink:0,marginTop:1}}/>
+            <p style={{color:C.coral,fontSize:11,margin:0,lineHeight:1.45}}>{gpsMessage}</p>
+          </div>}
           <div style={{display:"flex",gap:8,marginTop:"auto"}}>
             {gStatus==="ativo"?(<><button onClick={pausar} style={{flex:1,background:C.s2,color:C.amber,border:"2px solid "+C.amber+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>PAUSAR</button><button onClick={finalizar} style={{flex:1,background:"linear-gradient(135deg,#7f1d1d,"+C.coral+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FINALIZAR</button></>)
             :gStatus==="pausado"?(<><button onClick={retomar} style={{flex:2,background:"linear-gradient(135deg,"+C.violet+","+C.cyan+")",color:"#fff",border:"none",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>RETOMAR</button><button onClick={finalizar} style={{flex:1,background:C.s2,color:C.coral,border:"2px solid "+C.coral+"44",borderRadius:13,padding:"13px 0",fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"'Space Grotesk',sans-serif"}}>FIM</button></>)
