@@ -11,6 +11,8 @@ import inicioTreino from './assets/inicio_treino.png';
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Capacitor } from "@capacitor/core";
 import { Geolocation } from "@capacitor/geolocation";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 // ─── PALETTE ──────────────────────────────────────────────────────────────────
 const C_DARK = {
@@ -665,30 +667,35 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
 
   const MB_TOKEN = MAPBOX_TOKEN;
 
-  // Mapbox carregado via index.html — só verifica disponibilidade
+  // Mapbox vem empacotado pelo Vite. Isso evita falhas de CDN no WebView Android.
   useEffect(()=>{
-    if(window.mapboxgl){
+    if(mapboxgl){
+      console.info("[TempoRun][Mapbox] mapbox-gl loaded", { platform: Capacitor.getPlatform(), hasToken: !!MB_TOKEN });
       setMbLoaded(true);
     } else {
-      // Aguarda até 5s caso o script ainda esteja carregando
-      let tries = 0;
-      const interval = setInterval(()=>{
-        tries++;
-        if(window.mapboxgl){ setMbLoaded(true); clearInterval(interval); }
-        else if(tries >= 50){ setMbError(true); clearInterval(interval); }
-      }, 100);
-      return ()=>clearInterval(interval);
+      console.error("[TempoRun][Mapbox] mapbox-gl unavailable in bundle");
+      setMbError(true);
     }
   }, []);
 
   // Inicializa o mapa
   useEffect(()=>{
     if(!mbLoaded || !mapContainer.current || mapRef.current) return;
-    if(!MB_TOKEN){ setMbError(true); return; }
+    if(!MB_TOKEN){
+      console.error("[TempoRun][Mapbox] Missing Mapbox token. Set VITE_MAPBOX_TOKEN before building.");
+      setMbError(true);
+      return;
+    }
     try {
-      window.mapboxgl.accessToken = MB_TOKEN;
+      mapboxgl.accessToken = MB_TOKEN;
       const center = route.length > 0 ? [route[route.length-1][1], route[route.length-1][0]] : [-6.2603, 53.3498];
-      const map = new window.mapboxgl.Map({
+      console.info("[TempoRun][Mapbox] init", {
+        platform: Capacitor.getPlatform(),
+        center,
+        tokenPrefix: MB_TOKEN.slice(0, 8),
+        container: { w: mapContainer.current.clientWidth, h: mapContainer.current.clientHeight },
+      });
+      const map = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/satellite-streets-v12",
         center,
@@ -698,8 +705,18 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
         failIfMajorPerformanceCaveat: false,
       });
       mapRef.current = map;
-      map.on("error", (e)=>{ console.warn("Mapbox error:", e); });
+      map.on("error", (e)=>{
+        console.error("[TempoRun][Mapbox] runtime error", e?.error || e);
+      });
+      map.on("styledata", ()=>console.info("[TempoRun][Mapbox] styledata"));
+      map.on("sourcedata", (e)=>{
+        if(e?.sourceId==="composite" || e?.isSourceLoaded) console.info("[TempoRun][Mapbox] sourcedata", { sourceId:e.sourceId, loaded:e.isSourceLoaded });
+      });
       map.on("load", ()=>{
+        console.info("[TempoRun][Mapbox] loaded");
+        map.resize();
+        setTimeout(()=>map.resize(), 120);
+        setTimeout(()=>map.resize(), 450);
         // Source com lineMetrics:true obrigatório para line-gradient
         map.addSource("route", {
           type: "geojson",
@@ -727,13 +744,16 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
         // Marcador posição atual
         const posEl = document.createElement("div");
         posEl.style.cssText = "width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #fff;box-shadow:0 0 12px #22d3ee99;cursor:default";
-        markerRef.current = new window.mapboxgl.Marker({element:posEl,anchor:"center"});
+        markerRef.current = new mapboxgl.Marker({element:posEl,anchor:"center"});
         if(route.length > 0){
           markerRef.current.setLngLat([route[route.length-1][1], route[route.length-1][0]]).addTo(map);
         }
       });
+      map.once("idle", ()=>console.info("[TempoRun][Mapbox] idle"));
+      requestAnimationFrame(()=>map.resize());
+      setTimeout(()=>map.resize(), 250);
     } catch(e) {
-      console.error("Mapbox init error:", e);
+      console.error("[TempoRun][Mapbox] init error:", e);
       setMbError(true);
     }
     return ()=>{ try{ mapRef.current?.remove(); mapRef.current=null; }catch{} };
@@ -756,10 +776,10 @@ function LiveMap({ route=[], gpsStatus="off", accuracy=null, tick=0, height=160,
           type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords }
         });
       } catch{}
-      if(!startMarkerRef.current && window.mapboxgl){
+      if(!startMarkerRef.current && mapboxgl){
         const el = document.createElement("div");
         el.style.cssText = "width:14px;height:14px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;box-shadow:0 0 8px #22c55e88";
-        startMarkerRef.current = new window.mapboxgl.Marker({element:el,anchor:"center"})
+        startMarkerRef.current = new mapboxgl.Marker({element:el,anchor:"center"})
           .setLngLat([route[0][1], route[0][0]]).addTo(map);
       }
     }
@@ -1359,7 +1379,7 @@ function RunsBlock({ allRuns, onRunClick, stravaConnected, onConnectStrava, garm
 }
 // ─── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 const SUPABASE_URL  = "https://dxfgmzaxplarrwcmbotp.supabase.co";
-const MAPBOX_TOKEN  = "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
+const MAPBOX_TOKEN  = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1IjoidGVtcG9ydW4iLCJhIjoiY21wNzkzOW56MGdubDJ0c2ZmZHJqYml0ZiJ9.cRSNnng0vPm94Y-OPsSwDQ";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZmdtemF4cGxhcnJ3Y21ib3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyOTg3MzIsImV4cCI6MjA5Mzg3NDczMn0.UWiDBYUN4_NIxbyLCsuSF2hO6GiSlOkHuBMo8w7gC4g";
 const STRIPE_CHECKOUT_FN = SUPABASE_URL + "/functions/v1/create-checkout";
 const STRIPE_PORTAL_FN  = SUPABASE_URL + "/functions/v1/customer-portal";
