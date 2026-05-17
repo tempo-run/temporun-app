@@ -2508,8 +2508,15 @@ export default function TempoRunApp() {
     const local = localRunsOnly(nextCorridas);
     const value = JSON.stringify(local);
     writeUserLocalData("tr5_corridas", value, uid);
-    try { await window.storage.set("tr5_corridas", value); } catch(e) {}
     await persistSupabaseUserData("tr5_corridas", value, uid);
+  }
+
+  // Persiste qualquer chave de utilizador (RPs, XP, prova) por user_id — nunca global
+  async function persistUserData(key, dataObj) {
+    const uid = await resolveCurrentUserId();
+    const value = JSON.stringify(dataObj);
+    writeUserLocalData(key, value, uid);
+    await persistSupabaseUserData(key, value, uid);
   }
 
   useEffect(()=>{
@@ -2517,22 +2524,27 @@ export default function TempoRunApp() {
     async function load(){
       try{
         const loadUserId = await resolveCurrentUserId();
+        // Corridas: SEMPRE por utilizador (Supabase → localStorage scoped). Nunca storage global.
         const remoteRuns = await loadSupabaseUserData("tr5_corridas", loadUserId);
         const scopedRuns = readUserLocalData("tr5_corridas", loadUserId);
-        const [rc,rp,xp,pa]=await Promise.all([
-          window.storage.get("tr5_corridas").catch(()=>null),
-          window.storage.get("tr5_rps").catch(()=>null),
-          window.storage.get("tr5_xp").catch(()=>null),
-          window.storage.get("tr5_prova").catch(()=>null),
-        ]);
         if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
-        const rawRuns = remoteRuns || scopedRuns || (!loadUserId ? rc?.value : null);
+        const rawRuns = remoteRuns || scopedRuns || null;
         if(remoteRuns) writeUserLocalData("tr5_corridas", remoteRuns, loadUserId);
         if(!remoteRuns && scopedRuns) persistSupabaseUserData("tr5_corridas", scopedRuns, loadUserId);
-        if(rawRuns){ const saved=JSON.parse(rawRuns); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
-        if(rp) setRpsDb(JSON.parse(rp.value));
-        if(xp) setXpTotal(JSON.parse(xp.value));
-        if(pa) setProvaAmb(JSON.parse(pa.value));
+        if(rawRuns){ const saved=JSON.parse(rawRuns).map(r=>({...r,distancia_km:parseFloat(r.distancia_km)||0})); setCorridas([...CORRIDAS_DEMO,...saved.filter(r=>!CORRIDAS_DEMO.find(d=>d.id===r.id))]); } else setCorridas(CORRIDAS_DEMO);
+        // RPs / XP / prova: por utilizador também
+        const [rpRemote,xpRemote,paRemote]=await Promise.all([
+          loadSupabaseUserData("tr5_rps", loadUserId),
+          loadSupabaseUserData("tr5_xp", loadUserId),
+          loadSupabaseUserData("tr5_prova", loadUserId),
+        ]);
+        if(cancelled || loadUserId !== (currentUserId() || loadUserId)) return;
+        const rpRaw = rpRemote || readUserLocalData("tr5_rps", loadUserId);
+        const xpRaw = xpRemote || readUserLocalData("tr5_xp", loadUserId);
+        const paRaw = paRemote || readUserLocalData("tr5_prova", loadUserId);
+        if(rpRaw) setRpsDb(JSON.parse(rpRaw)); else setRpsDb({});
+        if(xpRaw) setXpTotal(JSON.parse(xpRaw)); else setXpTotal(3240);
+        if(paRaw) setProvaAmb(JSON.parse(paRaw)); else setProvaAmb(null);
       }catch(e){}
       setDbReady(true);
     }
@@ -2637,14 +2649,14 @@ export default function TempoRunApp() {
       nRP.all = rpHits;
     }
     const newC=[run,...corridas],newXp=xpTotal+run.xp_ganho;
-    if(provaAmb){const np={...provaAmb,treinos:[run,...(provaAmb.treinos||[])]};setProvaAmb(np);try{await window.storage.set("tr5_prova",JSON.stringify(np));}catch(e){}}
-    try{await Promise.all([persistCorridas(newC),window.storage.set("tr5_rps",JSON.stringify(newRps)),window.storage.set("tr5_xp",JSON.stringify(newXp))]);}catch(e){}
+    if(provaAmb){const np={...provaAmb,treinos:[run,...(provaAmb.treinos||[])]};setProvaAmb(np);await persistUserData("tr5_prova",np);}
+    try{await Promise.all([persistCorridas(newC),persistUserData("tr5_rps",newRps),persistUserData("tr5_xp",newXp)]);}catch(e){}
     setCorridas(newC);setRpsDb(newRps);setXpTotal(newXp);setSavedRun(run);
     if(nRP){setNovoRP(nRP);setTimeout(()=>setNovoRP(null),4500);}
     setSalvando(false);
   }
   async function limparDados(){
-    try{await Promise.all([window.storage.delete("tr5_corridas"),window.storage.delete("tr5_rps"),window.storage.delete("tr5_xp"),window.storage.delete("tr5_prova")]);}catch(e){}
+    try{const uid=await resolveCurrentUserId();["tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>{try{localStorage.removeItem(userStorageKey(k,uid));}catch{}});}catch(e){}
     setCorridas([]);setRpsDb({});setXpTotal(3240);setProvaAmb(null);
   }
 
@@ -3031,7 +3043,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
   async function selecionarProva(prova){
     const amb={prova,treinos:[],numeroPeito:"",criadoEm:new Date().toISOString()};
     setProvaAmb(amb);
-    try{await window.storage.set("tr5_prova",JSON.stringify(amb));}catch(e){}
+    await persistUserData("tr5_prova",amb);
     setSubScreen("provaAmbiente");
   }
 
@@ -3039,7 +3051,7 @@ ${!temFrames?"ATENÇÃO: sem frames de vídeo — faça análise baseada apenas 
     if(!numPeito.trim()||!provaAmb) return;
     setBuscFotos(true);setResFotos(null);
     const upd={...provaAmb,numeroPeito:numPeito};setProvaAmb(upd);
-    try{await window.storage.set("tr5_prova",JSON.stringify(upd));}catch(e){}
+    await persistUserData("tr5_prova",upd);
     try{
       const r=await callAI(`Especialista em busca de fotos de corridas. JSON apenas: {"sites":[{"nome":"","url":"","instrucoes":""}],"dica_geral":""}`,`Prova:${provaAmb.prova.nome},${provaAmb.prova.data},${provaAmb.prova.local}. Número de peito:${numPeito}`,[]);
       setResFotos(JSON.parse(r.replace(/```json|```/g,"").trim()));
