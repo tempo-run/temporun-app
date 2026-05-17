@@ -3007,19 +3007,8 @@ export default function TempoRunApp() {
   }
 
   async function clearCorridasRows(uidOverride=null) {
-    const userIds = await resolveCorridasUserIds(uidOverride);
-    if(!session?.access_token || !userIds.length) return;
-    try {
-      await Promise.all(userIds.map(async userId=>{
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/corridas?user_id=eq.${encodeURIComponent(userId)}`, {
-          method:"DELETE",
-          headers:{ "apikey":SUPABASE_ANON, "Authorization":`Bearer ${session.access_token}`, "Prefer":"return=minimal" }
-        });
-        if(!r.ok) console.warn("Supabase corridas clear failed", r.status, await r.text().catch(()=>""), { userId });
-      }));
-    } catch(e) {
-      console.warn("Supabase corridas clear error", e);
-    }
+    console.warn("Supabase bulk run deletion is disabled. Use deleteCorridaRow for explicit single-run deletes only.", { uidOverride });
+    return {ok:false,disabled:true};
   }
 
   async function syncCorridasRows(runs, uidOverride=null) {
@@ -3350,8 +3339,8 @@ export default function TempoRunApp() {
     setSalvando(false);
   }
   async function limparDados(){
-    try{const uid=await resolveCurrentUserId();["tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>{try{localStorage.removeItem(userStorageKey(k,uid));}catch{}});await clearCorridasRows(uid);}catch(e){}
-    setCorridas([]);setRpsDb({});setXpTotal(3240);setProvaAmb(null);
+    try{const uid=await resolveCurrentUserId();["tr5_corridas","tr5_rps","tr5_xp","tr5_prova"].forEach(k=>{try{localStorage.removeItem(userStorageKey(k,uid));}catch{}});}catch(e){}
+    setCorridas(CORRIDAS_DEMO);setRpsDb({});setXpTotal(3240);setProvaAmb(null);
   }
 
   const rpsExib=RPs_base.map(r=>{const s=rpsDb[r.dist];return s?{...r,tempo:s.tempoDisplay,data:s.data,melhora:s.melhora}:r;});
