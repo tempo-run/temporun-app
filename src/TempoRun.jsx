@@ -2870,6 +2870,22 @@ export default function TempoRunApp() {
     };
   }
 
+  function corridaMinimalRowPayload(run, uid) {
+    const timestamp = run?.timestamp || new Date().toISOString();
+    return {
+      user_id: uid,
+      source: run?.source || "local",
+      nome: run?.nome || "Corrida livre",
+      tipo: run?.tipo || "Corrida",
+      data_treino: runDateOnly(run),
+      timestamp,
+    };
+  }
+
+  function isPersistableRun(run) {
+    return !!run && !isMockRun(run) && (parseFloat(run.distancia_km) || 0) > 0.1 && (parseInt(run.duracao_seg) || 0) > 0;
+  }
+
   async function loadCorridasTableData(uidOverride=null) {
     const userIds = await resolveCorridasUserIds(uidOverride);
     if(!session?.access_token || !userIds.length) return null;
@@ -2900,7 +2916,7 @@ export default function TempoRunApp() {
 
   async function saveCorridaRow(run, uidOverride=null) {
     const userIds = await resolveCorridasUserIds(uidOverride);
-    if(!session?.access_token || !userIds.length || !run?.timestamp) return;
+    if(!session?.access_token || !userIds.length || !run?.timestamp || !isPersistableRun(run)) return false;
     const baseHeaders = {
       "apikey":SUPABASE_ANON,
       "Authorization":`Bearer ${session.access_token}`,
@@ -2910,6 +2926,7 @@ export default function TempoRunApp() {
     try {
       for(const userId of userIds) {
         const payload = corridaRowPayload(run, userId);
+        const minimalPayload = corridaMinimalRowPayload(run, userId);
         const query = `user_id=eq.${encodeURIComponent(userId)}&timestamp=eq.${encodeURIComponent(payload.timestamp)}`;
         const patch = await fetch(`${SUPABASE_URL}/rest/v1/corridas?${query}`, {
           method:"PATCH",
@@ -2918,7 +2935,7 @@ export default function TempoRunApp() {
         });
         if(patch.ok) {
           const patchedRows = await patch.json().catch(()=>[]);
-          if(Array.isArray(patchedRows) && patchedRows.length) return;
+          if(Array.isArray(patchedRows) && patchedRows.length) return true;
         }
 
         const insert = await fetch(`${SUPABASE_URL}/rest/v1/corridas`, {
@@ -2926,13 +2943,28 @@ export default function TempoRunApp() {
           headers:{...baseHeaders,"Prefer":"return=minimal"},
           body:JSON.stringify({id:newUuid(),...payload})
         });
-        if(insert.ok) return;
-        lastFailure = { status:insert.status, msg:await insert.text().catch(()=>""), payload };
+        if(insert.ok) return true;
+        const insertMsg = await insert.text().catch(()=>"");
+        lastFailure = { status:insert.status, msg:insertMsg, payload };
+
+        if(/column .* does not exist|Could not find|schema cache/i.test(insertMsg)) {
+          const minimalInsert = await fetch(`${SUPABASE_URL}/rest/v1/corridas`, {
+            method:"POST",
+            headers:{...baseHeaders,"Prefer":"return=minimal"},
+            body:JSON.stringify({id:newUuid(),...minimalPayload})
+          });
+          if(minimalInsert.ok) {
+            console.warn("Supabase corridas saved with minimal schema. Apply supabase/corridas_schema.sql to persist full metrics.", { minimalPayload });
+            return true;
+          }
+          lastFailure = { status:minimalInsert.status, msg:await minimalInsert.text().catch(()=>""), payload:minimalPayload };
+        }
       }
       if(lastFailure) console.warn("Supabase corridas save failed", lastFailure.status, lastFailure.msg, { payload:lastFailure.payload });
     } catch(e) {
       console.warn("Supabase corridas save error", e);
     }
+    return false;
   }
 
   async function deleteCorridaRow(run, uidOverride=null) {
@@ -2969,7 +3001,7 @@ export default function TempoRunApp() {
 
   async function syncCorridasRows(runs, uidOverride=null) {
     if(!session?.access_token) return;
-    const local = localRunsOnly(runs);
+    const local = localRunsOnly(runs).filter(isPersistableRun);
     await Promise.all(local.map(run=>saveCorridaRow(run, uidOverride)));
   }
 
@@ -3246,6 +3278,12 @@ export default function TempoRunApp() {
   async function salvarCorrida(seg,km,bpm,pace,polyline=[]){
     setSalvando(true);
     const now=new Date();
+    if((parseFloat(km)||0) <= 0.1) {
+      setSalvando(false);
+      setSavedRun(null);
+      alert("Corrida muito curta para salvar. Registre pelo menos 0,1 km.");
+      return;
+    }
     // Nome: usa treino selecionado ou "Corrida livre"
     const nomeRun = selectedTreino?.nome || "Corrida livre";
     // Filtrar pontos válidos do polyline
